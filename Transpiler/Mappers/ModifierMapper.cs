@@ -12,7 +12,7 @@ public static class ModifierMapper
         ["public"]    = "public",
         ["private"]   = "private",
         ["protected"] = "protected",
-        ["internal"]  = "/* package-private */",  // no direct equivalent — drop
+        ["internal"]  = "",                           // no direct equivalent — drop
     };
 
     // ── Type modifiers ────────────────────────────────────────────────────────

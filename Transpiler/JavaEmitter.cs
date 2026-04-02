@@ -6,17 +6,21 @@ namespace Transpiler;
 
 /// <summary>
 /// Walks a C# syntax tree and emits Java source via JavaWriter.
-/// Add Visit* overrides here as you need more syntax support.
 /// </summary>
 public class JavaEmitter : CSharpSyntaxWalker
 {
-    private readonly JavaWriter        _w;
-    private readonly ImportTracker     _imports;
+    private readonly JavaWriter         _w;
+    private readonly ImportTracker      _imports;
     private readonly DiagnosticReporter _diag;
 
     // Track the C# type name of the current receiver so property/method lookups work.
-    // e.g. when we see  player.SendMessage(...)  we need to know "player" is McPlayer.
     private readonly Dictionary<string, string> _localTypes = new();
+
+    // Indentation state — updated as we enter/leave class and method bodies.
+    // _memberIndent : indentation for class members (methods, fields)
+    // _stmtIndent   : indentation for statements inside the current method/lambda
+    private string _memberIndent = "";
+    private string _stmtIndent   = "    ";
 
     public JavaEmitter(JavaWriter writer, ImportTracker imports, DiagnosticReporter diag)
     {
@@ -29,19 +33,17 @@ public class JavaEmitter : CSharpSyntaxWalker
 
     public override void VisitClassDeclaration(ClassDeclarationSyntax node)
     {
-        // Modifiers
         var mods = node.Modifiers
             .Select(m => ModifierMapper.MapModifier(m.Text))
             .Where(m => !string.IsNullOrWhiteSpace(m))
             .ToList();
 
-        // Base types / interfaces
         string baseClause = "";
         if (node.BaseList is { } bl)
         {
             var bases = bl.Types.Select(t => MapTypeName(t.Type.ToString())).ToList();
-            // IMod → implements ModInitializer
-            var interfaces = bases.Where(b => b.StartsWith("I") || b == "ModInitializer").ToList();
+            var interfaces = bases.Where(b => b == "ModInitializer" ||
+                                              (b.StartsWith("I") && b != "Iterable")).ToList();
             var superclass  = bases.Except(interfaces).FirstOrDefault();
 
             if (superclass != null)
@@ -54,14 +56,21 @@ public class JavaEmitter : CSharpSyntaxWalker
         _w.Line($"{modStr}class {node.Identifier.Text}{baseClause} {{");
         _w.Blank();
 
-        // Logger field — emit automatically for mod classes
-        _w.Line($"    public static final Logger LOGGER = LoggerFactory.getLogger(\"{node.Identifier.Text}\");");
+        string prevMember = _memberIndent;
+        string prevStmt   = _stmtIndent;
+        _memberIndent = "    ";
+        _stmtIndent   = "        ";
+
+        _w.Line($"{_memberIndent}public static final Logger LOGGER = LoggerFactory.getLogger(\"{node.Identifier.Text}\");");
         _imports.Add("org.slf4j.Logger");
         _imports.Add("org.slf4j.LoggerFactory");
         _w.Blank();
 
         foreach (var member in node.Members)
             Visit(member);
+
+        _memberIndent = prevMember;
+        _stmtIndent   = prevStmt;
 
         _w.Line("}");
     }
@@ -88,22 +97,27 @@ public class JavaEmitter : CSharpSyntaxWalker
             return $"{pType} {pName}";
         }));
 
-        if (isOverride) _w.Line("@Override");
+        if (isOverride) _w.Line($"{_memberIndent}@Override");
 
         string modStr = mods.Count > 0 ? string.Join(" ", mods) + " " : "public ";
-        _w.Line($"{modStr}{retType} {name}({paramList}) {{");
+        _w.Line($"{_memberIndent}{modStr}{retType} {name}({paramList}) {{");
+
+        // Push body indent
+        string prevStmt = _stmtIndent;
+        _stmtIndent = _memberIndent + "    ";
 
         if (node.Body != null)
             foreach (var stmt in node.Body.Statements)
                 Visit(stmt);
         else if (node.ExpressionBody != null)
         {
-            // expression-bodied method: void Foo() => expr;
             string expr = EmitExpression(node.ExpressionBody.Expression);
-            _w.Line($"    {expr};");
+            _w.Line($"{_stmtIndent}{expr};");
         }
 
-        _w.Line("}");
+        _stmtIndent = prevStmt;
+
+        _w.Line($"{_memberIndent}}}");
         _w.Blank();
     }
 
@@ -111,7 +125,6 @@ public class JavaEmitter : CSharpSyntaxWalker
 
     public override void VisitExpressionStatement(ExpressionStatementSyntax node)
     {
-        // Check for event subscription: Events.X += handler
         if (node.Expression is AssignmentExpressionSyntax assign &&
             assign.IsKind(SyntaxKind.AddAssignmentExpression) &&
             assign.Left is MemberAccessExpressionSyntax mae &&
@@ -122,23 +135,21 @@ public class JavaEmitter : CSharpSyntaxWalker
         }
 
         string expr = EmitExpression(node.Expression);
-        _w.Line($"    {expr};");
+        _w.Line($"{_stmtIndent}{expr};");
     }
 
     public override void VisitLocalDeclarationStatement(LocalDeclarationStatementSyntax node)
     {
         foreach (var v in node.Declaration.Variables)
         {
-            string csType  = node.Declaration.Type.ToString();
+            string csType   = node.Declaration.Type.ToString();
             string javaType = csType == "var" ? "var" : MapTypeName(csType);
-            string name    = v.Identifier.Text;
-
+            string name     = v.Identifier.Text;
             _localTypes[name] = csType;
 
             string line = v.Initializer != null
-                ? $"    {javaType} {name} = {EmitExpression(v.Initializer.Value)};"
-                : $"    {javaType} {name};";
-
+                ? $"{_stmtIndent}{javaType} {name} = {EmitExpression(v.Initializer.Value)};"
+                : $"{_stmtIndent}{javaType} {name};";
             _w.Line(line);
         }
     }
@@ -146,22 +157,29 @@ public class JavaEmitter : CSharpSyntaxWalker
     public override void VisitReturnStatement(ReturnStatementSyntax node)
     {
         if (node.Expression is null)
-            _w.Line("    return;");
+            _w.Line($"{_stmtIndent}return;");
         else
-            _w.Line($"    return {EmitExpression(node.Expression)};");
+            _w.Line($"{_stmtIndent}return {EmitExpression(node.Expression)};");
     }
 
     public override void VisitIfStatement(IfStatementSyntax node)
     {
         string cond = EmitExpression(node.Condition);
-        _w.Line($"    if ({cond}) {{");
+        _w.Line($"{_stmtIndent}if ({cond}) {{");
+
+        string outer = _stmtIndent;
+        _stmtIndent = outer + "    ";
         Visit(node.Statement);
+        _stmtIndent = outer;
+
         if (node.Else != null)
         {
-            _w.Line("    } else {");
+            _w.Line($"{outer}}} else {{");
+            _stmtIndent = outer + "    ";
             Visit(node.Else.Statement);
+            _stmtIndent = outer;
         }
-        _w.Line("    }");
+        _w.Line($"{outer}}}");
     }
 
     public override void VisitForEachStatement(ForEachStatementSyntax node)
@@ -169,9 +187,14 @@ public class JavaEmitter : CSharpSyntaxWalker
         string javaType = MapTypeName(node.Type.ToString());
         string varName  = node.Identifier.Text;
         string expr     = EmitExpression(node.Expression);
-        _w.Line($"    for ({javaType} {varName} : {expr}) {{");
+        _w.Line($"{_stmtIndent}for ({javaType} {varName} : {expr}) {{");
+
+        string outer = _stmtIndent;
+        _stmtIndent = outer + "    ";
         Visit(node.Statement);
-        _w.Line("    }");
+        _stmtIndent = outer;
+
+        _w.Line($"{outer}}}");
     }
 
     public override void VisitBlock(BlockSyntax node)
@@ -181,7 +204,6 @@ public class JavaEmitter : CSharpSyntaxWalker
     }
 
     // ── Expression emitter ────────────────────────────────────────────────────
-    // Returns a Java expression string without a trailing semicolon.
 
     private string EmitExpression(ExpressionSyntax expr) => expr switch
     {
@@ -206,28 +228,26 @@ public class JavaEmitter : CSharpSyntaxWalker
 
     private string EmitLiteral(LiteralExpressionSyntax lit) => lit.Kind() switch
     {
-        SyntaxKind.StringLiteralExpression  => lit.Token.Text,
+        SyntaxKind.StringLiteralExpression    => lit.Token.Text,
         SyntaxKind.CharacterLiteralExpression => lit.Token.Text,
-        SyntaxKind.TrueLiteralExpression    => "true",
-        SyntaxKind.FalseLiteralExpression   => "false",
-        SyntaxKind.NullLiteralExpression    => "null",
-        _                                   => lit.Token.Text,
+        SyntaxKind.TrueLiteralExpression      => "true",
+        SyntaxKind.FalseLiteralExpression     => "false",
+        SyntaxKind.NullLiteralExpression      => "null",
+        _                                     => lit.Token.Text,
     };
 
     private string EmitIdentifier(IdentifierNameSyntax id)
     {
-        // Map known C# type names used as expressions (e.g. "Math", "Console")
         string mapped = TypeMapper.Map(id.Identifier.Text);
         return mapped == id.Identifier.Text ? id.Identifier.Text : mapped;
     }
 
     private string EmitMemberAccess(MemberAccessExpressionSyntax mae)
     {
-        string target   = EmitExpression(mae.Expression);
-        string member   = mae.Name.Identifier.Text;
-        string csType   = ResolveType(mae.Expression);
+        string target = EmitExpression(mae.Expression);
+        string member = mae.Name.Identifier.Text;
+        string csType = ResolveType(mae.Expression);
 
-        // Property mapping
         string? prop = MethodMapper.GetProperty(csType, member);
         if (prop != null)
         {
@@ -235,11 +255,10 @@ public class JavaEmitter : CSharpSyntaxWalker
             return MethodMapper.Apply(prop, target);
         }
 
-        // Static methods on known statics (e.g. Math.Abs → used as expression chain)
         string fullName = $"{mae.Expression}.{member}";
         string? staticM = MethodMapper.GetStatic(fullName);
         if (staticM != null)
-            return staticM; // args filled in by InvocationExpression visitor
+            return staticM;
 
         return $"{target}.{ToCamelCase(member)}";
     }
@@ -248,18 +267,16 @@ public class JavaEmitter : CSharpSyntaxWalker
     {
         var args = inv.ArgumentList.Arguments.Select(a => EmitExpression(a.Expression)).ToArray();
 
-        // Static method: Console.WriteLine, Math.Abs, etc.
         string fullName = inv.Expression.ToString();
         string? staticM = MethodMapper.GetStatic(fullName);
         if (staticM != null)
             return FillArgs(staticM, null, args);
 
-        // Member call: target.Method(...)
         if (inv.Expression is MemberAccessExpressionSyntax mae)
         {
-            string target  = EmitExpression(mae.Expression);
-            string method  = mae.Name.Identifier.Text;
-            string csType  = ResolveType(mae.Expression);
+            string target = EmitExpression(mae.Expression);
+            string method = mae.Name.Identifier.Text;
+            string csType = ResolveType(mae.Expression);
 
             var mapping = MethodMapper.GetMethod(csType, method);
             if (mapping != null)
@@ -269,13 +286,11 @@ public class JavaEmitter : CSharpSyntaxWalker
                 return FillArgs(mapping.Template, target, args);
             }
 
-            // Unknown method — emit camelCase version with a warning
             _diag.Warn(inv, $"Unknown method {csType}.{method} — emitting as-is");
             string argStr = string.Join(", ", args);
             return $"{target}.{ToCamelCase(method)}({argStr})";
         }
 
-        // Simple call: FooBar(...)
         string argList = string.Join(", ", args);
         return $"{ToCamelCase(inv.Expression.ToString())}({argList})";
     }
@@ -293,7 +308,6 @@ public class JavaEmitter : CSharpSyntaxWalker
             return FillArgs(ctor, null, args);
         }
 
-        // Unknown — emit new JavaType(args)
         string javaType = MapTypeName(csType);
         _imports.AddForCsType(csType);
         return $"new {javaType}({string.Join(", ", args)})";
@@ -318,29 +332,46 @@ public class JavaEmitter : CSharpSyntaxWalker
     {
         string left  = EmitExpression(bin.Left);
         string right = EmitExpression(bin.Right);
-        string op    = bin.Kind() switch
+
+        // String equality: == and != with a string literal must use .equals() in Java
+        if (bin.IsKind(SyntaxKind.EqualsExpression) || bin.IsKind(SyntaxKind.NotEqualsExpression))
         {
-            SyntaxKind.IsExpression              => "instanceof",
-            SyntaxKind.AsExpression              => "instanceof", // emitter only; cast separately
-            SyntaxKind.CoalesceExpression        => "!=",        // x ?? y → simplified
-            SyntaxKind.AddExpression             => "+",
-            SyntaxKind.SubtractExpression        => "-",
-            SyntaxKind.MultiplyExpression        => "*",
-            SyntaxKind.DivideExpression          => "/",
-            SyntaxKind.ModuloExpression          => "%",
-            SyntaxKind.EqualsExpression          => "==",
-            SyntaxKind.NotEqualsExpression       => "!=",
-            SyntaxKind.LessThanExpression        => "<",
-            SyntaxKind.LessThanOrEqualExpression => "<=",
-            SyntaxKind.GreaterThanExpression     => ">",
+            bool leftIsString  = bin.Left  is LiteralExpressionSyntax ls1 && ls1.IsKind(SyntaxKind.StringLiteralExpression);
+            bool rightIsString = bin.Right is LiteralExpressionSyntax ls2 && ls2.IsKind(SyntaxKind.StringLiteralExpression);
+            if (leftIsString || rightIsString)
+            {
+                // Put the non-literal on the left for null safety (literal.equals avoids NPE on literal side)
+                string obj = rightIsString ? left : right;
+                string lit = rightIsString ? right : left;
+                return bin.IsKind(SyntaxKind.EqualsExpression)
+                    ? $"{obj}.equals({lit})"
+                    : $"!{obj}.equals({lit})";
+            }
+        }
+
+        string op = bin.Kind() switch
+        {
+            SyntaxKind.IsExpression                 => "instanceof",
+            SyntaxKind.AsExpression                 => "instanceof",
+            SyntaxKind.CoalesceExpression           => "!=",
+            SyntaxKind.AddExpression                => "+",
+            SyntaxKind.SubtractExpression           => "-",
+            SyntaxKind.MultiplyExpression           => "*",
+            SyntaxKind.DivideExpression             => "/",
+            SyntaxKind.ModuloExpression             => "%",
+            SyntaxKind.EqualsExpression             => "==",
+            SyntaxKind.NotEqualsExpression          => "!=",
+            SyntaxKind.LessThanExpression           => "<",
+            SyntaxKind.LessThanOrEqualExpression    => "<=",
+            SyntaxKind.GreaterThanExpression        => ">",
             SyntaxKind.GreaterThanOrEqualExpression => ">=",
-            SyntaxKind.LogicalAndExpression      => "&&",
-            SyntaxKind.LogicalOrExpression       => "||",
-            SyntaxKind.BitwiseAndExpression      => "&",
-            SyntaxKind.BitwiseOrExpression       => "|",
-            SyntaxKind.ExclusiveOrExpression     => "^",
-            SyntaxKind.LeftShiftExpression       => "<<",
-            SyntaxKind.RightShiftExpression      => ">>",
+            SyntaxKind.LogicalAndExpression         => "&&",
+            SyntaxKind.LogicalOrExpression          => "||",
+            SyntaxKind.BitwiseAndExpression         => "&",
+            SyntaxKind.BitwiseOrExpression          => "|",
+            SyntaxKind.ExclusiveOrExpression        => "^",
+            SyntaxKind.LeftShiftExpression          => "<<",
+            SyntaxKind.RightShiftExpression         => ">>",
             _ => bin.OperatorToken.Text,
         };
 
@@ -369,21 +400,16 @@ public class JavaEmitter : CSharpSyntaxWalker
 
     private string EmitInterpolatedString(InterpolatedStringExpressionSyntax istr)
     {
-        // $"Hello {name}!" → String.format("Hello %s!", name)
         var formatParts = new System.Text.StringBuilder();
         var args        = new List<string>();
 
         foreach (var content in istr.Contents)
         {
             if (content is InterpolatedStringTextSyntax text)
-            {
-                // Escape % signs in literal text
                 formatParts.Append(text.TextToken.Text.Replace("%", "%%"));
-            }
             else if (content is InterpolationSyntax hole)
             {
-                string argExpr = EmitExpression(hole.Expression);
-                args.Add(argExpr);
+                args.Add(EmitExpression(hole.Expression));
                 formatParts.Append("%s");
             }
         }
@@ -391,8 +417,7 @@ public class JavaEmitter : CSharpSyntaxWalker
         if (args.Count == 0)
             return $"\"{formatParts}\"";
 
-        string argList = string.Join(", ", args);
-        return $"String.format(\"{formatParts}\", {argList})";
+        return $"String.format(\"{formatParts}\", {string.Join(", ", args)})";
     }
 
     private string EmitIsPattern(IsPatternExpressionSyntax isp)
@@ -426,7 +451,6 @@ public class JavaEmitter : CSharpSyntaxWalker
         if (lam.ExpressionBody != null)
             return $"({paramList}) -> {EmitExpression(lam.ExpressionBody)}";
 
-        // Block-bodied lambda — emit as multi-line (best effort, caller handles indentation)
         var sb = new System.Text.StringBuilder();
         sb.Append($"({paramList}) -> {{");
         if (lam.Block != null)
@@ -449,8 +473,8 @@ public class JavaEmitter : CSharpSyntaxWalker
 
         _imports.AddForEvent(mapping);
         _imports.Add("net.minecraft.server.network.ServerPlayerEntity");
+        _imports.Add("net.minecraft.server.MinecraftServer");
 
-        // Extract lambda param names and body
         string[] paramNames;
         BlockSyntax? body = null;
 
@@ -470,27 +494,53 @@ public class JavaEmitter : CSharpSyntaxWalker
                 break;
         }
 
-        // Register lambda param types for body resolution
-        if (paramNames.Length > 0)
-            _localTypes[paramNames[0]] = "McPlayer";
-        if (paramNames.Length > 1)
-            _localTypes[paramNames[1]] = "BlockPos";
+        // Register lambda param types using CsParamTypes from the event mapping
+        for (int i = 0; i < paramNames.Length; i++)
+        {
+            if (mapping.CsParamTypes != null && i < mapping.CsParamTypes.Length)
+                _localTypes[paramNames[i]] = mapping.CsParamTypes[i];
+            else if (i == 0)
+                _localTypes[paramNames[i]] = "McPlayer";
+        }
 
-        // Build preamble with actual param names
+        // Build preamble with actual param names substituted
         string preamble = mapping.Preamble;
         for (int i = 0; i < paramNames.Length; i++)
             preamble = preamble.Replace($"{{{i}}}", paramNames[i]);
 
-        _w.Line($"    {mapping.FabricClass}.{mapping.FabricEvent}.register({mapping.JavaArgs} -> {{");
+        string innerIndent = _stmtIndent + "    ";
+
+        _w.Line($"{_stmtIndent}{mapping.FabricClass}.{mapping.FabricEvent}.register({mapping.JavaArgs} -> {{");
 
         if (!string.IsNullOrWhiteSpace(preamble))
-            _w.Line($"        {preamble}");
+        {
+            foreach (var stmt in preamble.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            {
+                var eqIdx = stmt.IndexOf('=');
+                if (eqIdx < 0) { _w.Line($"{innerIndent}{stmt};"); continue; }
+
+                string lhs = stmt[..eqIdx].Trim();
+                string rhs = stmt[(eqIdx + 1)..].Trim();
+                string declaredName = lhs.Split(' ').Last();
+
+                // Skip pure self-assignments (e.g. "ServerPlayerEntity player = player"
+                // when player is already a typed lambda arg of the correct type)
+                if (rhs == declaredName) continue;
+
+                _w.Line($"{innerIndent}{stmt};");
+            }
+        }
 
         if (body != null)
+        {
+            string prevStmt = _stmtIndent;
+            _stmtIndent = innerIndent;
             foreach (var stmt in body.Statements)
-                EmitStatementIndented(stmt, "        ");
+                Visit(stmt);
+            _stmtIndent = prevStmt;
+        }
 
-        _w.Line("    });");
+        _w.Line($"{_stmtIndent}}});");
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -507,7 +557,6 @@ public class JavaEmitter : CSharpSyntaxWalker
     private static string ToCamelCase(string name)
     {
         if (string.IsNullOrEmpty(name)) return name;
-        // If already camelCase (first char lowercase) leave it
         if (char.IsLower(name[0])) return name;
         return char.ToLowerInvariant(name[0]) + name[1..];
     }
@@ -528,7 +577,6 @@ public class JavaEmitter : CSharpSyntaxWalker
         return expr.ToString();
     }
 
-    /// <summary>Emits a statement as a single inline string (for lambdas).</summary>
     private string EmitStatementInline(StatementSyntax stmt) => stmt switch
     {
         ExpressionStatementSyntax es => EmitExpression(es.Expression) + ";",
@@ -537,64 +585,4 @@ public class JavaEmitter : CSharpSyntaxWalker
             : "return;",
         _ => stmt.ToString().Trim(),
     };
-
-    /// <summary>Emits a statement with explicit indentation (used inside event lambda bodies).</summary>
-    private void EmitStatementIndented(StatementSyntax stmt, string indent)
-    {
-        switch (stmt)
-        {
-            case ExpressionStatementSyntax es:
-                if (es.Expression is AssignmentExpressionSyntax asgn &&
-                    asgn.IsKind(SyntaxKind.AddAssignmentExpression) &&
-                    asgn.Left is MemberAccessExpressionSyntax mae &&
-                    mae.Expression.ToString() == "Events")
-                {
-                    // nested event subscription inside another handler
-                    EmitEventSubscription(mae.Name.Identifier.Text, asgn.Right);
-                    return;
-                }
-                _w.Line($"{indent}{EmitExpression(es.Expression)};");
-                break;
-            case ReturnStatementSyntax rs:
-                _w.Line(rs.Expression != null
-                    ? $"{indent}return {EmitExpression(rs.Expression)};"
-                    : $"{indent}return;");
-                break;
-            case LocalDeclarationStatementSyntax ld:
-                foreach (var v in ld.Declaration.Variables)
-                {
-                    string csType  = ld.Declaration.Type.ToString();
-                    string javaType = csType == "var" ? "var" : MapTypeName(csType);
-                    _localTypes[v.Identifier.Text] = csType;
-                    string init = v.Initializer != null
-                        ? $" = {EmitExpression(v.Initializer.Value)}" : "";
-                    _w.Line($"{indent}{javaType} {v.Identifier.Text}{init};");
-                }
-                break;
-            case IfStatementSyntax ifs:
-                _w.Line($"{indent}if ({EmitExpression(ifs.Condition)}) {{");
-                if (ifs.Statement is BlockSyntax blk)
-                    foreach (var s in blk.Statements) EmitStatementIndented(s, indent + "    ");
-                else EmitStatementIndented(ifs.Statement, indent + "    ");
-                if (ifs.Else != null)
-                {
-                    _w.Line($"{indent}}} else {{");
-                    EmitStatementIndented(ifs.Else.Statement, indent + "    ");
-                }
-                _w.Line($"{indent}}}");
-                break;
-            case ForEachStatementSyntax fe:
-                _w.Line($"{indent}for ({MapTypeName(fe.Type.ToString())} {fe.Identifier.Text} : {EmitExpression(fe.Expression)}) {{");
-                if (fe.Statement is BlockSyntax feb)
-                    foreach (var s in feb.Statements) EmitStatementIndented(s, indent + "    ");
-                _w.Line($"{indent}}}");
-                break;
-            case BlockSyntax blk2:
-                foreach (var s in blk2.Statements) EmitStatementIndented(s, indent);
-                break;
-            default:
-                _w.Line($"{indent}{stmt.ToString().Trim()}");
-                break;
-        }
-    }
 }

@@ -68,6 +68,10 @@ public static class TypeMapper
         ["McText"]              = "Text",
         ["ChatMessage"]         = "Text",
 
+        // Mod entrypoint
+        ["IMod"]                = "ModInitializer",
+        ["ModInitializer"]      = "ModInitializer",
+
         // Server
         ["McServer"]            = "MinecraftServer",
         ["MinecraftServer"]     = "MinecraftServer",
@@ -215,6 +219,7 @@ public static class TypeMapper
 
     public static readonly Dictionary<string, string> ImportMap = new()
     {
+        ["ModInitializer"]       = "net.fabricmc.api.ModInitializer",
         ["ServerPlayerEntity"]   = "net.minecraft.server.network.ServerPlayerEntity",
         ["PlayerEntity"]         = "net.minecraft.entity.player.PlayerEntity",
         ["ServerWorld"]          = "net.minecraft.server.world.ServerWorld",

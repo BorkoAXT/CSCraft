@@ -107,9 +107,11 @@ public class TranspileMod : Microsoft.Build.Utilities.Task
 
             if (result.Errors.Count > 0) continue;
 
-            // Write output .java file — name matches the C# filename
-            string baseName  = Path.GetFileNameWithoutExtension(csPath);
-            string javaPath  = Path.Combine(OutputDirectory, baseName + ".java");
+            // Use the public class name from the Java output as the filename
+            // Java requires the file name to match the public class name
+            string baseName = ExtractClassName(result.JavaSource)
+                              ?? Path.GetFileNameWithoutExtension(csPath);
+            string javaPath = Path.Combine(OutputDirectory, baseName + ".java");
 
             File.WriteAllText(javaPath, result.JavaSource);
             Log.LogMessage(MessageImportance.Normal, $"CSCraft: {csPath} → {javaPath}");
@@ -118,5 +120,12 @@ public class TranspileMod : Microsoft.Build.Utilities.Task
 
         GeneratedFiles = generated.ToArray();
         return success;
+    }
+
+    private static string? ExtractClassName(string javaSource)
+    {
+        var match = System.Text.RegularExpressions.Regex.Match(
+            javaSource, @"public class (\w+)");
+        return match.Success ? match.Groups[1].Value : null;
     }
 }

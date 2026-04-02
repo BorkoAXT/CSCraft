@@ -27,8 +27,8 @@
         Exclude="$(IntermediateOutputPath)**;**/*.g.cs;**/*.AssemblyInfo.cs" />
     </ItemGroup>
 
-    <Message Text="CSCraft: transpiling $([System.String]::Join(', ', @(_CSCraftSources->'%(Filename)%(Extension)')))"
-             Importance="High" />
+    <Message Text="CSCraft: transpiling %(  _CSCraftSources.Filename)%(_CSCraftSources.Extension)"
+             Importance="High" Condition="'@(_CSCraftSources)' != ''" />
 
     <TranspileMod
       SourceFiles="@(_CSCraftSources)"
@@ -39,14 +39,12 @@
 
     <!-- Optionally run Gradle -->
     <Exec Condition="'$(CSCraftRunGradle)' == 'true' and Exists('$(CSCraftFabricPath)/gradlew')"
-          Command="chmod +x &quot;$(CSCraftFabricPath)/gradlew&quot; &amp;&amp; &quot;$(CSCraftFabricPath)/gradlew&quot; build"
-          WorkingDirectory="$(CSCraftFabricPath)"
-          ConsoleToMSBuild="true" />
+          Command="export JAVA_HOME=&quot;$(CSCraftJavaHome)&quot; &amp;&amp; chmod +x &quot;$(CSCraftFabricPath)/gradlew&quot; &amp;&amp; &quot;$(CSCraftFabricPath)/gradlew&quot; build"
+          WorkingDirectory="$(CSCraftFabricPath)" />
 
     <Exec Condition="'$(CSCraftRunGradle)' == 'true' and Exists('$(CSCraftFabricPath)/gradlew.bat')"
-          Command="&quot;$(CSCraftFabricPath)/gradlew.bat&quot; build"
-          WorkingDirectory="$(CSCraftFabricPath)"
-          ConsoleToMSBuild="true" />
+          Command="set JAVA_HOME=$(CSCraftJavaHome) &amp;&amp; &quot;$(CSCraftFabricPath)/gradlew.bat&quot; build"
+          WorkingDirectory="$(CSCraftFabricPath)" />
 
   </Target>
 

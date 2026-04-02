@@ -10,6 +10,7 @@
     -->
     <CSCraftPackageName Condition="'$(CSCraftPackageName)' == ''">com.example.mymod</CSCraftPackageName>
     <CSCraftRunGradle   Condition="'$(CSCraftRunGradle)'   == ''">true</CSCraftRunGradle>
+    <CSCraftJavaHome    Condition="'$(CSCraftJavaHome)'    == ''">/usr/lib/jvm/java-25-openjdk</CSCraftJavaHome>
   </PropertyGroup>
 
 </Project>
