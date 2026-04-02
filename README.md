@@ -29,7 +29,7 @@ dotnet add package CSCraft.Sdk
 
 ### 3. Set up the FabricTemplate
 
-Copy the `FabricTemplate` folder (included with CSCraft) into your project directory so it sits next to your `.csproj` file:
+Copy the FabricTemplate folder (included with CSCraft) into your project directory so it sits next to your `.csproj` file:
 
 ```
 MyMod/
@@ -71,6 +71,155 @@ MyMod/
 
 </Project>
 ```
+
+### 5. Configure FabricTemplate
+
+Ensure your FabricTemplate folder contains the correct build.gradle and gradle.properties files. If the template is outdated or has hardcoded versions, update them to use properties and disable split source sets to avoid compilation issues.
+
+#### gradle.properties
+```properties
+# Done to increase the memory available to gradle.
+org.gradle.jvmargs=-Xmx1G
+org.gradle.parallel=true
+org.gradle.configuration-cache=false
+
+# Fabric Properties
+# check these on https://fabricmc.net/develop
+minecraft_version=1.21.1
+yarn_mappings=1.21.1+build.3
+loader_version=0.18.6
+loom_version=1.6.12
+
+# Mod Properties
+mod_version=1.0.0
+maven_group=com.yourname.mymod
+archives_base_name=mymod
+
+# Dependencies
+fabric_api_version=0.116.9+1.21.1
+```
+
+#### build.gradle
+```gradle
+buildscript {
+    repositories {
+        maven { url = 'https://maven.fabricmc.net/' }
+        mavenCentral()
+        gradlePluginPortal()
+    }
+    dependencies {
+        classpath "net.fabricmc:fabric-loom:${project.loom_version}"
+    }
+}
+
+apply plugin: 'fabric-loom'
+apply plugin: 'maven-publish'
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+    archivesName = project.archives_base_name
+}
+
+repositories {
+    maven { url = 'https://maven.fabricmc.net/' }
+    mavenCentral()
+}
+
+loom {
+    // splitEnvironmentSourceSets()
+    // no need to manually assign sourceSets.client
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+}
+
+processResources {
+    inputs.property "version", project.version
+
+    filesMatching("fabric.mod.json") {
+        expand "version": inputs.properties.version
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.release = 21
+}
+```
+
+**Important Notes:**
+- Always use `${project.property}` references in build.gradle instead of hardcoded versions to ensure the properties in gradle.properties are used.
+- Comment out `splitEnvironmentSourceSets()` to prevent classpath issues with client-side mixins; the client source set will inherit from the main source set.
+- Regularly update the versions in gradle.properties to the latest compatible with your Minecraft version (check https://fabricmc.net/develop for the latest recommended versions).
+
+---
+
+## Tutorial: Creating Your First Mod
+
+Follow this step-by-step guide to create a simple mod that welcomes players, gives them starter items, and adds chat commands.
+
+### Step 1: Set Up the Project
+
+1. Create a new C# class library: `dotnet new classlib -n MyFirstMod`
+2. Navigate to the directory: `cd MyFirstMod`
+3. Add the CSCraft SDK: `dotnet add package CSCraft.Sdk`
+4. Copy the FabricTemplate folder into your project directory.
+5. Update your `.csproj` file as shown in the Project Setup section.
+6. Configure build.gradle and gradle.properties as detailed above, ensuring versions are up-to-date and `splitEnvironmentSourceSets()` is commented out.
+
+### Step 2: Write the Mod Code
+
+Create a new file `MyFirstMod.cs` in your project root:
+
+```csharp
+using CSCraft;
+
+public class MyFirstMod : IMod
+{
+    public void OnInitialize()
+    {
+        // Welcome message and starter kit on player join
+        Events.PlayerJoin += (player) =>
+        {
+            player.SendMessage($"Welcome to the server, {player.Name}!");
+            player.GiveItem("minecraft:bread", 16);
+            player.GiveItem("minecraft:iron_sword", 1);
+        };
+
+        // Simple chat commands
+        Events.ChatMessage += (player, message) =>
+        {
+            if (message == "!heal")
+            {
+                player.Heal(20);
+                player.SendMessage("You have been healed!");
+            }
+            else if (message == "!spawn")
+            {
+                player.Teleport(0, 64, 0);
+                player.SendMessage("Teleported to spawn!");
+            }
+        };
+    }
+}
+```
+
+### Step 3: Build and Test
+
+1. Build the project: `dotnet build`
+   - This compiles your C# code and runs Gradle to build the Fabric mod.
+2. Locate the output `.jar` in libs.
+3. Copy the `.jar` to your Minecraft `mods/` folder.
+4. Ensure Fabric Loader is installed in your Minecraft launcher.
+5. Launch Minecraft and join a world.
+6. Test the mod: Join as a new player to receive the welcome message and items. Use `!heal` and `!spawn` in chat.
+
+Congratulations! You've created your first CSCraft mod. Experiment with more events and player methods to expand functionality.
 
 ---
 
@@ -176,7 +325,7 @@ cd FabricTemplate
 ## Installing the Mod
 
 1. Build the project (`dotnet build`)
-2. Copy the `.jar` from `FabricTemplate/build/libs/` into your Minecraft `mods/` folder
+2. Copy the `.jar` from libs into your Minecraft `mods/` folder
 3. Make sure Fabric Loader is installed
 4. Launch Minecraft
 
@@ -223,10 +372,13 @@ public class MyMod : IMod
 ## Troubleshooting
 
 **`mappings not found` or Gradle errors**
-Make sure your `FabricTemplate/build.gradle` uses the buildscript approach and Gradle 8.8. See the included `FabricTemplate` for the correct configuration.
+Make sure your build.gradle uses the buildscript approach and Gradle 8.8. See the included FabricTemplate for the correct configuration. Update versions in gradle.properties to the latest from https://fabricmc.net/develop.
 
 **`Java not found`**
 Either add Java 21 to your system PATH, or set `<CSCraftJavaHome>` in your `.csproj` to the full path of your Java 21 installation.
 
 **`release version X not supported`**
 You're using the wrong Java version. CSCraft requires Java 21. Check that `<CSCraftJavaHome>` points to Java 21, not a newer version.
+
+**Client mixin compilation errors**
+Ensure `splitEnvironmentSourceSets()` is commented out in build.gradle to allow the client source set to inherit the classpath. If issues persist, update method names in mixins to match the current Minecraft version's Yarn mappings.
