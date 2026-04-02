@@ -1,0 +1,53 @@
+<Project>
+
+  <!-- Register the transpiler MSBuild task from the DLL bundled in this package -->
+  <UsingTask
+    TaskName="BuildTask.TranspileMod"
+    AssemblyFile="$(MSBuildThisFileDirectory)tasks/BuildTask.dll" />
+
+  <!--
+    Runs after the C# compile so Roslyn has already validated the code,
+    but we hook BeforeTargets="Build" so it's part of a normal dotnet build.
+  -->
+  <Target Name="CSCraftTranspile" BeforeTargets="Build"
+          Condition="'$(CSCraftFabricPath)' != ''">
+
+    <Error Condition="'$(CSCraftPackageName)' == ''"
+           Text="CSCraft: Set &lt;CSCraftPackageName&gt; in your .csproj, e.g. com.yourname.mymod" />
+
+    <!-- Resolve the Java output directory from the package name -->
+    <PropertyGroup>
+      <_PackageFolder>$(CSCraftPackageName.Replace('.', '\'))</_PackageFolder>
+      <CSCraftOutputDir Condition="'$(CSCraftOutputDir)' == ''">$(CSCraftFabricPath)/src/main/java/$(_PackageFolder)</CSCraftOutputDir>
+    </PropertyGroup>
+
+    <!-- Collect all .cs files that aren't generated or in obj/ -->
+    <ItemGroup>
+      <_CSCraftSources Include="@(Compile)"
+        Exclude="$(IntermediateOutputPath)**;**/*.g.cs;**/*.AssemblyInfo.cs" />
+    </ItemGroup>
+
+    <Message Text="CSCraft: transpiling $([System.String]::Join(', ', @(_CSCraftSources->'%(Filename)%(Extension)')))"
+             Importance="High" />
+
+    <TranspileMod
+      SourceFiles="@(_CSCraftSources)"
+      OutputDirectory="$(CSCraftOutputDir)"
+      PackageName="$(CSCraftPackageName)" />
+
+    <Message Text="CSCraft: Java written to $(CSCraftOutputDir)" Importance="High" />
+
+    <!-- Optionally run Gradle -->
+    <Exec Condition="'$(CSCraftRunGradle)' == 'true' and Exists('$(CSCraftFabricPath)/gradlew')"
+          Command="chmod +x &quot;$(CSCraftFabricPath)/gradlew&quot; &amp;&amp; &quot;$(CSCraftFabricPath)/gradlew&quot; build"
+          WorkingDirectory="$(CSCraftFabricPath)"
+          ConsoleToMSBuild="true" />
+
+    <Exec Condition="'$(CSCraftRunGradle)' == 'true' and Exists('$(CSCraftFabricPath)/gradlew.bat')"
+          Command="&quot;$(CSCraftFabricPath)/gradlew.bat&quot; build"
+          WorkingDirectory="$(CSCraftFabricPath)"
+          ConsoleToMSBuild="true" />
+
+  </Target>
+
+</Project>

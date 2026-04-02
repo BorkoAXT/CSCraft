@@ -1,0 +1,15 @@
+<Project>
+
+  <PropertyGroup>
+    <!--
+      Set these in your .csproj to configure the transpiler:
+
+        <CSCraftPackageName>com.yourname.mymod</CSCraftPackageName>
+        <CSCraftFabricPath>C:\path\to\FabricTemplate</CSCraftFabricPath>
+        <CSCraftOutputDir>$(CSCraftFabricPath)\src\main\java</CSCraftOutputDir>
+    -->
+    <CSCraftPackageName Condition="'$(CSCraftPackageName)' == ''">com.example.mymod</CSCraftPackageName>
+    <CSCraftRunGradle   Condition="'$(CSCraftRunGradle)'   == ''">true</CSCraftRunGradle>
+  </PropertyGroup>
+
+</Project>

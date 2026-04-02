@@ -72,6 +72,10 @@ public class ImportTracker
     public void AddForEvent(EventMapping mapping)
         => _imports.Add(mapping.FabricImport);
 
+    // ── Expose raw set ────────────────────────────────────────────────────────
+
+    public HashSet<string> GetImports() => new(_imports);
+
     // ── Emit ──────────────────────────────────────────────────────────────────
 
     /// <summary>

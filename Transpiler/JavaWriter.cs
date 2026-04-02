@@ -1,5 +1,7 @@
 using System.Text;
 
+namespace Transpiler;
+
 public class JavaWriter
 {
     private readonly StringBuilder _sb = new();
@@ -15,8 +17,15 @@ public class JavaWriter
     public IDisposable Block()
     {
         OpenBrace();
-        return new BlockScope(this); // calls CloseBrace on Dispose
+        return new BlockScope(this);
     }
 
     public string GetOutput() => _sb.ToString();
+
+    private sealed class BlockScope : IDisposable
+    {
+        private readonly JavaWriter _writer;
+        public BlockScope(JavaWriter writer) => _writer = writer;
+        public void Dispose() => _writer.CloseBrace();
+    }
 }

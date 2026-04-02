@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+    <!-- NuGet package metadata -->
+    <PackageId>CSCraft.Sdk</PackageId>
+    <Version>1.0.0</Version>
+    <Description>Write Minecraft Fabric mods in C#. Reference this package, write your mod, build — the transpiler converts it to Java and compiles the Fabric mod automatically.</Description>
+    <PackageOutputPath>../nupkg</PackageOutputPath>
+
+    <!-- Don't emit a lib DLL for this wrapper project itself -->
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <NoWarn>NU5128</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Stubs DLL → lib/ so consumers get IntelliSense and types -->
+    <None Include="../CSharpStubs/bin/Release/net9.0/CSharpStubs.dll"
+          Pack="true" PackagePath="lib/net9.0/" />
+
+    <!-- MSBuild integration files -->
+    <None Include="build/CSCraft.Sdk.props"   Pack="true" PackagePath="build/" />
+    <None Include="build/CSCraft.Sdk.targets" Pack="true" PackagePath="build/" />
+
+    <!-- All published task DLLs (BuildTask + Transpiler + Roslyn deps) -->
+    <None Include="build/tasks/*.dll" Pack="true" PackagePath="build/tasks/" />
+  </ItemGroup>
+
+</Project>
