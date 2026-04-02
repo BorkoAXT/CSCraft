@@ -1,0 +1,165 @@
+namespace Transpiler;
+
+/// <summary>
+/// Tracks which Java imports are needed during transpilation
+/// and emits the final import block at the top of the Java file.
+///
+/// The emitter calls Add() as it encounters types/methods that need imports.
+/// At the end, GetImportBlock() returns the sorted, deduplicated import statements.
+/// </summary>
+public class ImportTracker
+{
+    private readonly HashSet<string> _imports = new();
+
+    // ── Always-present imports for any Fabric mod ─────────────────────────────
+
+    private static readonly string[] FabricBaseImports =
+    [
+        "net.fabricmc.api.ModInitializer",
+        "org.slf4j.Logger",
+        "org.slf4j.LoggerFactory",
+    ];
+
+    // ── Common Minecraft imports that are almost always needed ────────────────
+
+    private static readonly string[] MinecraftCommonImports =
+    [
+        "net.minecraft.server.network.ServerPlayerEntity",
+        "net.minecraft.text.Text",
+    ];
+
+    public ImportTracker(bool includeFabricBase = true)
+    {
+        if (includeFabricBase)
+            foreach (var i in FabricBaseImports)
+                _imports.Add(i);
+    }
+
+    // ── Add imports ───────────────────────────────────────────────────────────
+
+    /// <summary>Add a single fully-qualified import.</summary>
+    public void Add(string fullyQualified) => _imports.Add(fullyQualified);
+
+    /// <summary>Add multiple imports at once.</summary>
+    public void AddRange(IEnumerable<string> imports)
+    {
+        foreach (var i in imports) _imports.Add(i);
+    }
+
+    /// <summary>
+    /// Add an import by looking up a C# type name in TypeMapper's import map.
+    /// Does nothing if no mapping is found.
+    /// </summary>
+    public void AddForCsType(string csTypeName)
+    {
+        string javaType = TypeMapper.Map(csTypeName);
+        if (TypeMapper.ImportMap.TryGetValue(javaType, out var import))
+            _imports.Add(import);
+    }
+
+    /// <summary>
+    /// Add imports declared on a MethodMapping.
+    /// </summary>
+    public void AddFromMethod(MethodMapping? mapping)
+    {
+        if (mapping?.Imports == null) return;
+        foreach (var i in mapping.Imports) _imports.Add(i);
+    }
+
+    /// <summary>
+    /// Add the import for a Fabric event.
+    /// </summary>
+    public void AddForEvent(EventMapping mapping)
+        => _imports.Add(mapping.FabricImport);
+
+    // ── Emit ──────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Returns the sorted, grouped import block as a Java source string.
+    /// Groups: java.*, javax.*, net.minecraft.*, net.fabricmc.*, org.*
+    /// </summary>
+    public string GetImportBlock()
+    {
+        var groups = new[]
+        {
+            _imports.Where(i => i.StartsWith("java.")).Order(),
+            _imports.Where(i => i.StartsWith("javax.")).Order(),
+            _imports.Where(i => i.StartsWith("net.minecraft.")).Order(),
+            _imports.Where(i => i.StartsWith("net.fabricmc.")).Order(),
+            _imports.Where(i => i.StartsWith("org.")).Order(),
+            _imports.Where(i => !i.StartsWith("java") &&
+                                !i.StartsWith("javax") &&
+                                !i.StartsWith("net.") &&
+                                !i.StartsWith("org.")).Order(),
+        };
+
+        var lines = new List<string>();
+        foreach (var group in groups)
+        {
+            var groupList = group.ToList();
+            if (groupList.Count == 0) continue;
+            foreach (var import in groupList)
+                lines.Add($"import {import};");
+            lines.Add(""); // blank line between groups
+        }
+
+        // Remove trailing blank line
+        while (lines.Count > 0 && lines[^1] == "")
+            lines.RemoveAt(lines.Count - 1);
+
+        return string.Join("\n", lines);
+    }
+}
+
+/// <summary>
+/// Static lookup for well-known import paths that the emitter might need
+/// without going through TypeMapper (e.g. for Fabric event classes).
+/// </summary>
+public static class ImportMapper
+{
+    public static readonly Dictionary<string, string> WellKnown = new()
+    {
+        // Fabric events
+        ["ServerPlayConnectionEvents"]  = "net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents",
+        ["PlayerBlockBreakEvents"]      = "net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents",
+        ["UseBlockCallback"]            = "net.fabricmc.fabric.api.event.player.UseBlockCallback",
+        ["UseItemCallback"]             = "net.fabricmc.fabric.api.event.player.UseItemCallback",
+        ["ServerMessageEvents"]         = "net.fabricmc.fabric.api.message.v1.ServerMessageEvents",
+        ["ServerLifecycleEvents"]       = "net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents",
+        ["ServerTickEvents"]            = "net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents",
+        ["ServerEntityEvents"]          = "net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents",
+        ["ServerLivingEntityEvents"]    = "net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents",
+        ["ServerChunkEvents"]           = "net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents",
+
+        // Minecraft core
+        ["Text"]                = "net.minecraft.text.Text",
+        ["Identifier"]          = "net.minecraft.util.Identifier",
+        ["Registries"]          = "net.minecraft.registry.Registries",
+        ["World"]               = "net.minecraft.world.World",
+        ["GameMode"]            = "net.minecraft.world.GameMode",
+        ["SoundCategory"]       = "net.minecraft.sound.SoundCategory",
+        ["BlockPos"]            = "net.minecraft.util.math.BlockPos",
+        ["ItemStack"]           = "net.minecraft.item.ItemStack",
+        ["Entity"]              = "net.minecraft.entity.Entity",
+        ["LivingEntity"]        = "net.minecraft.entity.LivingEntity",
+        ["ServerPlayerEntity"]  = "net.minecraft.server.network.ServerPlayerEntity",
+        ["ServerWorld"]         = "net.minecraft.server.world.ServerWorld",
+        ["MinecraftServer"]     = "net.minecraft.server.MinecraftServer",
+        ["StatusEffectInstance"]= "net.minecraft.entity.effect.StatusEffectInstance",
+        ["DamageSource"]        = "net.minecraft.entity.damage.DamageSource",
+        ["NbtCompound"]         = "net.minecraft.nbt.NbtCompound",
+        ["TypeFilter"]          = "net.minecraft.util.TypeFilter",
+
+        // Java stdlib
+        ["UUID"]                = "java.util.UUID",
+        ["List"]                = "java.util.List",
+        ["ArrayList"]           = "java.util.ArrayList",
+        ["HashMap"]             = "java.util.HashMap",
+        ["HashSet"]             = "java.util.HashSet",
+        ["Optional"]            = "java.util.Optional",
+        ["CompletableFuture"]   = "java.util.concurrent.CompletableFuture",
+    };
+
+    public static string? Get(string javaSimpleName)
+        => WellKnown.TryGetValue(javaSimpleName, out var v) ? v : null;
+}
