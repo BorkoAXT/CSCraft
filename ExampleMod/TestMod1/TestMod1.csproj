@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        
+        <CSCraftPackageName>com.yourname.mymod</CSCraftPackageName>
+        <CSCraftFabricPath>$(MSBuildProjectDirectory)\FabricTemplate</CSCraftFabricPath>
+        <CSCraftJavaHome></CSCraftJavaHome>
+        <CSCraftRunGrandle>true</CSCraftRunGrandle>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="CSCraft.Sdk" Version="1.0.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="FabricTemplate\" />
+    </ItemGroup>
+
+</Project>
