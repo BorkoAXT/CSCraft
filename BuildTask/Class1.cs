@@ -7,6 +7,8 @@ namespace BuildTask;
 /// <summary>
 /// MSBuild task that transpiles .cscraft source files to Java
 /// and places the output next to the Fabric template source tree.
+/// Also scans each source file for McRecipe.Register* calls and generates
+/// the corresponding Minecraft recipe JSON files.
 ///
 /// Usage in a .csproj:
 ///   &lt;UsingTask TaskName="TranspileMod" AssemblyFile="path\to\BuildTask.dll" /&gt;
@@ -14,8 +16,13 @@ namespace BuildTask;
 ///     &lt;TranspileMod
 ///         SourceFiles="@(CSCraftSource)"
 ///         OutputDirectory="$(FabricSrcDir)"
-///         PackageName="com.example.mymod" /&gt;
+///         PackageName="com.example.mymod"
+///         ResourcesDirectory="$(FabricResourcesDir)" /&gt;
 ///   &lt;/Target&gt;
+///
+/// ResourcesDirectory is optional. When provided, recipe JSONs are written to:
+///   {ResourcesDirectory}/data/{modId}/recipe/{recipeName}.json
+/// where modId is the last segment of PackageName (e.g. "mymod" from "com.example.mymod").
 /// </summary>
 public class TranspileMod : Microsoft.Build.Utilities.Task
 {
@@ -32,6 +39,13 @@ public class TranspileMod : Microsoft.Build.Utilities.Task
     /// <summary>Java package name, e.g. "com.example.mymod".</summary>
     [Required]
     public string PackageName { get; set; } = "";
+
+    /// <summary>
+    /// Root resources directory of the Fabric project (the one containing assets/ and data/).
+    /// When set, recipe JSON files are generated under {ResourcesDirectory}/data/{modId}/recipe/.
+    /// Optional — omit to skip recipe JSON generation.
+    /// </summary>
+    public string ResourcesDirectory { get; set; } = "";
 
     // ── Outputs ───────────────────────────────────────────────────────────────
 
@@ -116,6 +130,39 @@ public class TranspileMod : Microsoft.Build.Utilities.Task
             File.WriteAllText(javaPath, result.JavaSource);
             Log.LogMessage(MessageImportance.Normal, $"CSCraft: {csPath} → {javaPath}");
             generated.Add(new TaskItem(javaPath));
+
+            // ── Recipe JSON generation ────────────────────────────────────────
+            if (!string.IsNullOrWhiteSpace(ResourcesDirectory))
+            {
+                var recipeWarnings = new List<string>();
+                var recipes = RecipeGenerator.Generate(csSource, recipeWarnings);
+
+                foreach (var w in recipeWarnings)
+                    Log.LogWarning(subcategory: "CSCraft", warningCode: "CSCRAFT003",
+                        helpKeyword: null, file: csPath,
+                        lineNumber: 0, columnNumber: 0, endLineNumber: 0, endColumnNumber: 0,
+                        message: w);
+
+                if (recipes.Count > 0)
+                {
+                    // modId = last dot-segment of PackageName, e.g. "com.example.mymod" → "mymod"
+                    string modId = PackageName.Contains('.')
+                        ? PackageName[(PackageName.LastIndexOf('.') + 1)..]
+                        : PackageName;
+
+                    string recipeDir = Path.Combine(ResourcesDirectory, "data", modId, "recipe");
+                    Directory.CreateDirectory(recipeDir);
+
+                    foreach (var (filename, json) in recipes)
+                    {
+                        string recipePath = Path.Combine(recipeDir, filename);
+                        File.WriteAllText(recipePath, json);
+                        Log.LogMessage(MessageImportance.Normal,
+                            $"CSCraft recipe: {filename} → {recipePath}");
+                        generated.Add(new TaskItem(recipePath));
+                    }
+                }
+            }
         }
 
         GeneratedFiles = generated.ToArray();

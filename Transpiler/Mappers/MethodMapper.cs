@@ -87,9 +87,11 @@ public static class MethodMapper
         ["FillBlocks"]      = new("/* fill {0},{1},{2} to {3},{4},{5} with {6} */"), // complex — left as comment
 
         // Entities
-        ["SpawnEntity"]     = new("/* spawnEntity {0} at {1},{2},{3} */"),           // requires EntityType registry lookup
-        ["GetEntities"]     = new("{target}.getEntitiesByType(TypeFilter.instanceOf(Entity.class), e -> true)"),
-        ["GetNearbyPlayers"]= new("{target}.getPlayers()"),
+        ["SpawnEntity"]         = new("{ var _et = net.minecraft.entity.EntityType.get({0}).orElse(null); if (_et != null) { var _ent = _et.create({target}); if (_ent != null) { _ent.setPosition({1},{2},{3}); {target}.spawnEntity(_ent); } } }",
+                                       Imports: ["net.minecraft.entity.EntityType"]),
+        ["GetEntities"]         = new("{target}.getEntitiesByType(TypeFilter.instanceOf(Entity.class), e -> true)"),
+        ["GetNearbyEntities"]   = new("{target}.getEntitiesByType(TypeFilter.instanceOf(Entity.class), new net.minecraft.util.math.Box({0}-{3},{1}-{3},{2}-{3},{0}+{3},{1}+{3},{2}+{3}), e -> true)"),
+        ["GetNearbyPlayers"]    = new("{target}.getPlayers()"),
 
         // World info
         ["GetTime"]         = new("{target}.getTime()"),
@@ -100,6 +102,11 @@ public static class MethodMapper
 
         // Explosions
         ["CreateExplosion"] = new("{target}.createExplosion(null, {0}, {1}, {2}, {3}, World.ExplosionSourceType.NONE)"),
+
+        // Fill & random
+        ["FillBlocks"]      = new("BlockPos.stream(new BlockPos({0},{1},{2}), new BlockPos({3},{4},{5})).forEach(p -> {target}.setBlockState(p, Registries.BLOCK.get(new Identifier({6})).getDefaultState()))",
+                                   Imports: ["net.minecraft.util.math.BlockPos", "net.minecraft.registry.Registries", "net.minecraft.util.Identifier"]),
+        ["GetRandomInt"]    = new("{target}.getRandom().nextBetween({0}, {1})"),
 
         // Lighting
         ["GetLightLevel"]   = new("{target}.getLightLevel(new BlockPos({0},{1},{2}))"),
@@ -122,6 +129,8 @@ public static class MethodMapper
         ["IsRunning"]           = new("{target}.isRunning()"),
         ["GetVersion"]          = new("{target}.getVersion()"),
         ["Shutdown"]            = new("{target}.stop(false)"),
+        ["GetPlayerByUuid"]     = new("{target}.getPlayerManager().getPlayer(java.util.UUID.fromString({0}))"),
+        ["GetAllWorlds"]        = new("java.util.stream.StreamSupport.stream({target}.getWorlds().spliterator(), false).toList()"),
     };
 
     // ── BlockPos ─────────────────────────────────────────────────────────────
@@ -145,13 +154,53 @@ public static class MethodMapper
 
     private static readonly Dictionary<string, MethodMapping> ItemStackMethods = new()
     {
-        ["GetCount"]    = new("{target}.getCount()"),
-        ["SetCount"]    = new("{target}.setCount({0})"),
-        ["GetItem"]     = new("Registries.ITEM.getId({target}.getItem()).toString()"),
-        ["IsEmpty"]     = new("{target}.isEmpty()"),
-        ["HasNbt"]      = new("{target}.hasNbt()"),
-        ["GetNbt"]      = new("{target}.getNbt()"),
-        ["Copy"]        = new("{target}.copy()"),
+        ["GetCount"]        = new("{target}.getCount()"),
+        ["SetCount"]        = new("{target}.setCount({0})"),
+        ["GetItem"]         = new("Registries.ITEM.getId({target}.getItem()).toString()"),
+        ["IsEmpty"]         = new("{target}.isEmpty()"),
+        ["HasNbt"]          = new("{target}.hasNbt()"),
+        ["GetNbt"]          = new("{target}.getNbt()"),
+        ["Copy"]            = new("{target}.copy()"),
+        ["IsOf"]            = new("Registries.ITEM.getId({target}.getItem()).toString().equals({0})"),
+        ["GetCustomName"]   = new("{target}.getName().getString()"),
+        ["SetCustomName"]   = new("{target}.setCustomName(Text.literal({0}))",
+                                   Imports: ["net.minecraft.text.Text"]),
+        ["GetDamage"]       = new("{target}.getDamage()"),
+        ["SetDamage"]       = new("{target}.setDamage({0})"),
+        ["AddEnchantment"]  = new("{ var _enchKey = net.minecraft.registry.RegistryKey.of(net.minecraft.registry.RegistryKeys.ENCHANTMENT, new Identifier({0})); Registries.ENCHANTMENT.getEntry(_enchKey).ifPresent(e -> {target}.addEnchantment(e, {1})); }",
+                                   Imports: ["net.minecraft.registry.RegistryKey", "net.minecraft.registry.RegistryKeys", "net.minecraft.util.Identifier"]),
+        ["GetNbtString"]    = new("{target}.contains(net.minecraft.component.DataComponentTypes.CUSTOM_DATA) ? {target}.get(net.minecraft.component.DataComponentTypes.CUSTOM_DATA).getNbt().getString({0}) : \"\""),
+        ["SetNbtString"]    = new("{ var _nbtS = {target}.contains(net.minecraft.component.DataComponentTypes.CUSTOM_DATA) ? {target}.get(net.minecraft.component.DataComponentTypes.CUSTOM_DATA).getNbt().copy() : new NbtCompound(); _nbtS.putString({0}, {1}); {target}.set(net.minecraft.component.DataComponentTypes.CUSTOM_DATA, net.minecraft.component.type.NbtComponent.of(_nbtS)); }",
+                                   Imports: ["net.minecraft.nbt.NbtCompound"]),
+        ["GetNbtInt"]       = new("{target}.contains(net.minecraft.component.DataComponentTypes.CUSTOM_DATA) ? {target}.get(net.minecraft.component.DataComponentTypes.CUSTOM_DATA).getNbt().getInt({0}) : 0"),
+        ["SetNbtInt"]       = new("{ var _nbtI = {target}.contains(net.minecraft.component.DataComponentTypes.CUSTOM_DATA) ? {target}.get(net.minecraft.component.DataComponentTypes.CUSTOM_DATA).getNbt().copy() : new NbtCompound(); _nbtI.putInt({0}, {1}); {target}.set(net.minecraft.component.DataComponentTypes.CUSTOM_DATA, net.minecraft.component.type.NbtComponent.of(_nbtI)); }",
+                                   Imports: ["net.minecraft.nbt.NbtCompound"]),
+    };
+
+    // ── McEntity (Entity / LivingEntity) ─────────────────────────────────────
+
+    private static readonly Dictionary<string, MethodMapping> EntityMethods = new()
+    {
+        ["Kill"]                = new("{target}.kill()"),
+        ["Remove"]              = new("{target}.discard()"),
+        ["Teleport"]            = new("if ({target}.getWorld() instanceof ServerWorld _sw) { _sw.teleportTo(null, {0}, {1}, {2}, java.util.Set.of(), 0f, 0f); }"),
+        ["SetOnFire"]           = new("{target}.setOnFireFor({0})"),
+        ["SetInvisible"]        = new("{target}.setInvisible({0})"),
+        ["SetCustomName"]       = new("{target}.setCustomName(Text.literal({0}))",
+                                      Imports: ["net.minecraft.text.Text"]),
+        ["SetCustomNameVisible"]= new("{target}.setCustomNameVisible({0})"),
+        ["GetPassengers"]       = new("{target}.getPassengerList()"),
+        ["GetVehicle"]          = new("{target}.getVehicle()"),
+        ["StartRiding"]         = new("{target}.startRiding({0}, true)"),
+        ["StopRiding"]          = new("{target}.stopRiding()"),
+        ["HasTag"]              = new("{target}.getCommandTags().contains({0})"),
+        ["AddTag"]              = new("{target}.addCommandTag({0})"),
+        ["RemoveTag"]           = new("{target}.removeScoreboardTag({0})"),
+        ["SetVelocity"]         = new("{target}.setVelocity({0}, {1}, {2})"),
+        ["GetNbtString"]        = new("{target}.getCustomData().getString({0})"),
+        ["SetNbtString"]        = new("{target}.getCustomData().putString({0}, {1})"),
+        ["GetNbtInt"]           = new("{target}.getCustomData().getInt({0})"),
+        ["SetNbtInt"]           = new("{target}.getCustomData().putInt({0}, {1})"),
     };
 
     // ── Static constructors (new XYZ(...) in C# → Java factory/constructor) ──
@@ -180,7 +229,16 @@ public static class MethodMapper
         ["SetNbtString"]    = new("{target}.getCustomData().putString({0}, {1})"),
         ["GetNbtInt"]       = new("{target}.getCustomData().getInt({0})"),
         ["SetNbtInt"]       = new("{target}.getCustomData().putInt({0}, {1})"),
-        ["HasNbt"]          = new("{target}.getCustomData().contains({0})"),
+        ["HasNbt"]              = new("{target}.getCustomData().contains({0})"),
+        ["SetHelmet"]           = new("{target}.equipStack(net.minecraft.entity.EquipmentSlot.HEAD, {0})"),
+        ["SetChestplate"]       = new("{target}.equipStack(net.minecraft.entity.EquipmentSlot.CHEST, {0})"),
+        ["SetLeggings"]         = new("{target}.equipStack(net.minecraft.entity.EquipmentSlot.LEGS, {0})"),
+        ["SetBoots"]            = new("{target}.equipStack(net.minecraft.entity.EquipmentSlot.FEET, {0})"),
+        ["GetActiveEffects"]    = new("new java.util.ArrayList<>({target}.getStatusEffects())"),
+        ["HasPermissionLevel"]  = new("{target}.hasPermissionLevel({0})"),
+        ["HasEffect"]           = new("{target}.hasStatusEffect(Registries.STATUS_EFFECT.get(new Identifier({0})))"),
+        ["SendTitle"]           = new("{target}.networkHandler.sendPacket(new net.minecraft.network.packet.s2c.play.TitleS2CPacket(Text.literal({0}))); {target}.networkHandler.sendPacket(new net.minecraft.network.packet.s2c.play.SubtitleS2CPacket(Text.literal({1})))"),
+        ["LookAt"]              = new("{target}.lookAt(net.minecraft.command.argument.EntityAnchorArgumentType.EntityAnchor.EYES, new net.minecraft.util.math.Vec3d({0},{1},{2}))"),
     };
 
     // ── McWorld extended methods ──────────────────────────────────────────────
@@ -276,6 +334,16 @@ public static class MethodMapper
         // Attribute registration
         ["McRegistry.RegisterAttribute"]= "Registry.register(Registries.ATTRIBUTE, new Identifier({0}), new ClampedEntityAttribute({0}, {1}, {2}, {3}))",
 
+        // Entity type registration
+        ["McRegistry.RegisterEntity"]       = "Registry.register(Registries.ENTITY_TYPE, new Identifier({0}), EntityType.Builder.create(net.minecraft.entity.mob.MobEntity::new, net.minecraft.entity.SpawnGroup.valueOf({1}.toUpperCase())).dimensions({2}f, {3}f).build(new Identifier({0}).toString()))",
+
+        // Block entity registration
+        ["McRegistry.RegisterBlockEntity"]  = "Registry.register(Registries.BLOCK_ENTITY_TYPE, new Identifier({0}), net.minecraft.block.entity.BlockEntityType.Builder.create(net.minecraft.block.entity.BlockEntity::new).build())",
+
+        // Game rule registration
+        ["McRegistry.RegisterBoolRule"]     = "GameRuleRegistry.register({0}, GameRules.Category.MISC, GameRuleFactory.createBooleanRule({1}))",
+        ["McRegistry.RegisterIntRule"]      = "GameRuleRegistry.register({0}, GameRules.Category.MISC, GameRuleFactory.createIntRule({1}))",
+
         // Enchantment helpers
         ["McEnchantment.GetLevel"]      = "EnchantmentHelper.getLevel(Registries.ENCHANTMENT.get(new Identifier({1})), {0})",
         ["McEnchantment.HasEnchantment"]= "EnchantmentHelper.getLevel(Registries.ENCHANTMENT.get(new Identifier({1})), {0}) > 0",
@@ -288,8 +356,9 @@ public static class MethodMapper
         ["McItemSettings.Create"]       = "new Item.Settings()",
 
         // Command registration (simplified wrappers)
-        ["McCommand.Register"]          = "CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal({0}).executes(ctx -> { {1}(new McCommandSourceWrapper(ctx.getSource())); return 1; })))",
-        ["McCommand.RegisterOp"]        = "CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal({0}).requires(src -> src.hasPermissionLevel(2)).executes(ctx -> { {1}(new McCommandSourceWrapper(ctx.getSource())); return 1; })))",
+        ["McCommand.Register"]          = "CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal({0}).executes(ctx -> { {1}(ctx.getSource()); return 1; })))",
+        ["McCommand.RegisterOp"]        = "CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal({0}).requires(src -> src.hasPermissionLevel(2)).executes(ctx -> { {1}(ctx.getSource()); return 1; })))",
+        ["McCommand.RegisterSub"]       = "CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal({0}).then(CommandManager.literal({1}).executes(ctx -> { {2}(ctx.getSource()); return 1; }))))",
 
         // Game rule queries
         ["McGameRules.DoMobSpawning"]       = "{0}.getGameRules().getBoolean(GameRules.DO_MOB_SPAWNING)",
@@ -321,6 +390,12 @@ public static class MethodMapper
         ["McTag.EntityIsIn"]            = "{0}.getType().isIn(net.minecraft.registry.tag.EntityTypeTags.create(new Identifier({1})))",
         ["McTag.IsUndead"]              = "{0}.getType().isIn(net.minecraft.registry.tag.EntityTypeTags.UNDEAD)",
         ["McTag.CanBreatheUnderwater"]  = "{0}.getType().isIn(net.minecraft.registry.tag.EntityTypeTags.CAN_BREATHE_UNDER_WATER)",
+        ["McTag.IsBoss"]                = "{0} instanceof net.minecraft.entity.boss.WitherEntity || {0} instanceof net.minecraft.entity.boss.dragon.EnderDragonEntity",
+        ["McTag.IsArmor"]               = "{0}.isIn(net.minecraft.registry.tag.ItemTags.ARMOR_MATERIALS)",
+        ["McTag.IsHoe"]                 = "{0}.isIn(net.minecraft.registry.tag.ItemTags.HOES)",
+        ["McTag.IsShovel"]              = "{0}.isIn(net.minecraft.registry.tag.ItemTags.SHOVELS)",
+        ["McTag.IsRangedWeapon"]        = "{0}.isIn(net.minecraft.registry.tag.ItemTags.BOWS) || {0}.isIn(net.minecraft.registry.tag.ItemTags.CROSSBOWS)",
+        ["McTag.IsWearable"]            = "{0}.isIn(net.minecraft.registry.tag.ItemTags.HEAD_ARMOR) || {0}.isIn(net.minecraft.registry.tag.ItemTags.CHEST_ARMOR) || {0}.isIn(net.minecraft.registry.tag.ItemTags.LEG_ARMOR) || {0}.isIn(net.minecraft.registry.tag.ItemTags.FOOT_ARMOR)",
 
         // ── McFluid ──────────────────────────────────────────────────────────
         ["McFluid.IsFluid"]             = "!{0}.getFluidState(new BlockPos({1},{2},{3})).isEmpty()",
@@ -412,7 +487,18 @@ public static class MethodMapper
         ["McPlayer.IsSprinting"]    = "{target}.isSprinting()",
         ["McPlayer.IsOnGround"]     = "{target}.isOnGround()",
         ["McPlayer.IsCreative"]     = "{target}.isCreative()",
+        ["McPlayer.IsFlying"]       = "{target}.getAbilities().flying",
+        ["McPlayer.IsSwimming"]     = "{target}.isSwimming()",
+        ["McPlayer.IsGliding"]      = "{target}.isGliding()",
+        ["McPlayer.Yaw"]            = "{target}.getYaw()",
+        ["McPlayer.Pitch"]          = "{target}.getPitch()",
         ["McPlayer.GameMode"]       = "{target}.interactionManager.getGameMode().getName()",
+        ["McPlayer.MainHandItem"]   = "{target}.getMainHandStack()",
+        ["McPlayer.OffHandItem"]    = "{target}.getOffHandStack()",
+        ["McPlayer.Helmet"]         = "{target}.getEquippedStack(net.minecraft.entity.EquipmentSlot.HEAD)",
+        ["McPlayer.Chestplate"]     = "{target}.getEquippedStack(net.minecraft.entity.EquipmentSlot.CHEST)",
+        ["McPlayer.Leggings"]       = "{target}.getEquippedStack(net.minecraft.entity.EquipmentSlot.LEGS)",
+        ["McPlayer.Boots"]          = "{target}.getEquippedStack(net.minecraft.entity.EquipmentSlot.FEET)",
 
         // McWorld properties
         ["McWorld.Time"]            = "{target}.getTime()",
@@ -432,12 +518,42 @@ public static class MethodMapper
         ["McServer.IsRunning"]      = "{target}.isRunning()",
         ["McServer.Motd"]           = "{target}.getServerMotd()",
 
+        // McEntity properties
+        ["McEntity.Name"]           = "{target}.getName().getString()",
+        ["McEntity.Uuid"]           = "{target}.getUuidAsString()",
+        ["McEntity.X"]              = "{target}.getX()",
+        ["McEntity.Y"]              = "{target}.getY()",
+        ["McEntity.Z"]              = "{target}.getZ()",
+        ["McEntity.BlockPos"]       = "{target}.getBlockPos()",
+        ["McEntity.World"]          = "{target}.getWorld()",
+        ["McEntity.IsAlive"]        = "{target}.isAlive()",
+        ["McEntity.IsOnGround"]     = "{target}.isOnGround()",
+        ["McEntity.IsOnFire"]       = "{target}.isOnFire()",
+        ["McEntity.IsInvisible"]    = "{target}.isInvisible()",
+        ["McEntity.IsSwimming"]     = "{target}.isSwimming()",
+        ["McEntity.IsGliding"]      = "({target} instanceof LivingEntity _lge && _lge.isGliding())",
+        ["McEntity.IsPlayer"]       = "{target} instanceof net.minecraft.entity.player.PlayerEntity",
+        ["McEntity.IsMob"]          = "{target} instanceof net.minecraft.entity.mob.MobEntity",
+        ["McEntity.Health"]         = "({target} instanceof LivingEntity ? ((LivingEntity){target}).getHealth() : 0f)",
+        ["McEntity.MaxHealth"]      = "({target} instanceof LivingEntity ? ((LivingEntity){target}).getMaxHealth() : 0f)",
+        ["McEntity.TypeId"]         = "EntityType.getId({target}.getType()).toString()",
+        ["McEntity.VelocityX"]      = "{target}.getVelocity().getX()",
+        ["McEntity.VelocityY"]      = "{target}.getVelocity().getY()",
+        ["McEntity.VelocityZ"]      = "{target}.getVelocity().getZ()",
+        ["McEntity.Yaw"]            = "{target}.getYaw()",
+        ["McEntity.Pitch"]          = "{target}.getPitch()",
+        ["McEntity.CustomName"]     = "{target}.hasCustomName() ? {target}.getCustomName().getString() : null",
+
         // BlockPos properties
         ["BlockPos.X"]              = "{target}.getX()",
         ["BlockPos.Y"]              = "{target}.getY()",
         ["BlockPos.Z"]              = "{target}.getZ()",
 
-        // ItemStack properties
+        // McItemStack properties
+        ["McItemStack.Count"]       = "{target}.getCount()",
+        ["McItemStack.IsEmpty"]     = "{target}.isEmpty()",
+        ["McItemStack.HasNbt"]      = "{target}.hasNbt()",
+        // ItemStack properties (alias)
         ["ItemStack.Count"]         = "{target}.getCount()",
         ["ItemStack.IsEmpty"]       = "{target}.isEmpty()",
         ["ItemStack.HasNbt"]        = "{target}.hasNbt()",
@@ -494,8 +610,9 @@ public static class MethodMapper
         "McWorld"  or "ServerWorld"  or "World"             => MergeTables(WorldMethods, WorldMethodsExtra),
         "McServer" or "MinecraftServer"                     => MergeTables(ServerMethods, ServerMethodsExtra),
         "McCommandSource" or "ServerCommandSource"          => CommandSourceMethods,
-        "BlockPos"                                          => BlockPosMethods,
-        "ItemStack"                                         => ItemStackMethods,
+        "McEntity" or "Entity" or "LivingEntity"           => EntityMethods,
+        "BlockPos" or "McBlockPos"                         => BlockPosMethods,
+        "ItemStack" or "McItemStack"                       => ItemStackMethods,
         _ => null
     };
 

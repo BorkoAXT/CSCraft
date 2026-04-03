@@ -82,4 +82,61 @@ public static class McRegistry
 
     /// <summary>Add a sell trade to a villager profession (player sells to villager).</summary>
     public static void AddVillagerSellTrade(string professionId, McItem item, int emeraldPrice, int maxUses = 8) { }
+
+    // ── Entity types ──────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Register a custom entity type backed by an existing Java entity class.
+    /// spawnGroup: "creature", "monster", "ambient", "water_creature", "misc"
+    /// </summary>
+    public static McEntityType RegisterEntity(string id, string spawnGroup, float width, float height) => null!;
+
+    // ── Block entities ────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Register a block entity type linked to one or more blocks.
+    /// The Java BlockEntity class is emitted automatically by the transpiler
+    /// when you define a class inheriting McBlockEntity.
+    /// </summary>
+    public static McBlockEntityType RegisterBlockEntity(string id, params McBlock[] blocks) => null!;
+
+    // ── Game rules ────────────────────────────────────────────────────────────
+
+    /// <summary>Register a custom boolean game rule (e.g. "mymod:my_rule").</summary>
+    public static McGameRule<bool> RegisterBoolRule(string id, bool defaultValue, GameRuleCategory category = GameRuleCategory.Misc) => null!;
+
+    /// <summary>Register a custom integer game rule.</summary>
+    public static McGameRule<int> RegisterIntRule(string id, int defaultValue, GameRuleCategory category = GameRuleCategory.Misc) => null!;
 }
+
+/// <summary>Represents a registered custom entity type.</summary>
+[JavaClass("net.minecraft.entity.EntityType")]
+public class McEntityType
+{
+    [JavaMethod("EntityType.getId({target}).toString()")]
+    public string Id { get; } = null!;
+}
+
+/// <summary>Represents a registered custom block entity type.</summary>
+[JavaClass("net.minecraft.block.entity.BlockEntityType")]
+public class McBlockEntityType
+{
+    [JavaMethod("net.minecraft.registry.Registries.BLOCK_ENTITY_TYPE.getId({target}).toString()")]
+    public string Id { get; } = null!;
+}
+
+/// <summary>Represents a registered custom game rule.</summary>
+[JavaClass("net.minecraft.world.GameRules.Key")]
+public class McGameRule<T>
+{
+    /// <summary>Get the current value of this rule on the server.</summary>
+    [JavaMethod("{0}.getGameRules().get({target})")]
+    public T GetValue(McServer server) => default!;
+
+    /// <summary>Set the value of this rule.</summary>
+    [JavaMethod("{0}.getGameRules().get({target}).set({1}, {0})")]
+    public void SetValue(McServer server, T value) { }
+}
+
+/// <summary>Categories for custom game rules.</summary>
+public enum GameRuleCategory { Misc, Player, Mobs, Drops, Updates, Chat, Spawning }

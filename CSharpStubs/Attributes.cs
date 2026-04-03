@@ -16,7 +16,7 @@ public sealed class JavaClassAttribute : Attribute
 /// Marks a C# method as mapping to a specific Java method template.
 /// {target} = receiver, {0},{1}... = arguments.
 /// </summary>
-[AttributeUsage(AttributeTargets.Method | AttributeTargets.Property)]
+[AttributeUsage(AttributeTargets.Method | AttributeTargets.Property | AttributeTargets.Field)]
 public sealed class JavaMethodAttribute : Attribute
 {
     public string Template { get; }

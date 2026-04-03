@@ -24,9 +24,32 @@ public static class McCommand
     public static void Register(string name, string argName, Action<McCommandSource, int> handler) { }
 
     /// <summary>
+    /// Register a command with two string arguments.
+    /// Example: McCommand.Register("msg", "player", "message", (src, p, m) => ...);
+    /// </summary>
+    public static void Register(string name, string arg1, string arg2, Action<McCommandSource, string, string> handler) { }
+
+    /// <summary>
+    /// Register a subcommand under a parent command.
+    /// Example: McCommand.RegisterSub("myplugin", "reload", src => ...) → /myplugin reload
+    /// </summary>
+    public static void RegisterSub(string parent, string sub, Action<McCommandSource> handler) { }
+
+    /// <summary>
+    /// Register a subcommand with a string argument.
+    /// Example: McCommand.RegisterSub("myplugin", "ban", "player", (src, p) => ...) → /myplugin ban &lt;player&gt;
+    /// </summary>
+    public static void RegisterSub(string parent, string sub, string argName, Action<McCommandSource, string> handler) { }
+
+    /// <summary>
     /// Register a command that requires operator permissions (level 2+).
     /// </summary>
     public static void RegisterOp(string name, Action<McCommandSource> handler) { }
+
+    /// <summary>
+    /// Register an op-only command with a string argument.
+    /// </summary>
+    public static void RegisterOp(string name, string argName, Action<McCommandSource, string> handler) { }
 }
 
 /// <summary>

@@ -33,7 +33,8 @@
     <TranspileMod
       SourceFiles="@(_CSCraftSources)"
       OutputDirectory="$(CSCraftOutputDir)"
-      PackageName="$(CSCraftPackageName)" />
+      PackageName="$(CSCraftPackageName)"
+      ResourcesDirectory="$(CSCraftResourcesPath)" />
 
     <Message Text="CSCraft: Java written to $(CSCraftOutputDir)" Importance="High" />
 

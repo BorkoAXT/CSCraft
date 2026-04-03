@@ -48,6 +48,12 @@ public class McPlayer
 
     // ── State ─────────────────────────────────────────────────────────────────
 
+    [JavaMethod("{target}.getYaw()")]
+    public float Yaw { get; }
+
+    [JavaMethod("{target}.getPitch()")]
+    public float Pitch { get; }
+
     [JavaMethod("{target}.isSneaking()")]
     public bool IsSneaking { get; }
 
@@ -57,8 +63,17 @@ public class McPlayer
     [JavaMethod("{target}.isOnGround()")]
     public bool IsOnGround { get; }
 
+    [JavaMethod("{target}.isSwimming()")]
+    public bool IsSwimming { get; }
+
+    [JavaMethod("{target}.isGliding()")]
+    public bool IsGliding { get; }
+
     [JavaMethod("{target}.isCreative()")]
     public bool IsCreative { get; }
+
+    [JavaMethod("{target}.getAbilities().flying")]
+    public bool IsFlying { get; }
 
     [JavaMethod("{target}.interactionManager.getGameMode().getName()")]
     public string GameMode { get; } = null!;
@@ -69,6 +84,39 @@ public class McPlayer
     [JavaMethod("{target}.getInventory()")]
     public object Inventory { get; } = null!;
 
+    [JavaMethod("{target}.getMainHandStack()")]
+    public McItemStack MainHandItem { get; } = null!;
+
+    [JavaMethod("{target}.getOffHandStack()")]
+    public McItemStack OffHandItem { get; } = null!;
+
+    [JavaMethod("{target}.getEquippedStack(net.minecraft.entity.EquipmentSlot.HEAD)")]
+    public McItemStack Helmet { get; } = null!;
+
+    [JavaMethod("{target}.getEquippedStack(net.minecraft.entity.EquipmentSlot.CHEST)")]
+    public McItemStack Chestplate { get; } = null!;
+
+    [JavaMethod("{target}.getEquippedStack(net.minecraft.entity.EquipmentSlot.LEGS)")]
+    public McItemStack Leggings { get; } = null!;
+
+    [JavaMethod("{target}.getEquippedStack(net.minecraft.entity.EquipmentSlot.FEET)")]
+    public McItemStack Boots { get; } = null!;
+
+    [JavaMethod("{target}.equipStack(net.minecraft.entity.EquipmentSlot.HEAD, {0})")]
+    public void SetHelmet(McItemStack item) { }
+
+    [JavaMethod("{target}.equipStack(net.minecraft.entity.EquipmentSlot.CHEST, {0})")]
+    public void SetChestplate(McItemStack item) { }
+
+    [JavaMethod("{target}.equipStack(net.minecraft.entity.EquipmentSlot.LEGS, {0})")]
+    public void SetLeggings(McItemStack item) { }
+
+    [JavaMethod("{target}.equipStack(net.minecraft.entity.EquipmentSlot.FEET, {0})")]
+    public void SetBoots(McItemStack item) { }
+
+    [JavaMethod("new java.util.ArrayList<>({target}.getStatusEffects())")]
+    public List<McStatusEffectInstance> GetActiveEffects() => null!;
+
     // ── Chat & messages ───────────────────────────────────────────────────────
 
     [JavaMethod("{target}.sendMessage(Text.literal({0}))")]
@@ -76,6 +124,9 @@ public class McPlayer
 
     [JavaMethod("{target}.sendMessage(Text.literal({0}), true)")]
     public void SendActionBar(string message) { }
+
+    [JavaMethod("{target}.networkHandler.sendPacket(new TitleS2CPacket(Text.literal({0}))) ; {target}.networkHandler.sendPacket(new SubtitleS2CPacket(Text.literal({1})))")]
+    public void SendTitle(string title, string subtitle = "") { }
 
     // ── Health ────────────────────────────────────────────────────────────────
 
@@ -89,6 +140,9 @@ public class McPlayer
 
     [JavaMethod("{target}.teleport((ServerWorld)server.getWorld(World.OVERWORLD), {0}, {1}, {2}, 0f, 0f)")]
     public void Teleport(double x, double y, double z) { }
+
+    [JavaMethod("{target}.lookAt(EntityAnchor.EYES, new Vec3d({0},{1},{2}))")]
+    public void LookAt(double x, double y, double z) { }
 
     // ── Items ─────────────────────────────────────────────────────────────────
 
@@ -129,6 +183,12 @@ public class McPlayer
 
     [JavaMethod("{target}.hasPermissionLevel(2)")]
     public bool IsOp() => false;
+
+    [JavaMethod("{target}.hasPermissionLevel({0})")]
+    public bool HasPermissionLevel(int level) => false;
+
+    [JavaMethod("{target}.hasStatusEffect(Registries.STATUS_EFFECT.get(new Identifier({0})))")]
+    public bool HasEffect(string effectId) => false;
 
     // ── Misc ──────────────────────────────────────────────────────────────────
 

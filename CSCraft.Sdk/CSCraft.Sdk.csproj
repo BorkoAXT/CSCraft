@@ -5,14 +5,26 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
 
-    <!-- NuGet package metadata -->
+    <!-- NuGet package identity -->
     <PackageId>CSCraft.Sdk</PackageId>
-    <Version>1.0.0</Version>
-    <Description>Write Minecraft Fabric mods in C#. Reference this package, write your mod, build — the transpiler converts it to Java and compiles the Fabric mod automatically.</Description>
+    <Version>1.0.1</Version>
+
+    <!-- NuGet listing metadata -->
+    <Title>CSCraft SDK — Write Minecraft Fabric Mods in C#</Title>
+    <Description>Write Minecraft Fabric mods in C# instead of Java. Reference this package, write your mod logic using the CSCraft API, then run dotnet build — the transpiler converts your C# to Java, generates recipe JSON files automatically, and optionally runs Gradle to produce a ready-to-install .jar.
+
+Supports: blocks, items, armor, tools, food, events, commands, recipes (shaped, shapeless, smelting, blasting, smoking, campfire, stonecutting), entity tags, status effects, enchantments, particles, sounds, advancements, loot tables, villager trades, game rules, and more.
+
+Target: Minecraft 1.21.1 · Fabric API 0.116.9+1.21.1 · Java 21</Description>
+    <Authors>CSCraft</Authors>
+    <PackageTags>minecraft;fabric;mod;transpiler;cscraft;java;modding;game</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/cscraft/cscraft</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/cscraft/cscraft</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
 
     <PackageOutputPath>../nupkg</PackageOutputPath>
-
-    <!-- README support (THIS FIXES YOUR ISSUE) -->
     <PackageReadmeFile>README.md</PackageReadmeFile>
 
     <!-- Don't emit a lib DLL for this wrapper project itself -->

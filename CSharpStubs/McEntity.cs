@@ -25,11 +25,37 @@ public class McEntity
     [JavaMethod("{target}.getBlockPos()")]
     public McBlockPos BlockPos { get; } = null!;
 
+    [JavaMethod("{target}.getYaw()")]
+    public float Yaw { get; }
+
+    [JavaMethod("{target}.getPitch()")]
+    public float Pitch { get; }
+
     [JavaMethod("{target}.isAlive()")]
     public bool IsAlive { get; }
 
     [JavaMethod("{target}.isOnGround()")]
     public bool IsOnGround { get; }
+
+    [JavaMethod("{target}.isOnFire()")]
+    public bool IsOnFire { get; }
+
+    [JavaMethod("{target}.isInvisible()")]
+    public bool IsInvisible { get; }
+
+    [JavaMethod("{target}.isSwimming()")]
+    public bool IsSwimming { get; }
+
+    [JavaMethod("({target} instanceof LivingEntity _lge && _lge.isGliding())")]
+    public bool IsGliding { get; }
+
+    /// <summary>Health of the entity (0 for non-living entities).</summary>
+    [JavaMethod("({target} instanceof LivingEntity ? ((LivingEntity){target}).getHealth() : 0f)")]
+    public float Health { get; }
+
+    /// <summary>Max health of the entity (0 for non-living entities).</summary>
+    [JavaMethod("({target} instanceof LivingEntity ? ((LivingEntity){target}).getMaxHealth() : 0f)")]
+    public float MaxHealth { get; }
 
     [JavaMethod("{target}.getWorld()")]
     public McWorld World { get; } = null!;
@@ -39,6 +65,45 @@ public class McEntity
 
     [JavaMethod("{target}.discard()")]
     public void Remove() { }
+
+    [JavaMethod("{target}.setOnFireFor({0})")]
+    public void SetOnFire(int seconds) { }
+
+    [JavaMethod("{target}.setInvisible({0})")]
+    public void SetInvisible(bool invisible) { }
+
+    [JavaMethod("{target}.hasCustomName() ? {target}.getCustomName().getString() : null")]
+    public string? CustomName { get; } = null;
+
+    [JavaMethod("{target}.setCustomName(Text.literal({0}))")]
+    public void SetCustomName(string name) { }
+
+    [JavaMethod("{target}.setCustomNameVisible({0})")]
+    public void SetCustomNameVisible(bool visible) { }
+
+    [JavaMethod("{target}.getPassengerList()")]
+    public List<McEntity> GetPassengers() => null!;
+
+    [JavaMethod("{target}.getVehicle()")]
+    public McEntity? GetVehicle() => null;
+
+    [JavaMethod("{target}.startRiding({0}, true)")]
+    public void StartRiding(McEntity vehicle) { }
+
+    [JavaMethod("{target}.stopRiding()")]
+    public void StopRiding() { }
+
+    [JavaMethod("{target}.getCommandTags().contains({0})")]
+    public bool HasTag(string tag) => false;
+
+    [JavaMethod("{target}.addCommandTag({0})")]
+    public void AddTag(string tag) { }
+
+    [JavaMethod("{target}.removeScoreboardTag({0})")]
+    public void RemoveTag(string tag) { }
+
+    [JavaMethod("if ({target}.getWorld() instanceof ServerWorld _sw) { _sw.teleportTo(null, {0}, {1}, {2}, java.util.Set.of(), 0f, 0f); }")]
+    public void Teleport(double x, double y, double z) { }
 
     // ── Velocity ──────────────────────────────────────────────────────────────
 

@@ -67,7 +67,33 @@ public static class McTag
     [JavaMethod("{0}.getType().isIn(net.minecraft.registry.tag.EntityTypeTags.UNDEAD)")]
     public static bool IsUndead(McEntity entity) => false;
 
-    /// <summary>Check whether an entity is a monster.</summary>
+    /// <summary>Check whether an entity can breathe underwater.</summary>
     [JavaMethod("{0}.getType().isIn(net.minecraft.registry.tag.EntityTypeTags.CAN_BREATHE_UNDER_WATER)")]
     public static bool CanBreatheUnderwater(McEntity entity) => false;
+
+    /// <summary>Check whether an entity is a boss (wither, ender dragon, elder guardian).</summary>
+    [JavaMethod("{0}.getType().isIn(net.minecraft.registry.tag.EntityTypeTags.BEEHIVE_INHABITORS) || {0} instanceof net.minecraft.entity.boss.WitherEntity || {0} instanceof net.minecraft.entity.boss.dragon.EnderDragonEntity")]
+    public static bool IsBoss(McEntity entity) => false;
+
+    // ── Common item tags ──────────────────────────────────────────────────────
+
+    /// <summary>Check whether an item is any armor piece.</summary>
+    [JavaMethod("{0}.isIn(net.minecraft.registry.tag.ItemTags.ARMOR_MATERIALS)")]
+    public static bool IsArmor(McItemStack stack) => false;
+
+    /// <summary>Check whether an item is a hoe.</summary>
+    [JavaMethod("{0}.isIn(net.minecraft.registry.tag.ItemTags.HOES)")]
+    public static bool IsHoe(McItemStack stack) => false;
+
+    /// <summary>Check whether an item is a shovel.</summary>
+    [JavaMethod("{0}.isIn(net.minecraft.registry.tag.ItemTags.SHOVELS)")]
+    public static bool IsShovel(McItemStack stack) => false;
+
+    /// <summary>Check whether an item is a bow or crossbow.</summary>
+    [JavaMethod("{0}.isIn(net.minecraft.registry.tag.ItemTags.BOWS) || {0}.isIn(net.minecraft.registry.tag.ItemTags.CROSSBOWS)")]
+    public static bool IsRangedWeapon(McItemStack stack) => false;
+
+    /// <summary>Check whether an item can be worn in any armor slot.</summary>
+    [JavaMethod("{0}.isIn(net.minecraft.registry.tag.ItemTags.HEAD_ARMOR) || {0}.isIn(net.minecraft.registry.tag.ItemTags.CHEST_ARMOR) || {0}.isIn(net.minecraft.registry.tag.ItemTags.LEG_ARMOR) || {0}.isIn(net.minecraft.registry.tag.ItemTags.FOOT_ARMOR)")]
+    public static bool IsWearable(McItemStack stack) => false;
 }

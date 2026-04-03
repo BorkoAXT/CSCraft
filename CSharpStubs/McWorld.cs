@@ -60,6 +60,14 @@ public class McWorld
     [JavaMethod("{target}.getEntitiesByType(TypeFilter.instanceOf(Entity.class), e -> true)")]
     public List<McEntity> GetEntities() => null!;
 
+    /// <summary>Get all entities within radius of a position.</summary>
+    [JavaMethod("{target}.getEntitiesByType(TypeFilter.instanceOf(Entity.class), new Box({0}-{3},{1}-{3},{2}-{3},{0}+{3},{1}+{3},{2}+{3}), e -> true)")]
+    public List<McEntity> GetNearbyEntities(double x, double y, double z, double radius) => null!;
+
+    /// <summary>Spawn an entity at a position. typeId example: "minecraft:zombie"</summary>
+    [JavaMethod("{ var _et = net.minecraft.entity.EntityType.get({0}).orElse(null); if (_et != null) { var _ent = _et.create({target}); if (_ent != null) { _ent.setPosition({1},{2},{3}); {target}.spawnEntity(_ent); } } }")]
+    public McEntity SpawnEntity(string typeId, double x, double y, double z) => null!;
+
     // ── Explosions ────────────────────────────────────────────────────────────
 
     [JavaMethod("{target}.createExplosion(null, {0}, {1}, {2}, {3}, World.ExplosionSourceType.NONE)")]
@@ -95,6 +103,14 @@ public class McWorld
     /// <summary>Get the highest Y at an (x, z) using world surface type.</summary>
     [JavaMethod("{target}.getTopY(Heightmap.Type.WORLD_SURFACE, {0}, {1})")]
     public int GetTopY(int x, int z) => 0;
+
+    /// <summary>Fill a rectangular region with a block. Same as the /fill command.</summary>
+    [JavaMethod("BlockPos.stream(new BlockPos({0},{1},{2}), new BlockPos({3},{4},{5})).forEach(p -> {target}.setBlockState(p, Registries.BLOCK.get(new Identifier({6})).getDefaultState()))")]
+    public void FillBlocks(int x1, int y1, int z1, int x2, int y2, int z2, string blockId) { }
+
+    /// <summary>Get a seeded random integer between min and max (inclusive).</summary>
+    [JavaMethod("{target}.getRandom().nextBetween({0}, {1})")]
+    public int GetRandomInt(int min, int max) => 0;
 
     // ── Dimension ─────────────────────────────────────────────────────────────
 

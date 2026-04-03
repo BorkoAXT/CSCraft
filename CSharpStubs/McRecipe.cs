@@ -1,50 +1,52 @@
 namespace CSCraft;
 
 /// <summary>
-/// Helpers for registering crafting, smelting, and other recipes programmatically.
-/// Transpiles to RecipeManager/RecipeBuilder calls in Java.
+/// Helpers for declaring recipes at build time.
+/// All Register* calls must use string literal IDs so the build system can generate
+/// the Minecraft recipe JSON files automatically (in data/modid/recipe/).
 ///
-/// Note: Most recipes are data-driven (JSON in data/modid/recipes/).
-/// These helpers register recipes in code for dynamic use.
+/// At build time the transpiler reads these calls and writes the JSON;
+/// at runtime the JSON files bundled in the mod JAR are loaded by Minecraft.
 /// </summary>
 public static class McRecipe
 {
     // ── Shaped crafting ───────────────────────────────────────────────────────
 
     /// <summary>
-    /// Register a shaped crafting recipe.
-    /// pattern: up to 3 strings of up to 3 chars each (e.g. "XXX", "X X", "XXX").
-    /// keys: alternating char, McItem pairs (e.g. 'X', McRegistry.MyItem).
-    /// result: the item to craft.
-    /// count: how many of the result to give.
+    /// Declare a shaped crafting recipe. The build system generates the JSON automatically.
+    /// id: recipe identifier, e.g. "mymod:my_sword"
+    /// pattern: up to 3 strings of up to 3 chars (e.g. "XXX", "X X", "XXX")
+    /// keys: alternating char/string pairs, e.g. new object[] { 'X', "minecraft:stick" }
+    /// resultId: item id of the result, e.g. "mymod:my_sword"
+    /// count: how many items to produce (default 1)
     /// </summary>
-    public static void RegisterShaped(string id, string[] pattern, object[] keys, McItem result, int count = 1) { }
+    public static void RegisterShaped(string id, string[] pattern, object[] keys, string resultId, int count = 1) { }
 
     // ── Shapeless crafting ────────────────────────────────────────────────────
 
     /// <summary>
-    /// Register a shapeless crafting recipe (ingredients in any order).
-    /// ingredients: the items needed.
-    /// result: the item to craft.
+    /// Declare a shapeless crafting recipe (ingredients in any order).
+    /// ingredients: string array of item ids, e.g. new[] { "minecraft:stick", "minecraft:stone" }
+    /// resultId: item id of the result
     /// </summary>
-    public static void RegisterShapeless(string id, McItem[] ingredients, McItem result, int count = 1) { }
+    public static void RegisterShapeless(string id, string[] ingredients, string resultId, int count = 1) { }
 
     // ── Smelting / cooking ────────────────────────────────────────────────────
 
-    /// <summary>Register a furnace smelting recipe.</summary>
-    public static void RegisterSmelting(string id, McItem input, McItem result, float experience = 0.1f, int cookTimeSeconds = 10) { }
+    /// <summary>Declare a furnace smelting recipe.</summary>
+    public static void RegisterSmelting(string id, string inputId, string resultId, float experience = 0.1f, int cookTimeSeconds = 10) { }
 
-    /// <summary>Register a blast furnace recipe (ores, metals).</summary>
-    public static void RegisterBlasting(string id, McItem input, McItem result, float experience = 0.1f, int cookTimeSeconds = 5) { }
+    /// <summary>Declare a blast furnace recipe (ores, metals).</summary>
+    public static void RegisterBlasting(string id, string inputId, string resultId, float experience = 0.1f, int cookTimeSeconds = 5) { }
 
-    /// <summary>Register a smoker recipe (food).</summary>
-    public static void RegisterSmoking(string id, McItem input, McItem result, float experience = 0.1f, int cookTimeSeconds = 5) { }
+    /// <summary>Declare a smoker recipe (food).</summary>
+    public static void RegisterSmoking(string id, string inputId, string resultId, float experience = 0.1f, int cookTimeSeconds = 5) { }
 
-    /// <summary>Register a campfire cooking recipe.</summary>
-    public static void RegisterCampfire(string id, McItem input, McItem result, float experience = 0.1f, int cookTimeSeconds = 30) { }
+    /// <summary>Declare a campfire cooking recipe.</summary>
+    public static void RegisterCampfire(string id, string inputId, string resultId, float experience = 0.1f, int cookTimeSeconds = 30) { }
 
-    /// <summary>Register a stonecutter recipe.</summary>
-    public static void RegisterStonecutting(string id, McItem input, McItem result, int count = 1) { }
+    /// <summary>Declare a stonecutter recipe.</summary>
+    public static void RegisterStonecutting(string id, string inputId, string resultId, int count = 1) { }
 
     // ── Recipe lookup ─────────────────────────────────────────────────────────
 

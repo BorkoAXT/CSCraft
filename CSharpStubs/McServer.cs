@@ -40,6 +40,12 @@ public class McServer
     [JavaMethod("{target}.getPlayerManager().getPlayer({0})")]
     public McPlayer? GetPlayer(string name) => null;
 
+    [JavaMethod("{target}.getPlayerManager().getPlayer(java.util.UUID.fromString({0}))")]
+    public McPlayer? GetPlayerByUuid(string uuid) => null;
+
+    [JavaMethod("java.util.stream.StreamSupport.stream({target}.getWorlds().spliterator(), false).toList()")]
+    public List<McWorld> GetAllWorlds() => null!;
+
     [JavaMethod("{target}.getCommandManager().executeWithPrefix({target}.getCommandSource(), {0})")]
     public void RunCommand(string command) { }
 

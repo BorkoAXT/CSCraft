@@ -143,6 +143,8 @@ public static class ImportMapper
         ["CommandManager"]              = "net.fabricmc.fabric.api.command.v2.CommandManager",
         ["ItemGroupEvents"]             = "net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents",
         ["EntitySleepEvents"]           = "net.fabricmc.fabric.api.entity.event.v1.EntitySleepEvents",
+        ["ServerWorldEvents"]           = "net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents",
+        ["ServerBlockEntityEvents"]     = "net.fabricmc.fabric.api.event.lifecycle.v1.ServerBlockEntityEvents",
 
         // Minecraft core
         ["Text"]                    = "net.minecraft.text.Text",

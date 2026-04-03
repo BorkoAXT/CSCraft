@@ -10,6 +10,15 @@ public static class EventMapper
     {
         // ── Player lifecycle ──────────────────────────────────────────────────
 
+        ["PlayerConnect"] = new(
+            FabricClass:    "ServerPlayConnectionEvents",
+            FabricEvent:    "INIT",
+            FabricImport:   "net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents",
+            JavaArgs:       "(handler, server)",
+            Preamble:       "ServerPlayerEntity {0} = handler.player;",
+            CsParamTypes:   ["McPlayer"]
+        ),
+
         ["PlayerJoin"] = new(
             FabricClass:    "ServerPlayConnectionEvents",
             FabricEvent:    "JOIN",
@@ -30,13 +39,31 @@ public static class EventMapper
 
         // ── Block events ──────────────────────────────────────────────────────
 
+        ["BlockAttack"] = new(
+            FabricClass:    "AttackBlockCallback",
+            FabricEvent:    "EVENT",
+            FabricImport:   "net.fabricmc.fabric.api.event.player.AttackBlockCallback",
+            JavaArgs:       "(player, world, hand, pos, direction)",
+            Preamble:       "if (!(player instanceof ServerPlayerEntity)) return ActionResult.PASS; ServerPlayerEntity {0} = (ServerPlayerEntity) player; BlockPos {1} = pos; MinecraftServer server = {0}.getServer();",
+            CsParamTypes:   ["McPlayer", "McBlockPos"]
+        ),
+
         ["BlockBreak"] = new(
             FabricClass:    "PlayerBlockBreakEvents",
             FabricEvent:    "AFTER",
             FabricImport:   "net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents",
             JavaArgs:       "(world, player, pos, state, blockEntity)",
             Preamble:       "ServerPlayerEntity {0} = player; BlockPos {1} = pos; MinecraftServer server = player.getServer();",
-            CsParamTypes:   ["McPlayer", "BlockPos"]
+            CsParamTypes:   ["McPlayer", "McBlockPos"]
+        ),
+
+        ["BlockBreakCanceled"] = new(
+            FabricClass:    "PlayerBlockBreakEvents",
+            FabricEvent:    "CANCELED",
+            FabricImport:   "net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents",
+            JavaArgs:       "(world, player, pos, state, blockEntity)",
+            Preamble:       "ServerPlayerEntity {0} = (ServerPlayerEntity) player; BlockPos {1} = pos; MinecraftServer server = {0}.getServer();",
+            CsParamTypes:   ["McPlayer", "McBlockPos"]
         ),
 
         ["BlockPlace"] = new(
@@ -62,9 +89,27 @@ public static class EventMapper
         // content into a variable with the name the C# author used ({1}).
         // server is made available via sender.getServer() for methods that need it.
 
+        ["ChatAllowed"] = new(
+            FabricClass:    "ServerMessageEvents",
+            FabricEvent:    "ALLOW_CHAT_MESSAGE",
+            FabricImport:   "net.fabricmc.fabric.api.message.v1.ServerMessageEvents",
+            JavaArgs:       "(rawMessage, sender, params)",
+            Preamble:       "ServerPlayerEntity {0} = sender; String {1} = rawMessage.getContent().getString(); MinecraftServer server = sender.getServer();",
+            CsParamTypes:   ["McPlayer", "string"]
+        ),
+
         ["ChatMessage"] = new(
             FabricClass:    "ServerMessageEvents",
             FabricEvent:    "CHAT_MESSAGE",
+            FabricImport:   "net.fabricmc.fabric.api.message.v1.ServerMessageEvents",
+            JavaArgs:       "(rawMessage, sender, params)",
+            Preamble:       "ServerPlayerEntity {0} = sender; String {1} = rawMessage.getContent().getString(); MinecraftServer server = sender.getServer();",
+            CsParamTypes:   ["McPlayer", "string"]
+        ),
+
+        ["CommandMessageAllowed"] = new(
+            FabricClass:    "ServerMessageEvents",
+            FabricEvent:    "ALLOW_COMMAND_MESSAGES",
             FabricImport:   "net.fabricmc.fabric.api.message.v1.ServerMessageEvents",
             JavaArgs:       "(rawMessage, sender, params)",
             Preamble:       "ServerPlayerEntity {0} = sender; String {1} = rawMessage.getContent().getString(); MinecraftServer server = sender.getServer();",
@@ -100,6 +145,15 @@ public static class EventMapper
             CsParamTypes:   ["McServer"]
         ),
 
+        ["ServerStopped"] = new(
+            FabricClass:    "ServerLifecycleEvents",
+            FabricEvent:    "SERVER_STOPPED",
+            FabricImport:   "net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents",
+            JavaArgs:       "(server)",
+            Preamble:       "MinecraftServer {0} = server;",
+            CsParamTypes:   ["McServer"]
+        ),
+
         ["ServerTick"] = new(
             FabricClass:    "ServerTickEvents",
             FabricEvent:    "END_SERVER_TICK",
@@ -109,11 +163,38 @@ public static class EventMapper
             CsParamTypes:   ["McServer"]
         ),
 
+        ["WorldTickStart"] = new(
+            FabricClass:    "ServerTickEvents",
+            FabricEvent:    "START_WORLD_TICK",
+            FabricImport:   "net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents",
+            JavaArgs:       "(world)",
+            Preamble:       "ServerWorld {0} = world;",
+            CsParamTypes:   ["McWorld"]
+        ),
+
         ["WorldTick"] = new(
             FabricClass:    "ServerTickEvents",
             FabricEvent:    "END_WORLD_TICK",
             FabricImport:   "net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents",
             JavaArgs:       "(world)",
+            Preamble:       "ServerWorld {0} = world;",
+            CsParamTypes:   ["McWorld"]
+        ),
+
+        ["WorldLoad"] = new(
+            FabricClass:    "ServerWorldEvents",
+            FabricEvent:    "LOAD",
+            FabricImport:   "net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents",
+            JavaArgs:       "(server, world)",
+            Preamble:       "ServerWorld {0} = world;",
+            CsParamTypes:   ["McWorld"]
+        ),
+
+        ["WorldUnload"] = new(
+            FabricClass:    "ServerWorldEvents",
+            FabricEvent:    "UNLOAD",
+            FabricImport:   "net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents",
+            JavaArgs:       "(server, world)",
             Preamble:       "ServerWorld {0} = world;",
             CsParamTypes:   ["McWorld"]
         ),
@@ -148,11 +229,29 @@ public static class EventMapper
         ),
 
         ["PlayerRespawn"] = new(
-            FabricClass:    "ServerEntityEvents",
-            FabricEvent:    "ENTITY_LOAD",
-            FabricImport:   "net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents",
-            JavaArgs:       "(entity, world)",
-            Preamble:       "if (!(entity instanceof ServerPlayerEntity)) return; ServerPlayerEntity {0} = (ServerPlayerEntity) entity;",
+            FabricClass:    "ServerPlayerEvents",
+            FabricEvent:    "AFTER_RESPAWN",
+            FabricImport:   "net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents",
+            JavaArgs:       "(oldPlayer, newPlayer, alive)",
+            Preamble:       "ServerPlayerEntity {0} = newPlayer; MinecraftServer server = newPlayer.getServer();",
+            CsParamTypes:   ["McPlayer"]
+        ),
+
+        ["PlayerAllowDeath"] = new(
+            FabricClass:    "ServerPlayerEvents",
+            FabricEvent:    "ALLOW_DEATH",
+            FabricImport:   "net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents",
+            JavaArgs:       "(player, damageSource, damageAmount)",
+            Preamble:       "ServerPlayerEntity {0} = player; MinecraftServer server = player.getServer();",
+            CsParamTypes:   ["McPlayer"]
+        ),
+
+        ["PlayerCopyFrom"] = new(
+            FabricClass:    "ServerPlayerEvents",
+            FabricEvent:    "COPY_FROM",
+            FabricImport:   "net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents",
+            JavaArgs:       "(oldPlayer, newPlayer, alive)",
+            Preamble:       "ServerPlayerEntity {0} = newPlayer; MinecraftServer server = newPlayer.getServer();",
             CsParamTypes:   ["McPlayer"]
         ),
 
@@ -173,7 +272,16 @@ public static class EventMapper
             FabricImport:   "net.fabricmc.fabric.api.entity.event.v1.EntityPickupItemEvents",
             JavaArgs:       "(entity, itemEntity, slot)",
             Preamble:       "if (!(entity instanceof ServerPlayerEntity)) return true; ServerPlayerEntity {0} = (ServerPlayerEntity) entity; ItemStack {1} = itemEntity.getStack(); MinecraftServer server = {0}.getServer();",
-            CsParamTypes:   ["McPlayer", "ItemStack"]
+            CsParamTypes:   ["McPlayer", "McItemStack"]
+        ),
+
+        ["ItemAfterPickup"] = new(
+            FabricClass:    "EntityPickupItemEvents",
+            FabricEvent:    "AFTER_PICKUP",
+            FabricImport:   "net.fabricmc.fabric.api.entity.event.v1.EntityPickupItemEvents",
+            JavaArgs:       "(entity, itemEntity, stack)",
+            Preamble:       "if (!(entity instanceof ServerPlayerEntity)) return; ServerPlayerEntity {0} = (ServerPlayerEntity) entity; ItemStack {1} = stack; MinecraftServer server = {0}.getServer();",
+            CsParamTypes:   ["McPlayer", "McItemStack"]
         ),
 
         // ── Player combat ─────────────────────────────────────────────────────
@@ -214,9 +322,45 @@ public static class EventMapper
             CsParamTypes:   ["McEntity", "float"]
         ),
 
+        ["EntityAllowDeath"] = new(
+            FabricClass:    "ServerLivingEntityEvents",
+            FabricEvent:    "ALLOW_DEATH",
+            FabricImport:   "net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents",
+            JavaArgs:       "(entity, damageSource, damageAmount)",
+            Preamble:       "LivingEntity {0} = entity;",
+            CsParamTypes:   ["McEntity"]
+        ),
+
+        ["EntityAfterHurt"] = new(
+            FabricClass:    "ServerLivingEntityEvents",
+            FabricEvent:    "AFTER_DAMAGE",
+            FabricImport:   "net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents",
+            JavaArgs:       "(entity, source, baseDamage, trueDamage, blocked)",
+            Preamble:       "LivingEntity {0} = entity; float {1} = trueDamage;",
+            CsParamTypes:   ["McEntity", "float"]
+        ),
+
+        ["EntityUnload"] = new(
+            FabricClass:    "ServerEntityEvents",
+            FabricEvent:    "ENTITY_UNLOAD",
+            FabricImport:   "net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents",
+            JavaArgs:       "(entity, world)",
+            Preamble:       "Entity {0} = entity;",
+            CsParamTypes:   ["McEntity"]
+        ),
+
+        ["DataPacksReload"] = new(
+            FabricClass:    "ServerLifecycleEvents",
+            FabricEvent:    "SYNC_DATA_PACK_CONTENTS",
+            FabricImport:   "net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents",
+            JavaArgs:       "(server, lifecycle)",
+            Preamble:       "MinecraftServer {0} = server;",
+            CsParamTypes:   ["McServer"]
+        ),
+
         ["ServerLoading"] = new(
             FabricClass:    "ServerLifecycleEvents",
-            FabricEvent:    "SERVER_LOADING",
+            FabricEvent:    "SERVER_STARTING",
             FabricImport:   "net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents",
             JavaArgs:       "(server)",
             Preamble:       "MinecraftServer {0} = server;",
@@ -249,6 +393,24 @@ public static class EventMapper
             FabricImport:   "net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents",
             JavaArgs:       "(world, chunk)",
             Preamble:       "",
+            CsParamTypes:   ["McWorld"]
+        ),
+
+        ["BlockEntityLoad"] = new(
+            FabricClass:    "ServerBlockEntityEvents",
+            FabricEvent:    "BLOCK_ENTITY_LOAD",
+            FabricImport:   "net.fabricmc.fabric.api.event.lifecycle.v1.ServerBlockEntityEvents",
+            JavaArgs:       "(blockEntity, world)",
+            Preamble:       "ServerWorld {0} = world;",
+            CsParamTypes:   ["McWorld"]
+        ),
+
+        ["BlockEntityUnload"] = new(
+            FabricClass:    "ServerBlockEntityEvents",
+            FabricEvent:    "BLOCK_ENTITY_UNLOAD",
+            FabricImport:   "net.fabricmc.fabric.api.event.lifecycle.v1.ServerBlockEntityEvents",
+            JavaArgs:       "(blockEntity, world)",
+            Preamble:       "ServerWorld {0} = world;",
             CsParamTypes:   ["McWorld"]
         ),
     };
