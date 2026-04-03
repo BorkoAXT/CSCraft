@@ -69,4 +69,41 @@ public class McWorld
 
     [JavaMethod("{target}.setWeather({0}, {1}, {2}, {3})")]
     public void SetWeather(int clearDuration, int rainDuration, bool raining, bool thundering) { }
+
+    // ── Particles ─────────────────────────────────────────────────────────────
+
+    /// <summary>Spawn particles at a world position. particleId: e.g. McParticles.Flame</summary>
+    [JavaMethod("{target}.spawnParticles(Registries.PARTICLE_TYPE.get(new Identifier({0})), {1}, {2}, {3}, {4}, 0, 0, 0, 0)")]
+    public void SpawnParticle(string particleId, double x, double y, double z, int count = 1) { }
+
+    // ── Sounds ────────────────────────────────────────────────────────────────
+
+    /// <summary>Play a sound at a position in the world.</summary>
+    [JavaMethod("{target}.playSound(null, new BlockPos((int){1}, (int){2}, (int){3}), Registries.SOUND_EVENT.get(new Identifier({0})), SoundCategory.BLOCKS, 1.0f, 1.0f)")]
+    public void PlaySound(string soundId, double x, double y, double z) { }
+
+    // ── Block info ────────────────────────────────────────────────────────────
+
+    /// <summary>Get the block state at a position.</summary>
+    [JavaMethod("{target}.getBlockState(new BlockPos({0},{1},{2}))")]
+    public McBlockState GetBlockState(int x, int y, int z) => null!;
+
+    /// <summary>Check whether a position is within the world border.</summary>
+    [JavaMethod("{target}.getWorldBorder().contains(new BlockPos({0},{1},{2}))")]
+    public bool IsInBorder(int x, int y, int z) => true;
+
+    /// <summary>Get the highest Y at an (x, z) using world surface type.</summary>
+    [JavaMethod("{target}.getTopY(Heightmap.Type.WORLD_SURFACE, {0}, {1})")]
+    public int GetTopY(int x, int z) => 0;
+
+    // ── Dimension ─────────────────────────────────────────────────────────────
+
+    /// <summary>Get the dimension key string (e.g. "minecraft:overworld").</summary>
+    [JavaMethod("{target}.getRegistryKey().getValue().toString()")]
+    public string Dimension { get; } = null!;
+
+    // ── Server reference ──────────────────────────────────────────────────────
+
+    [JavaMethod("{target}.getServer()")]
+    public McServer Server { get; } = null!;
 }

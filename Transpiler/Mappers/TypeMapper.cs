@@ -57,10 +57,19 @@ public static class TypeMapper
         ["ServerWorld"]         = "ServerWorld",
         ["World"]               = "World",
 
-        // Blocks & items
+        // Blocks
+        ["McBlock"]             = "Block",
+        ["McBlockState"]        = "BlockState",
+        ["McBlockSettings"]     = "AbstractBlock.Settings",
         ["BlockPos"]            = "BlockPos",
         ["BlockState"]          = "BlockState",
         ["Block"]               = "Block",
+
+        // Items
+        ["McItem"]              = "Item",
+        ["McItemSettings"]      = "Item.Settings",
+        ["McToolMaterial"]      = "ToolMaterial",
+        ["McArmorMaterial"]     = "ArmorMaterial",
         ["ItemStack"]           = "ItemStack",
         ["Item"]                = "Item",
 
@@ -97,9 +106,12 @@ public static class TypeMapper
         ["MobEntity"]           = "MobEntity",
 
         // Effects & enchantments
-        ["StatusEffect"]        = "StatusEffect",
-        ["StatusEffectInstance" ]= "StatusEffectInstance",
-        ["Enchantment"]         = "Enchantment",
+        ["McStatusEffect"]          = "StatusEffect",
+        ["McStatusEffectInstance"]  = "StatusEffectInstance",
+        ["StatusEffect"]            = "StatusEffect",
+        ["StatusEffectInstance"]    = "StatusEffectInstance",
+        ["McEnchantment"]           = "Enchantment",
+        ["Enchantment"]             = "Enchantment",
 
         // Damage
         ["DamageSource"]        = "DamageSource",
@@ -110,6 +122,26 @@ public static class TypeMapper
 
         // Dimensions
         ["Dimension"]           = "RegistryKey<World>",
+
+        // Sounds
+        ["McSoundEvent"]        = "SoundEvent",
+        ["SoundEvent"]          = "SoundEvent",
+
+        // Attributes
+        ["McAttribute"]         = "EntityAttribute",
+        ["EntityAttribute"]     = "EntityAttribute",
+
+        // Commands
+        ["McCommandSource"]     = "ServerCommandSource",
+        ["ServerCommandSource"] = "ServerCommandSource",
+
+        // Item stacks / block positions (aliases)
+        ["McItemStack"]         = "ItemStack",
+        ["McBlockPos"]          = "BlockPos",
+
+        // Villager
+        ["McVillager"]          = "VillagerEntity",
+        ["VillagerEntity"]      = "VillagerEntity",
     };
 
     // ── Java standard library extras ─────────────────────────────────────────
@@ -219,41 +251,107 @@ public static class TypeMapper
 
     public static readonly Dictionary<string, string> ImportMap = new()
     {
-        ["ModInitializer"]       = "net.fabricmc.api.ModInitializer",
-        ["ServerPlayerEntity"]   = "net.minecraft.server.network.ServerPlayerEntity",
-        ["PlayerEntity"]         = "net.minecraft.entity.player.PlayerEntity",
-        ["ServerWorld"]          = "net.minecraft.server.world.ServerWorld",
-        ["World"]                = "net.minecraft.world.World",
-        ["BlockPos"]             = "net.minecraft.util.math.BlockPos",
-        ["BlockState"]           = "net.minecraft.block.BlockState",
-        ["Block"]                = "net.minecraft.block.Block",
-        ["ItemStack"]            = "net.minecraft.item.ItemStack",
-        ["Item"]                 = "net.minecraft.item.Item",
-        ["Text"]                 = "net.minecraft.text.Text",
-        ["MinecraftServer"]      = "net.minecraft.server.MinecraftServer",
-        ["Identifier"]           = "net.minecraft.util.Identifier",
-        ["NbtCompound"]          = "net.minecraft.nbt.NbtCompound",
-        ["NbtElement"]           = "net.minecraft.nbt.NbtElement",
-        ["Vec3d"]                = "net.minecraft.util.math.Vec3d",
-        ["Vec3i"]                = "net.minecraft.util.math.Vec3i",
-        ["Direction"]            = "net.minecraft.util.math.Direction",
-        ["Box"]                  = "net.minecraft.util.math.Box",
-        ["Entity"]               = "net.minecraft.entity.Entity",
-        ["LivingEntity"]         = "net.minecraft.entity.LivingEntity",
-        ["MobEntity"]            = "net.minecraft.entity.mob.MobEntity",
-        ["StatusEffect"]         = "net.minecraft.entity.effect.StatusEffect",
-        ["StatusEffectInstance"] = "net.minecraft.entity.effect.StatusEffectInstance",
-        ["Enchantment"]          = "net.minecraft.enchantment.Enchantment",
-        ["DamageSource"]         = "net.minecraft.entity.damage.DamageSource",
-        ["Inventory"]            = "net.minecraft.inventory.Inventory",
-        ["PlayerInventory"]      = "net.minecraft.entity.player.PlayerInventory",
-        ["UUID"]                 = "java.util.UUID",
-        ["HashMap"]              = "java.util.HashMap",
-        ["HashSet"]              = "java.util.HashSet",
-        ["ArrayDeque"]           = "java.util.ArrayDeque",
-        ["CompletableFuture"]    = "java.util.concurrent.CompletableFuture",
-        ["List"]                 = "java.util.List",
-        ["ArrayList"]            = "java.util.ArrayList",
-        ["Registries"]           = "net.minecraft.registry.Registries",
+        // Fabric
+        ["ModInitializer"]          = "net.fabricmc.api.ModInitializer",
+        // Players
+        ["ServerPlayerEntity"]      = "net.minecraft.server.network.ServerPlayerEntity",
+        ["PlayerEntity"]            = "net.minecraft.entity.player.PlayerEntity",
+        ["PlayerInventory"]         = "net.minecraft.entity.player.PlayerInventory",
+        // World & server
+        ["ServerWorld"]             = "net.minecraft.server.world.ServerWorld",
+        ["World"]                   = "net.minecraft.world.World",
+        ["MinecraftServer"]         = "net.minecraft.server.MinecraftServer",
+        ["ServerCommandSource"]     = "net.minecraft.server.command.ServerCommandSource",
+        // Blocks
+        ["BlockPos"]                = "net.minecraft.util.math.BlockPos",
+        ["BlockState"]              = "net.minecraft.block.BlockState",
+        ["Block"]                   = "net.minecraft.block.Block",
+        ["AbstractBlock"]           = "net.minecraft.block.AbstractBlock",
+        ["BlockItem"]               = "net.minecraft.item.BlockItem",
+        ["BlockSoundGroup"]         = "net.minecraft.sound.BlockSoundGroup",
+        ["Heightmap"]               = "net.minecraft.world.Heightmap",
+        // Items
+        ["ItemStack"]               = "net.minecraft.item.ItemStack",
+        ["Item"]                    = "net.minecraft.item.Item",
+        ["ToolMaterials"]           = "net.minecraft.item.ToolMaterials",
+        ["ArmorMaterials"]          = "net.minecraft.item.ArmorMaterials",
+        ["SwordItem"]               = "net.minecraft.item.SwordItem",
+        ["PickaxeItem"]             = "net.minecraft.item.PickaxeItem",
+        ["AxeItem"]                 = "net.minecraft.item.AxeItem",
+        ["ShovelItem"]              = "net.minecraft.item.ShovelItem",
+        ["HoeItem"]                 = "net.minecraft.item.HoeItem",
+        ["ArmorItem"]               = "net.minecraft.item.ArmorItem",
+        ["EquipmentSlot"]           = "net.minecraft.entity.EquipmentSlot",
+        ["FoodComponent"]           = "net.minecraft.item.FoodComponent",
+        ["Rarity"]                  = "net.minecraft.util.Rarity",
+        // Text
+        ["Text"]                    = "net.minecraft.text.Text",
+        // Registry
+        ["Identifier"]              = "net.minecraft.util.Identifier",
+        ["Registries"]              = "net.minecraft.registry.Registries",
+        ["Registry"]                = "net.minecraft.registry.Registry",
+        ["RegistryKey"]             = "net.minecraft.registry.RegistryKey",
+        // NBT
+        ["NbtCompound"]             = "net.minecraft.nbt.NbtCompound",
+        ["NbtElement"]              = "net.minecraft.nbt.NbtElement",
+        // Math
+        ["Vec3d"]                   = "net.minecraft.util.math.Vec3d",
+        ["Vec3i"]                   = "net.minecraft.util.math.Vec3i",
+        ["Direction"]               = "net.minecraft.util.math.Direction",
+        ["Box"]                     = "net.minecraft.util.math.Box",
+        // Entities
+        ["Entity"]                  = "net.minecraft.entity.Entity",
+        ["LivingEntity"]            = "net.minecraft.entity.LivingEntity",
+        ["MobEntity"]               = "net.minecraft.entity.mob.MobEntity",
+        ["EntityType"]              = "net.minecraft.entity.EntityType",
+        ["EntityAttribute"]         = "net.minecraft.entity.attribute.EntityAttribute",
+        ["EntityAttributes"]        = "net.minecraft.entity.attribute.EntityAttributes",
+        ["EntityAttributeModifier"] = "net.minecraft.entity.attribute.EntityAttributeModifier",
+        // Effects & enchantments
+        ["StatusEffect"]            = "net.minecraft.entity.effect.StatusEffect",
+        ["StatusEffectInstance"]    = "net.minecraft.entity.effect.StatusEffectInstance",
+        ["Enchantment"]             = "net.minecraft.enchantment.Enchantment",
+        ["EnchantmentHelper"]       = "net.minecraft.enchantment.EnchantmentHelper",
+        // Damage
+        ["DamageSource"]            = "net.minecraft.entity.damage.DamageSource",
+        // Inventory
+        ["Inventory"]               = "net.minecraft.inventory.Inventory",
+        // Sound
+        ["SoundEvent"]              = "net.minecraft.sound.SoundEvent",
+        ["SoundCategory"]           = "net.minecraft.sound.SoundCategory",
+        ["SoundEvents"]             = "net.minecraft.sound.SoundEvents",
+        // Game rules
+        ["GameRules"]               = "net.minecraft.world.GameRules",
+        // Scoreboard
+        ["ScoreboardCriterion"]     = "net.minecraft.scoreboard.ScoreboardCriterion",
+        // Map
+        ["MapColor"]                = "net.minecraft.block.MapColor",
+        // Misc
+        ["TypeFilter"]              = "net.minecraft.util.TypeFilter",
+        ["GameMode"]                = "net.minecraft.world.GameMode",
+        // Attributes
+        ["ClampedEntityAttribute"]  = "net.minecraft.entity.attribute.ClampedEntityAttribute",
+        // Registry helpers
+        ["RegistryKeys"]            = "net.minecraft.registry.RegistryKeys",
+        // Creative tabs
+        ["ItemGroups"]              = "net.minecraft.item.ItemGroups",
+        // Villager
+        ["VillagerEntity"]          = "net.minecraft.entity.passive.VillagerEntity",
+        // Projectiles
+        ["SnowballEntity"]          = "net.minecraft.entity.projectile.thrown.SnowballEntity",
+        ["ArrowEntity"]             = "net.minecraft.entity.projectile.ArrowEntity",
+        ["SmallFireballEntity"]     = "net.minecraft.entity.projectile.SmallFireballEntity",
+        ["ThrownPotionEntity"]      = "net.minecraft.entity.projectile.thrown.ThrownPotionEntity",
+        // Potions (legacy util still present in 1.21.x)
+        ["PotionUtil"]              = "net.minecraft.potion.PotionUtil",
+        ["BrewingRecipeRegistry"]   = "net.minecraft.recipe.BrewingRecipeRegistry",
+        // Java stdlib
+        ["UUID"]                    = "java.util.UUID",
+        ["HashMap"]                 = "java.util.HashMap",
+        ["HashSet"]                 = "java.util.HashSet",
+        ["ArrayDeque"]              = "java.util.ArrayDeque",
+        ["CompletableFuture"]       = "java.util.concurrent.CompletableFuture",
+        ["List"]                    = "java.util.List",
+        ["ArrayList"]               = "java.util.ArrayList",
     };
 }

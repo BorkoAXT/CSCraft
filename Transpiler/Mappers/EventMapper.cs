@@ -168,12 +168,68 @@ public static class EventMapper
         ),
 
         ["ItemPickup"] = new(
-            FabricClass:    "EntitySleepEvents",
-            FabricEvent:    "ALLOW_SLEEP_TIME",
-            FabricImport:   "net.fabricmc.fabric.api.entity.event.v1.EntitySleepEvents",
-            JavaArgs:       "(entity, pos)",
-            Preamble:       "/* ItemPickup event — implement via mixin */",
-            CsParamTypes:   ["McPlayer"]
+            FabricClass:    "EntityPickupItemEvents",
+            FabricEvent:    "ALLOW_ENTITY_PICKUP",
+            FabricImport:   "net.fabricmc.fabric.api.entity.event.v1.EntityPickupItemEvents",
+            JavaArgs:       "(entity, itemEntity, slot)",
+            Preamble:       "if (!(entity instanceof ServerPlayerEntity)) return true; ServerPlayerEntity {0} = (ServerPlayerEntity) entity; ItemStack {1} = itemEntity.getStack(); MinecraftServer server = {0}.getServer();",
+            CsParamTypes:   ["McPlayer", "ItemStack"]
+        ),
+
+        // ── Player combat ─────────────────────────────────────────────────────
+
+        ["PlayerHurt"] = new(
+            FabricClass:    "ServerLivingEntityEvents",
+            FabricEvent:    "ALLOW_DAMAGE",
+            FabricImport:   "net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents",
+            JavaArgs:       "(entity, source, amount)",
+            Preamble:       "if (!(entity instanceof ServerPlayerEntity)) return true; ServerPlayerEntity {0} = (ServerPlayerEntity) entity; float {1} = amount; MinecraftServer server = {0}.getServer();",
+            CsParamTypes:   ["McPlayer", "float"]
+        ),
+
+        ["PlayerAttack"] = new(
+            FabricClass:    "AttackEntityCallback",
+            FabricEvent:    "EVENT",
+            FabricImport:   "net.fabricmc.fabric.api.event.player.AttackEntityCallback",
+            JavaArgs:       "(player, world, hand, entity, hitResult)",
+            Preamble:       "if (!(player instanceof ServerPlayerEntity)) return ActionResult.PASS; ServerPlayerEntity {0} = (ServerPlayerEntity) player; Entity {1} = entity; MinecraftServer server = {0}.getServer();",
+            CsParamTypes:   ["McPlayer", "McEntity"]
+        ),
+
+        ["PlayerUseEntity"] = new(
+            FabricClass:    "UseEntityCallback",
+            FabricEvent:    "EVENT",
+            FabricImport:   "net.fabricmc.fabric.api.event.player.UseEntityCallback",
+            JavaArgs:       "(player, world, hand, entity, hitResult)",
+            Preamble:       "if (!(player instanceof ServerPlayerEntity)) return ActionResult.PASS; ServerPlayerEntity {0} = (ServerPlayerEntity) player; Entity {1} = entity; MinecraftServer server = {0}.getServer();",
+            CsParamTypes:   ["McPlayer", "McEntity"]
+        ),
+
+        ["EntityHurt"] = new(
+            FabricClass:    "ServerLivingEntityEvents",
+            FabricEvent:    "ALLOW_DAMAGE",
+            FabricImport:   "net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents",
+            JavaArgs:       "(entity, source, amount)",
+            Preamble:       "LivingEntity {0} = entity; float {1} = amount;",
+            CsParamTypes:   ["McEntity", "float"]
+        ),
+
+        ["ServerLoading"] = new(
+            FabricClass:    "ServerLifecycleEvents",
+            FabricEvent:    "SERVER_LOADING",
+            FabricImport:   "net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents",
+            JavaArgs:       "(server)",
+            Preamble:       "MinecraftServer {0} = server;",
+            CsParamTypes:   ["McServer"]
+        ),
+
+        ["ServerTickStart"] = new(
+            FabricClass:    "ServerTickEvents",
+            FabricEvent:    "START_SERVER_TICK",
+            FabricImport:   "net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents",
+            JavaArgs:       "(server)",
+            Preamble:       "",
+            CsParamTypes:   ["McServer"]
         ),
 
         // ── Chunk events ──────────────────────────────────────────────────────

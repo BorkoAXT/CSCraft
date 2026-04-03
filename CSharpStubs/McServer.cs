@@ -45,4 +45,32 @@ public class McServer
 
     [JavaMethod("{target}.stop(false)")]
     public void Shutdown() { }
+
+    // ── Worlds ────────────────────────────────────────────────────────────────
+
+    /// <summary>Get the Overworld.</summary>
+    [JavaMethod("(ServerWorld){target}.getWorld(World.OVERWORLD)")]
+    public McWorld Overworld { get; } = null!;
+
+    /// <summary>Get the Nether.</summary>
+    [JavaMethod("(ServerWorld){target}.getWorld(World.NETHER)")]
+    public McWorld Nether { get; } = null!;
+
+    /// <summary>Get the End.</summary>
+    [JavaMethod("(ServerWorld){target}.getWorld(World.END)")]
+    public McWorld End { get; } = null!;
+
+    // ── Scoreboard ────────────────────────────────────────────────────────────
+
+    /// <summary>Get or create a scoreboard objective.</summary>
+    [JavaMethod("{target}.getScoreboard().getNullableObjective({0}) != null ? {target}.getScoreboard().getNullableObjective({0}) : {target}.getScoreboard().addObjective({0}, ScoreboardCriterion.DUMMY, Text.literal({0}), ScoreboardCriterion.RenderType.INTEGER)")]
+    public object GetScoreboard(string name) => null!;
+
+    /// <summary>Get a player's score on an objective.</summary>
+    [JavaMethod("{target}.getScoreboard().getOrCreateScore({1}, {target}.getScoreboard().getNullableObjective({0})).getScore()")]
+    public int GetScore(string objective, McPlayer player) => 0;
+
+    /// <summary>Set a player's score on an objective.</summary>
+    [JavaMethod("{target}.getScoreboard().getOrCreateScore({1}, {target}.getScoreboard().getNullableObjective({0})).setScore({2})")]
+    public void SetScore(string objective, McPlayer player, int score) { }
 }

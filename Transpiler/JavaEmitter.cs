@@ -75,6 +75,44 @@ public class JavaEmitter : CSharpSyntaxWalker
         _w.Line("}");
     }
 
+    // ── Field ─────────────────────────────────────────────────────────────────
+
+    public override void VisitFieldDeclaration(FieldDeclarationSyntax node)
+    {
+        bool isStatic   = node.Modifiers.Any(m => m.Text == "static");
+        bool isReadonly = node.Modifiers.Any(m => m.Text is "readonly" or "const");
+
+        var accessMods = node.Modifiers
+            .Select(m => ModifierMapper.MapModifier(m.Text))
+            .Where(m => !string.IsNullOrWhiteSpace(m)
+                        && m != "static" && m != "final" && m != "@Override")
+            .ToList();
+
+        string access = accessMods.Count > 0 ? string.Join(" ", accessMods) : "public";
+        string staticPart   = isStatic   ? " static" : "";
+        string finalPart    = isReadonly ? " final"  : "";
+        string modStr       = $"{access}{staticPart}{finalPart}";
+
+        foreach (var v in node.Declaration.Variables)
+        {
+            string csType  = node.Declaration.Type.ToString();
+            string javaType = MapTypeName(csType);
+            string name    = v.Identifier.Text;
+
+            _localTypes[name] = csType;
+
+            if (v.Initializer != null)
+            {
+                string init = EmitExpression(v.Initializer.Value);
+                _w.Line($"{_memberIndent}{modStr} {javaType} {name} = {init};");
+            }
+            else
+            {
+                _w.Line($"{_memberIndent}{modStr} {javaType} {name};");
+            }
+        }
+    }
+
     // ── Method ────────────────────────────────────────────────────────────────
 
     public override void VisitMethodDeclaration(MethodDeclarationSyntax node)
@@ -117,6 +155,46 @@ public class JavaEmitter : CSharpSyntaxWalker
 
         _stmtIndent = prevStmt;
 
+        _w.Line($"{_memberIndent}}}");
+        _w.Blank();
+    }
+
+    // ── Constructor ───────────────────────────────────────────────────────────
+
+    public override void VisitConstructorDeclaration(ConstructorDeclarationSyntax node)
+    {
+        var mods = node.Modifiers
+            .Select(m => ModifierMapper.MapModifier(m.Text))
+            .Where(m => !string.IsNullOrWhiteSpace(m))
+            .ToList();
+
+        string paramList = string.Join(", ", node.ParameterList.Parameters.Select(p =>
+        {
+            string pType = MapTypeName(p.Type?.ToString() ?? "Object");
+            string pName = p.Identifier.Text;
+            _localTypes[pName] = p.Type?.ToString() ?? "";
+            return $"{pType} {pName}";
+        }));
+
+        string modStr = mods.Count > 0 ? string.Join(" ", mods) + " " : "public ";
+        _w.Line($"{_memberIndent}{modStr}{node.Identifier.Text}({paramList}) {{");
+
+        string prevStmt = _stmtIndent;
+        _stmtIndent = _memberIndent + "    ";
+
+        if (node.Initializer != null)
+        {
+            string keyword = node.Initializer.ThisOrBaseKeyword.Text == "base" ? "super" : "this";
+            var args = node.Initializer.ArgumentList.Arguments
+                .Select(a => EmitExpression(a.Expression));
+            _w.Line($"{_stmtIndent}{keyword}({string.Join(", ", args)});");
+        }
+
+        if (node.Body != null)
+            foreach (var stmt in node.Body.Statements)
+                Visit(stmt);
+
+        _stmtIndent = prevStmt;
         _w.Line($"{_memberIndent}}}");
         _w.Blank();
     }

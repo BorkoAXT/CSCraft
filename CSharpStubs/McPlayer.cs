@@ -137,4 +137,47 @@ public class McPlayer
 
     [JavaMethod("{target}.setSpawnPoint(World.OVERWORLD, new BlockPos({0},{1},{2}), 0f, true, false)")]
     public void SetSpawn(int x, int y, int z) { }
+
+    // ── Particles ─────────────────────────────────────────────────────────────
+
+    /// <summary>Spawn particles visible only to this player. particleId: e.g. McParticles.Flame</summary>
+    [JavaMethod("{target}.networkHandler.sendPacket(new ParticleS2CPacket(ParticleTypes.byId(Registry.PARTICLE_TYPE.getRawId(Registries.PARTICLE_TYPE.get(new Identifier({0})))), true, {1}, {2}, {3}, 0, 0, 0, 0, {4}))")]
+    public void SpawnParticle(string particleId, double x, double y, double z, int count = 1) { }
+
+    // ── Biome & dimension ─────────────────────────────────────────────────────
+
+    /// <summary>Get the biome ID at the player's current position.</summary>
+    [JavaMethod("{target}.getWorld().getBiome({target}.getBlockPos()).getKey().map(k -> k.getValue().toString()).orElse(\"unknown\")")]
+    public string GetBiome() => null!;
+
+    /// <summary>Get the dimension key (e.g. "minecraft:overworld").</summary>
+    [JavaMethod("{target}.getWorld().getRegistryKey().getValue().toString()")]
+    public string GetDimension() => null!;
+
+    // ── NBT / persistent data ─────────────────────────────────────────────────
+
+    /// <summary>Get a string value stored in the player's NBT data.</summary>
+    [JavaMethod("{target}.getCustomData().getString({0})")]
+    public string GetNbtString(string key) => null!;
+
+    /// <summary>Set a string value in the player's NBT data.</summary>
+    [JavaMethod("{target}.getCustomData().putString({0}, {1})")]
+    public void SetNbtString(string key, string value) { }
+
+    /// <summary>Get an integer value stored in the player's NBT data.</summary>
+    [JavaMethod("{target}.getCustomData().getInt({0})")]
+    public int GetNbtInt(string key) => 0;
+
+    /// <summary>Set an integer value in the player's NBT data.</summary>
+    [JavaMethod("{target}.getCustomData().putInt({0}, {1})")]
+    public void SetNbtInt(string key, int value) { }
+
+    /// <summary>Check whether a key exists in the player's NBT data.</summary>
+    [JavaMethod("{target}.getCustomData().contains({0})")]
+    public bool HasNbt(string key) => false;
+
+    // ── Server reference ──────────────────────────────────────────────────────
+
+    [JavaMethod("{target}.getServer()")]
+    public McServer Server { get; } = null!;
 }
