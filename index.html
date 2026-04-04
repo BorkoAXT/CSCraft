@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSCraft | C# Minecraft Modding</title>
+    <style>
+        :root {
+            --primary: #512bd4;
+            --secondary: #24292e;
+            --bg: #f6f8fa;
+            --text: #2f363d;
+            --accent: #0078d4;
+            --code-bg: #282c34;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; line-height: 1.6; color: var(--text); background: var(--bg); }
+        
+        header { background: var(--primary); color: white; padding: 4rem 2rem; text-align: center; clip-path: polygon(0 0, 100% 0, 100% 85%, 0% 100%); }
+        header h1 { font-size: 3rem; margin-bottom: 0.5rem; }
+        header p { font-size: 1.2rem; opacity: 0.9; }
+
+        nav { background: white; border-bottom: 1px solid #e1e4e8; position: sticky; top: 0; z-index: 100; padding: 0.5rem 0; }
+        .nav-container { max-width: 1000px; margin: 0 auto; display: flex; gap: 2rem; padding: 0 2rem; }
+        .nav-container a { text-decoration: none; color: var(--secondary); font-weight: 600; font-size: 0.9rem; transition: color 0.2s; }
+        .nav-container a:hover { color: var(--primary); }
+
+        .container { max-width: 1000px; margin: 2rem auto; padding: 0 2rem; display: grid; grid-template-columns: 250px 1fr; gap: 2rem; }
+        
+        aside { position: sticky; top: 80px; height: fit-content; }
+        aside ul { list-style: none; border-left: 2px solid #e1e4e8; padding-left: 1rem; }
+        aside li { margin-bottom: 0.8rem; }
+        aside a { text-decoration: none; color: #6a737d; font-size: 0.95rem; }
+        aside a.active { color: var(--primary); font-weight: bold; }
+
+        main section { background: white; padding: 2rem; border-radius: 8px; border: 1px solid #e1e4e8; margin-bottom: 2rem; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        h2 { border-bottom: 2px solid var(--primary); display: inline-block; margin-bottom: 1.5rem; padding-bottom: 0.2rem; }
+        
+        pre { background: var(--code-bg); color: #abb2bf; padding: 1.5rem; border-radius: 6px; overflow-x: auto; margin: 1rem 0; font-family: "Consolas", "Monaco", monospace; position: relative; }
+        .copy-btn { position: absolute; top: 10px; right: 10px; background: rgba(255,255,255,0.1); border: none; color: white; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.7rem; }
+        .copy-btn:hover { background: rgba(255,255,255,0.2); }
+
+        table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+        table th, table td { text-align: left; padding: 12px; border-bottom: 1px solid #e1e4e8; }
+        table th { background: #f8f9fa; color: var(--secondary); }
+
+        .badge { background: #e2e8f0; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; }
+        footer { text-align: center; padding: 4rem 0; color: #6a737d; font-size: 0.9rem; }
+
+        @media (max-width: 768px) {
+            .container { grid-template-columns: 1fr; }
+            aside { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>CSCraft SDK</h1>
+    <p>Build Minecraft Fabric mods with C# 13 and .NET 9</p>
+</header>
+
+<nav>
+    <div class="nav-container">
+        <a href="#setup">Setup</a>
+        <a href="#api">API Reference</a>
+        <a href="#events">Events</a>
+        <a href="#registry">Registry</a>
+    </div>
+</nav>
+
+<div class="container">
+    <aside>
+        <ul>
+            <li><a href="#setup" class="active">Quick Start</a></li>
+            <li><a href="#player-api">Player API</a></li>
+            <li><a href="#world-api">World API</a></li>
+            <li><a href="#commands">Commands</a></li>
+            <li><a href="#resources">Auto-Resources</a></li>
+            <li><a href="#trouble">Troubleshooting</a></li>
+        </ul>
+    </aside>
+
+    <main>
+        <section id="setup">
+            <h2>Quick Start</h2>
+            <p>CSCraft automates everything. Run these commands to begin:</p>
+            <pre><button class="copy-btn">Copy</button>dotnet new classlib -n MyMod
+cd MyMod
+dotnet add package CSCraft.Sdk
+dotnet build</pre>
+            <p>The build engine automatically discovers your **JDK 21** and generates the Fabric environment.</p>
+        </section>
+
+        <section id="player-api">
+            <h2>Player API</h2>
+            <table>
+                <thead>
+                    <tr><th>Method</th><th>Description</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td><code>SendMessage(string)</code></td><td>Sends chat message</td></tr>
+                    <tr><td><code>Teleport(x, y, z)</code></td><td>Moves player instantly</td></tr>
+                    <tr><td><code>GiveItem(id, count)</code></td><td>Adds items to inventory</td></tr>
+                    <tr><td><code>Heal(float)</code></td><td>Restores health points</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section id="commands">
+            <h2>Command Registration</h2>
+            <p>Registering commands is handled via <code>McCommand</code>. Arguments are parsed automatically.</p>
+            <pre><button class="copy-btn">Copy</button>McCommand.RegisterWithPlayer("greet", "target", (src, target) => {
+    src.SendMessage($"You greeted {target.Name}!");
+    target.SendMessage($"{src.Player.Name} says hi!");
+});</pre>
+        </section>
+
+        <section id="trouble">
+            <h2>Troubleshooting</h2>
+            <p><strong>JDK Not Found:</strong> Version 1.1.0+ uses <em>Java Discovery</em>. If it fails, manually set path in .csproj:</p>
+            <pre><button class="copy-btn">Copy</button>&lt;CSCraftJavaHome&gt;C:\Java\jdk-21&lt;/CSCraftJavaHome&gt;</pre>
+        </section>
+    </main>
+</div>
+
+<footer>
+    <p>CSCraft is open source. Created for the Minecraft C# Community.</p>
+</footer>
+
+<script>
+    // Copy to clipboard logic
+    document.querySelectorAll('.copy-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const code = btn.parentElement.innerText.replace('Copy', '').trim();
+            navigator.clipboard.writeText(code);
+            btn.innerText = 'Copied!';
+            setTimeout(() => btn.innerText = 'Copy', 2000);
+        });
+    });
+
+    // Simple scroll spy for sidebar
+    const links = document.querySelectorAll('aside a');
+    const sections = document.querySelectorAll('main section');
+
+    window.addEventListener('scroll', () => {
+        let current = "";
+        sections.forEach(section => {
+            const sectionTop = section.offsetTop;
+            if (pageYOffset >= sectionTop - 100) {
+                current = section.getAttribute('id');
+            }
+        });
+
+        links.forEach(link => {
+            link.classList.remove('active');
+            if (link.getAttribute('href').includes(current)) {
+                link.classList.add('active');
+            }
+        });
+    });
+</script>
+
+</body>
+</html>
