@@ -130,6 +130,29 @@ public class McEntity
     [JavaMethod("{target} instanceof net.minecraft.mob.MobEntity")]
     public bool IsMob { get; }
 
+    // ── Age / lifecycle ───────────────────────────────────────────────────────
+
+    /// <summary>Age in ticks. Negative = baby for mobs that support it.</summary>
+    [JavaMethod("({target} instanceof net.minecraft.entity.passive.PassiveEntity _pe ? _pe.getBreedingAge() : 0)")]
+    public int GetAge() => 0;
+
+    [JavaMethod("if ({target} instanceof net.minecraft.entity.passive.PassiveEntity _pe) _pe.setBreedingAge({0})")]
+    public void SetAge(int ticks) { }
+
+    [JavaMethod("({target} instanceof net.minecraft.entity.passive.PassiveEntity _pe2 && _pe2.isBaby())")]
+    public bool IsBaby() => false;
+
+    [JavaMethod("if ({target} instanceof net.minecraft.entity.passive.PassiveEntity _pe3) _pe3.setBreedingAge({0} ? -24000 : 0)")]
+    public void SetBaby(bool baby) { }
+
+    // ── Gravity ───────────────────────────────────────────────────────────────
+
+    [JavaMethod("{target}.hasNoGravity()")]
+    public bool HasNoGravity { get; }
+
+    [JavaMethod("{target}.setNoGravity({0})")]
+    public void SetNoGravity(bool noGravity) { }
+
     // ── NBT ───────────────────────────────────────────────────────────────────
 
     [JavaMethod("{target}.getCustomData().getString({0})")]

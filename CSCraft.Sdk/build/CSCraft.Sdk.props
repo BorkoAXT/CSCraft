@@ -2,15 +2,20 @@
 
   <PropertyGroup>
     <!--
-      Set these in your .csproj to configure the transpiler:
+      These defaults are used when NOT using [ModInfo] auto-setup.
+      When [ModInfo] is present, the SetupFabricTemplate task overrides
+      CSCraftPackageName and CSCraftFabricPath automatically.
 
+      Manual override: set these in your .csproj to configure the transpiler:
         <CSCraftPackageName>com.yourname.mymod</CSCraftPackageName>
         <CSCraftFabricPath>C:\path\to\FabricTemplate</CSCraftFabricPath>
-        <CSCraftOutputDir>$(CSCraftFabricPath)\src\main\java</CSCraftOutputDir>
     -->
-    <CSCraftPackageName Condition="'$(CSCraftPackageName)' == ''">com.example.mymod</CSCraftPackageName>
+    <CSCraftPackageName Condition="'$(CSCraftPackageName)' == ''"></CSCraftPackageName>
     <CSCraftRunGradle   Condition="'$(CSCraftRunGradle)'   == ''">true</CSCraftRunGradle>
-    <CSCraftJavaHome    Condition="'$(CSCraftJavaHome)'    == ''">/usr/lib/jvm/java-25-openjdk</CSCraftJavaHome>
+    <CSCraftJavaHome    Condition="'$(CSCraftJavaHome)'    == ''"></CSCraftJavaHome>
+
+    <!-- Path to the bundled Gradle wrapper in the NuGet package -->
+    <_CSCraftGradleWrapperDir>$(MSBuildThisFileDirectory)gradle-wrapper/</_CSCraftGradleWrapperDir>
   </PropertyGroup>
 
 </Project>

@@ -152,6 +152,16 @@ public static class Events
     [JavaEvent("ServerEntityEvents", "ENTITY_UNLOAD")]
     public static event Action<McEntity> EntityUnload = null!;
 
+    // ── Sleep events ─────────────────────────────────────────────────────────
+
+    /// <summary>Fired when a player starts sleeping in a bed.</summary>
+    [JavaEvent("PlayerSleepInBedCallback", "EVENT")]
+    public static event Action<McPlayer, McBlockPos> PlayerSleep = null!;
+
+    /// <summary>Fired when a player wakes up from sleeping.</summary>
+    [JavaEvent("ServerPlayerEvents", "AFTER_RESPAWN")]
+    public static event Action<McPlayer> PlayerWakeUp = null!;
+
     // ── Chunk events ──────────────────────────────────────────────────────────
 
     [JavaEvent("ServerChunkEvents", "CHUNK_LOAD")]

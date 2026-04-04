@@ -56,6 +56,23 @@ Target: Minecraft 1.21.1 · Fabric API 0.116.9+1.21.1 · Java 21</Description>
     <None Include="build/tasks/*.dll"
           Pack="true"
           PackagePath="build/tasks/" />
+
+    <!-- Bundled Gradle wrapper (copied into FabricTemplate on first build) -->
+    <None Include="build/gradle-wrapper/gradlew"
+          Pack="true"
+          PackagePath="build/gradle-wrapper/" />
+
+    <None Include="build/gradle-wrapper/gradlew.bat"
+          Pack="true"
+          PackagePath="build/gradle-wrapper/" />
+
+    <None Include="build/gradle-wrapper/gradle/wrapper/gradle-wrapper.jar"
+          Pack="true"
+          PackagePath="build/gradle-wrapper/gradle/wrapper/" />
+
+    <None Include="build/gradle-wrapper/gradle/wrapper/gradle-wrapper.properties"
+          Pack="true"
+          PackagePath="build/gradle-wrapper/gradle/wrapper/" />
   </ItemGroup>
 
 </Project>

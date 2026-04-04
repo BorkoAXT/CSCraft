@@ -41,4 +41,13 @@ public class McBlockPos
 
     [JavaMethod("{target}.getSquaredDistance(new Vec3d({0},{1},{2}))")]
     public double Distance(double x, double y, double z) => 0;
+
+    [JavaMethod("{target}.getManhattanDistance({0})")]
+    public int Manhattan(McBlockPos other) => 0;
+
+    [JavaMethod("{target}.getSquaredDistance({0}.toCenterPos())")]
+    public double SquaredDistanceTo(McBlockPos other) => 0;
+
+    [JavaMethod("{target}.isWithinDistance({0}.toCenterPos(), {1})")]
+    public bool IsWithinDistance(McBlockPos other, double distance) => false;
 }

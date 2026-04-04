@@ -66,6 +66,46 @@ public class McServer
     [JavaMethod("(ServerWorld){target}.getWorld(World.END)")]
     public McWorld End { get; } = null!;
 
+    // ── Server properties ─────────────────────────────────────────────────────
+
+    [JavaMethod("{target}.isHardcore()")]
+    public bool IsHardcore { get; }
+
+    [JavaMethod("{target}.getOverworld().getSeed()")]
+    public long GetSeed() => 0;
+
+    [JavaMethod("{target}.getDefaultGameMode().getName()")]
+    public string GetDefaultGameMode() => null!;
+
+    [JavaMethod("{target}.setDefaultGameMode(net.minecraft.world.GameMode.byName({0}))")]
+    public void SetDefaultGameMode(string mode) { }
+
+    // ── Ban / whitelist ───────────────────────────────────────────────────────
+
+    [JavaMethod("{target}.getPlayerManager().getUserBanList().contains(new net.minecraft.server.BannedPlayerEntry(new com.mojang.authlib.GameProfile(null, {0})))")]
+    public bool IsPlayerBanned(string name) => false;
+
+    [JavaMethod("{ var _profile = new com.mojang.authlib.GameProfile(null, {0}); var _entry = new net.minecraft.server.BannedPlayerEntry(_profile, null, null, null, {1}); {target}.getPlayerManager().getUserBanList().add(_entry); var _p = {target}.getPlayerManager().getPlayer({0}); if (_p != null) _p.networkHandler.disconnect(Text.literal({1})); }")]
+    public void BanPlayer(string name, string reason) { }
+
+    [JavaMethod("{target}.getPlayerManager().getUserBanList().remove(new com.mojang.authlib.GameProfile(null, {0}))")]
+    public void PardonPlayer(string name) { }
+
+    [JavaMethod("{target}.getPlayerManager().isWhitelistEnabled()")]
+    public bool IsWhitelistEnabled { get; }
+
+    [JavaMethod("{target}.getPlayerManager().setWhitelistEnabled({0})")]
+    public void SetWhitelistEnabled(bool enabled) { }
+
+    [JavaMethod("{target}.getPlayerManager().getWhitelist().isAllowed(new com.mojang.authlib.GameProfile(null, {0}))")]
+    public bool IsWhitelisted(string name) => false;
+
+    [JavaMethod("{target}.getPlayerManager().getWhitelist().add(new net.minecraft.server.WhitelistEntry(new com.mojang.authlib.GameProfile(null, {0})))")]
+    public void AddToWhitelist(string name) { }
+
+    [JavaMethod("{target}.getPlayerManager().getWhitelist().remove(new net.minecraft.server.WhitelistEntry(new com.mojang.authlib.GameProfile(null, {0})))")]
+    public void RemoveFromWhitelist(string name) { }
+
     // ── Scoreboard ────────────────────────────────────────────────────────────
 
     /// <summary>Get or create a scoreboard objective.</summary>

@@ -112,6 +112,55 @@ public class McWorld
     [JavaMethod("{target}.getRandom().nextBetween({0}, {1})")]
     public int GetRandomInt(int min, int max) => 0;
 
+    // ── Item drops ────────────────────────────────────────────────────────────
+
+    /// <summary>Drop an item stack at a world position.</summary>
+    [JavaMethod("{target}.spawnEntity(new net.minecraft.entity.ItemEntity({target}, {1}, {2}, {3}, new ItemStack(Registries.ITEM.get(new Identifier({0})), {4})))")]
+    public void DropItem(string itemId, double x, double y, double z, int count = 1) { }
+
+    // ── Lightning ─────────────────────────────────────────────────────────────
+
+    [JavaMethod("{ var _bolt = net.minecraft.entity.EntityType.LIGHTNING_BOLT.create({target}); if (_bolt != null) { _bolt.setPosition({0},{1},{2}); {target}.spawnEntity(_bolt); } }")]
+    public void SpawnLightning(double x, double y, double z) { }
+
+    // ── Block entities ────────────────────────────────────────────────────────
+
+    /// <summary>Get the block entity (tile entity) at a position, or null if none.</summary>
+    [JavaMethod("{target}.getBlockEntity(new BlockPos({0},{1},{2}))")]
+    public McBlockEntity? GetBlockEntity(int x, int y, int z) => null;
+
+    // ── Chunk ─────────────────────────────────────────────────────────────────
+
+    [JavaMethod("{target}.isChunkLoaded(new BlockPos({0}, 64, {1}))")]
+    public bool IsChunkLoaded(int x, int z) => false;
+
+    [JavaMethod("{target}.getBlockState(new BlockPos({0},{1},{2})).isAir()")]
+    public bool IsAir(int x, int y, int z) => false;
+
+    // ── World border ──────────────────────────────────────────────────────────
+
+    [JavaMethod("{target}.getWorldBorder().getSize()")]
+    public double GetBorderSize() => 0;
+
+    [JavaMethod("{target}.getWorldBorder().setSize({0})")]
+    public void SetBorderSize(double size) { }
+
+    /// <summary>Shrink or expand the border to targetSize over durationSeconds.</summary>
+    [JavaMethod("{target}.getWorldBorder().interpolateSize({target}.getWorldBorder().getSize(), {0}, (long)({1} * 1000L))")]
+    public void AnimateBorderSize(double targetSize, double durationSeconds) { }
+
+    [JavaMethod("{target}.getWorldBorder().getCenterX()")]
+    public double GetBorderCenterX() => 0;
+
+    [JavaMethod("{target}.getWorldBorder().getCenterZ()")]
+    public double GetBorderCenterZ() => 0;
+
+    [JavaMethod("{target}.getWorldBorder().setCenter({0}, {1})")]
+    public void SetBorderCenter(double x, double z) { }
+
+    [JavaMethod("{target}.getWorldBorder().setWarningBlocks({0})")]
+    public void SetBorderWarningDistance(int blocks) { }
+
     // ── Dimension ─────────────────────────────────────────────────────────────
 
     /// <summary>Get the dimension key string (e.g. "minecraft:overworld").</summary>

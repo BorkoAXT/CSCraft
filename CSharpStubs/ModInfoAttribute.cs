@@ -1,0 +1,63 @@
+namespace CSCraft;
+
+/// <summary>
+/// Place this attribute on your mod class (the one implementing IMod) to configure
+/// all Fabric template settings automatically. When you build, CSCraft reads these
+/// values and generates the entire FabricTemplate directory — no manual Gradle setup needed.
+///
+/// Example:
+/// <code>
+/// [ModInfo(
+///     Id          = "mymod",
+///     Name        = "My Cool Mod",
+///     Version     = "1.0.0",
+///     Author      = "YourName",
+///     Description = "A cool Fabric mod written in C#"
+/// )]
+/// public class MyMod : IMod { ... }
+/// </code>
+/// </summary>
+[AttributeUsage(AttributeTargets.Class)]
+public sealed class ModInfoAttribute : Attribute
+{
+    /// <summary>
+    /// Required. The mod ID used in Fabric (lowercase, no spaces).
+    /// Example: "mymod"
+    /// </summary>
+    public string Id { get; set; } = "";
+
+    /// <summary>
+    /// Required. The display name of your mod.
+    /// Example: "My Cool Mod"
+    /// </summary>
+    public string Name { get; set; } = "";
+
+    /// <summary>
+    /// Mod version. Default: "1.0.0"
+    /// </summary>
+    public string Version { get; set; } = "1.0.0";
+
+    /// <summary>
+    /// Author name shown in Fabric mod menu.
+    /// </summary>
+    public string Author { get; set; } = "";
+
+    /// <summary>
+    /// A short description of what the mod does.
+    /// </summary>
+    public string Description { get; set; } = "";
+
+    /// <summary>
+    /// Target Minecraft version. Default: "1.21.1"
+    /// The build system automatically resolves Yarn mappings, Fabric loader,
+    /// and Fabric API versions for the chosen Minecraft version.
+    /// </summary>
+    public string MinecraftVersion { get; set; } = "1.21.1";
+
+    /// <summary>
+    /// Java package name for the generated Java code.
+    /// Default: derived from Author + Id (e.g. "com.yourname.mymod").
+    /// Override if you want a custom package structure.
+    /// </summary>
+    public string PackageName { get; set; } = "";
+}

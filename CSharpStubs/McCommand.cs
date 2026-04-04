@@ -50,6 +50,42 @@ public static class McCommand
     /// Register an op-only command with a string argument.
     /// </summary>
     public static void RegisterOp(string name, string argName, Action<McCommandSource, string> handler) { }
+
+    /// <summary>
+    /// Register a command with a float argument.
+    /// </summary>
+    public static void Register(string name, string argName, Action<McCommandSource, float> handler) { }
+
+    /// <summary>
+    /// Register a command with a boolean argument.
+    /// </summary>
+    public static void Register(string name, string argName, Action<McCommandSource, bool> handler) { }
+
+    /// <summary>
+    /// Register a command with a player selector argument (resolves to the first matched online player).
+    /// Example: McCommand.Register("heal", "target", (src, player) => player.Heal(20));
+    /// </summary>
+    public static void RegisterWithPlayer(string name, string argName, Action<McCommandSource, McPlayer> handler) { }
+
+    /// <summary>
+    /// Register a command with a player selector and a string argument.
+    /// </summary>
+    public static void RegisterWithPlayer(string name, string playerArgName, string strArgName, Action<McCommandSource, McPlayer, string> handler) { }
+
+    /// <summary>
+    /// Register a command with a player selector and an integer argument.
+    /// </summary>
+    public static void RegisterWithPlayer(string name, string playerArgName, string intArgName, Action<McCommandSource, McPlayer, int> handler) { }
+
+    /// <summary>
+    /// Register a command with a BlockPos argument.
+    /// </summary>
+    public static void RegisterWithPos(string name, string argName, Action<McCommandSource, McBlockPos> handler) { }
+
+    /// <summary>
+    /// Register an op-only command with a player selector argument.
+    /// </summary>
+    public static void RegisterOpWithPlayer(string name, string argName, Action<McCommandSource, McPlayer> handler) { }
 }
 
 /// <summary>

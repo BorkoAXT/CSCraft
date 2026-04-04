@@ -1,19 +1,60 @@
 <Project>
 
-  <!-- Register the transpiler MSBuild task from the DLL bundled in this package -->
+  <!-- Register MSBuild tasks from the DLLs bundled in this package -->
   <UsingTask
     TaskName="BuildTask.TranspileMod"
     AssemblyFile="$(MSBuildThisFileDirectory)tasks/BuildTask.dll" />
 
+  <UsingTask
+    TaskName="BuildTask.SetupFabricTemplate"
+    AssemblyFile="$(MSBuildThisFileDirectory)tasks/BuildTask.dll" />
+
   <!--
-    Runs after the C# compile so Roslyn has already validated the code,
-    but we hook BeforeTargets="Build" so it's part of a normal dotnet build.
+    ═══════════════════════════════════════════════════════════════════════════
+    Step 1: Scan for [ModInfo] and generate FabricTemplate automatically
+    ═══════════════════════════════════════════════════════════════════════════
+  -->
+  <Target Name="CSCraftSetupTemplate" BeforeTargets="CSCraftTranspile">
+
+    <!-- Collect all .cs files for scanning -->
+    <ItemGroup>
+      <_CSCraftAllSources Include="@(Compile)"
+        Exclude="$(IntermediateOutputPath)**;**/*.g.cs;**/*.AssemblyInfo.cs" />
+    </ItemGroup>
+
+    <SetupFabricTemplate
+      SourceFiles="@(_CSCraftAllSources)"
+      ProjectDirectory="$(MSBuildProjectDirectory)"
+      GradleWrapperSourceDir="$(_CSCraftGradleWrapperDir)">
+
+      <Output TaskParameter="FabricTemplatePath" PropertyName="_CSCraftAutoFabricPath" />
+      <Output TaskParameter="PackageName"        PropertyName="_CSCraftAutoPackageName" />
+      <Output TaskParameter="ModId"              PropertyName="_CSCraftAutoModId" />
+      <Output TaskParameter="ModInfoFound"       PropertyName="_CSCraftModInfoFound" />
+    </SetupFabricTemplate>
+
+    <!--
+      If [ModInfo] was found, use its outputs to set the properties
+      (only if the user hasn't manually set them in .csproj)
+    -->
+    <PropertyGroup Condition="'$(_CSCraftModInfoFound)' == 'True'">
+      <CSCraftFabricPath    Condition="'$(CSCraftFabricPath)' == ''">$(_CSCraftAutoFabricPath)</CSCraftFabricPath>
+      <CSCraftPackageName   Condition="'$(CSCraftPackageName)' == ''">$(_CSCraftAutoPackageName)</CSCraftPackageName>
+      <CSCraftResourcesPath Condition="'$(CSCraftResourcesPath)' == ''">$(CSCraftFabricPath)/src/main/resources</CSCraftResourcesPath>
+    </PropertyGroup>
+
+  </Target>
+
+  <!--
+    ═══════════════════════════════════════════════════════════════════════════
+    Step 2: Transpile C# to Java and optionally run Gradle
+    ═══════════════════════════════════════════════════════════════════════════
   -->
   <Target Name="CSCraftTranspile" BeforeTargets="Build"
           Condition="'$(CSCraftFabricPath)' != ''">
 
     <Error Condition="'$(CSCraftPackageName)' == ''"
-           Text="CSCraft: Set &lt;CSCraftPackageName&gt; in your .csproj, e.g. com.yourname.mymod" />
+           Text="CSCraft: No package name found. Either add [ModInfo(Id=&quot;mymod&quot;, Name=&quot;My Mod&quot;)] to your mod class, or set &lt;CSCraftPackageName&gt; in your .csproj." />
 
     <!-- Resolve the Java output directory from the package name -->
     <PropertyGroup>
@@ -27,7 +68,7 @@
         Exclude="$(IntermediateOutputPath)**;**/*.g.cs;**/*.AssemblyInfo.cs" />
     </ItemGroup>
 
-    <Message Text="CSCraft: transpiling %(  _CSCraftSources.Filename)%(_CSCraftSources.Extension)"
+    <Message Text="CSCraft: transpiling %(_CSCraftSources.Filename)%(_CSCraftSources.Extension)"
              Importance="High" Condition="'@(_CSCraftSources)' != ''" />
 
     <TranspileMod
@@ -39,12 +80,12 @@
     <Message Text="CSCraft: Java written to $(CSCraftOutputDir)" Importance="High" />
 
     <!-- Optionally run Gradle -->
-    <Exec Condition="'$(CSCraftRunGradle)' == 'true' and Exists('$(CSCraftFabricPath)/gradlew')"
+    <Exec Condition="'$(CSCraftRunGradle)' == 'true' and Exists('$(CSCraftFabricPath)/gradlew') and !$([MSBuild]::IsOSPlatform('Windows'))"
           Command="export JAVA_HOME=&quot;$(CSCraftJavaHome)&quot; &amp;&amp; chmod +x &quot;$(CSCraftFabricPath)/gradlew&quot; &amp;&amp; &quot;$(CSCraftFabricPath)/gradlew&quot; build"
           WorkingDirectory="$(CSCraftFabricPath)" />
 
-    <Exec Condition="'$(CSCraftRunGradle)' == 'true' and Exists('$(CSCraftFabricPath)/gradlew.bat')"
-          Command="set JAVA_HOME=$(CSCraftJavaHome) &amp;&amp; &quot;$(CSCraftFabricPath)/gradlew.bat&quot; build"
+    <Exec Condition="'$(CSCraftRunGradle)' == 'true' and Exists('$(CSCraftFabricPath)/gradlew.bat') and $([MSBuild]::IsOSPlatform('Windows'))"
+          Command="if defined CSCraftJavaHome (set JAVA_HOME=$(CSCraftJavaHome)) &amp;&amp; &quot;$(CSCraftFabricPath)\gradlew.bat&quot; build"
           WorkingDirectory="$(CSCraftFabricPath)" />
 
   </Target>

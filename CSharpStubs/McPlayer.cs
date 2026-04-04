@@ -176,6 +176,71 @@ public class McPlayer
     [JavaMethod("{target}.changeGameMode(GameMode.byName({0}))")]
     public void SetGameMode(string mode) { }
 
+    // ── Shield / item use ─────────────────────────────────────────────────────
+
+    [JavaMethod("{target}.isBlocking()")]
+    public bool IsBlocking { get; }
+
+    [JavaMethod("{target}.isUsingItem()")]
+    public bool IsUsingItem { get; }
+
+    [JavaMethod("{target}.getActiveItem()")]
+    public McItemStack GetActiveItem() => null!;
+
+    [JavaMethod("{target}.getItemUseTimeLeft()")]
+    public int GetItemUseTimeLeft() => 0;
+
+    // ── Cooldowns ─────────────────────────────────────────────────────────────
+
+    [JavaMethod("{target}.getItemCooldownManager().isCoolingDown(Registries.ITEM.get(new Identifier({0})))")]
+    public bool IsOnCooldown(string itemId) => false;
+
+    [JavaMethod("{target}.getItemCooldownManager().set(Registries.ITEM.get(new Identifier({0})), {1})")]
+    public void SetCooldown(string itemId, int ticks) { }
+
+    // ── Connection / locale ───────────────────────────────────────────────────
+
+    [JavaMethod("{target}.networkHandler.getLatency()")]
+    public int GetPing() => 0;
+
+    [JavaMethod("{target}.networkHandler.getConnectionAddress().toString()")]
+    public string GetIp() => null!;
+
+    [JavaMethod("{target}.clientSettingsPacket != null ? {target}.clientSettingsPacket.language() : \"en_us\"")]
+    public string GetLocale() => null!;
+
+    // ── Sleep ─────────────────────────────────────────────────────────────────
+
+    [JavaMethod("{target}.isSleeping()")]
+    public bool IsSleeping { get; }
+
+    [JavaMethod("{target}.isSpectator()")]
+    public bool IsSpectator { get; }
+
+    [JavaMethod("{target}.wakeUp(false, false)")]
+    public void WakeUp() { }
+
+    // ── UI ────────────────────────────────────────────────────────────────────
+
+    [JavaMethod("{target}.networkHandler.sendPacket(new net.minecraft.network.packet.s2c.play.OpenScreenS2CPacket(0, net.minecraft.screen.ScreenHandlerType.GENERIC_9X3, Text.literal(\"\"), 3))")]
+    public void OpenInventory() { }
+
+    [JavaMethod("{target}.closeHandledScreen()")]
+    public void CloseInventory() { }
+
+    /// <summary>Show an advancement-style toast notification.</summary>
+    [JavaMethod("{target}.networkHandler.sendPacket(new net.minecraft.network.packet.s2c.play.AdvancementUpdateS2CPacket(false, java.util.List.of(), java.util.Set.of(), java.util.Map.of()))")]
+    public void SendToast(string title, string description) { }
+
+    /// <summary>Send a resource pack to the player.</summary>
+    [JavaMethod("{target}.sendResourcePackUrl({0}, \"\", false, null)")]
+    public void SendResourcePack(string url) { }
+
+    // ── Ender chest ───────────────────────────────────────────────────────────
+
+    [JavaMethod("{target}.getEnderChestInventory()")]
+    public McInventory GetEnderChest() => null!;
+
     // ── Kick / permissions ────────────────────────────────────────────────────
 
     [JavaMethod("{target}.networkHandler.disconnect(Text.literal({0}))")]
