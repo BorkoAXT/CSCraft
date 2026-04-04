@@ -143,7 +143,10 @@ You can manually override settings in your `.csproj`:
 - **JDK Not Found:** Install JDK 21. If it's still not found, set `<CSCraftJavaHome>` in your `.csproj`.
 - **Wrong Java Version:** Ensure you are using JDK 21 (required for Minecraft 1.20.6+).
 - **Resources Not Generated:** Ensure `McRegistry` and `McRecipe` calls use compile-time string literals.
+- **Build Error:** If your on Visual Studio 2022, make sure you are using the CLI dotnet build instead of the built-in button as the button doesn't work for now.
 - **Force Rebuild:** If changes aren't reflecting, run `dotnet build --no-incremental`.
+- **Fabric Json Error:** If your getting an entrypoint stage 'main', it's because your class is probably something like MyMod. Until future updates, it's preferred for mod classes to be written entirely in lowercase.
+- **Other errors:" If you have any build errors or you don't see the jar file, make sure to remove the obj, bin and FabricTemplate folders and do a dotnet clean. If the error isn't here, send a message via email or discord at BorkoAXT#5390
 
 ---
 
