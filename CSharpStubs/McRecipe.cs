@@ -51,14 +51,14 @@ public static class McRecipe
     // ── Recipe lookup ─────────────────────────────────────────────────────────
 
     /// <summary>Check if a player knows a specific recipe (for recipe unlocking).</summary>
-    [JavaMethod("{0}.getRecipeBook().contains(new Identifier({1}))")]
+    [JavaMethod("{0}.getRecipeBook().contains(Identifier.of({1}))")]
     public static bool PlayerKnowsRecipe(McPlayer player, string recipeId) => false;
 
     /// <summary>Unlock a recipe for a player.</summary>
-    [JavaMethod("{0}.unlockRecipes(new net.minecraft.util.Identifier[] { new Identifier({1}) })")]
+    [JavaMethod("{0}.unlockRecipes(new net.minecraft.util.Identifier[] { Identifier.of({1}) })")]
     public static void UnlockForPlayer(McPlayer player, string recipeId) { }
 
     /// <summary>Lock (hide) a recipe from a player.</summary>
-    [JavaMethod("{0}.lockRecipes(new net.minecraft.util.Identifier[] { new Identifier({1}) })")]
+    [JavaMethod("{0}.lockRecipes(new net.minecraft.util.Identifier[] { Identifier.of({1}) })")]
     public static void LockForPlayer(McPlayer player, string recipeId) { }
 }

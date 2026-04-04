@@ -13,7 +13,7 @@ public static class McPotion
     public static string GetPotionId(McItemStack stack) => null!;
 
     /// <summary>Check whether an ItemStack is a potion with the given effect.</summary>
-    [JavaMethod("PotionUtil.getPotionEffects({0}).stream().anyMatch(e -> e.getEffectType() == Registries.STATUS_EFFECT.get(new Identifier({1})))")]
+    [JavaMethod("PotionUtil.getPotionEffects({0}).stream().anyMatch(e -> e.getEffectType() == Registries.STATUS_EFFECT.get(Identifier.of({1})))")]
     public static bool HasEffect(McItemStack stack, string effectId) => false;
 
     /// <summary>Get all status effects on a potion ItemStack.</summary>

@@ -631,6 +631,31 @@ McRecipe.RegisterStonecutting("mymod:slab", "mymod:block", "mymod:slab", count: 
 
 ---
 
+## Auto-Generated Resources (Models, Blockstates, Lang)
+
+CSCraft automatically generates Minecraft resource files at build time from your `McRegistry.Register*()` calls. No manual JSON writing required.
+
+**What gets generated:**
+
+| Registration Call | Generated Files |
+|---|---|
+| `RegisterBlock("mymod:ruby_block", ...)` | `blockstates/ruby_block.json`, `models/block/ruby_block.json`, `lang/en_us.json` entry |
+| `RegisterBlockItem("mymod:ruby_block", ...)` | `models/item/ruby_block.json` (inherits block model) |
+| `RegisterItem("mymod:ruby")` | `models/item/ruby.json` (generated parent), lang entry |
+| `RegisterFood(...)` | `models/item/{name}.json` (generated parent), lang entry |
+| `RegisterSword/Pickaxe/Axe/Shovel/Hoe(...)` | `models/item/{name}.json` (handheld parent), lang entry |
+| `RegisterHelmet/Chestplate/Leggings/Boots(...)` | `models/item/{name}.json` (generated parent), lang entry |
+
+**Language entries** are merged into a single `assets/{modId}/lang/en_us.json`. Names are derived automatically: `ruby_ore` becomes `"Ruby Ore"`.
+
+**Textures** must still be provided manually. Place them in:
+- `FabricTemplate/src/main/resources/assets/{modId}/textures/item/{name}.png` for items
+- `FabricTemplate/src/main/resources/assets/{modId}/textures/block/{name}.png` for blocks
+
+All arguments to registration calls must be compile-time string literals (same as recipes). Variable references emit a CSCRAFT004 warning.
+
+---
+
 ## Tags, Fluids, Structures, Advancements
 
 ```csharp
@@ -732,5 +757,7 @@ McAttribute.AddModifier(entity, McAttributes.MaxHealth, 10.0, 0); // +10 max HP
 **`mappings not found`** — Update `MinecraftVersion` in your `[ModInfo]` attribute to a supported version.
 
 **Recipe JSON not generated** — All `McRecipe.Register*()` arguments must be string/char/numeric literals. Variables emit a CSCRAFT003 warning.
+
+**Model/blockstate JSON not generated** — All `McRegistry.Register*()` arguments must be string literals. Variables emit a CSCRAFT004 warning.
 
 **Build succeeds but no `.jar`** — Check that `<CSCraftRunGradle>` is `true` (the default) and Java is available.

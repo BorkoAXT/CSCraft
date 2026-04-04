@@ -5,7 +5,8 @@
       "Bash(dotnet publish:*)",
       "Bash(cp Transpiler/bin/Release/net9.0/Transpiler.dll CSCraft.Sdk/build/tasks/)",
       "Bash(cp BuildTask/bin/Release/net9.0/BuildTask.dll CSCraft.Sdk/build/tasks/)",
-      "Bash(dotnet pack:*)"
+      "Bash(dotnet pack:*)",
+      "Bash(dotnet nuget:*)"
     ]
   }
 }

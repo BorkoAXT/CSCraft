@@ -45,14 +45,14 @@ public static class MethodMapper
         ["GetBlockPos"]     = new("{target}.getBlockPos()"),
 
         // Items & inventory
-        ["GiveItem"]        = new("{target}.getInventory().insertStack(new ItemStack(Registries.ITEM.get(new Identifier({0})), {1}))",
+        ["GiveItem"]        = new("{target}.getInventory().insertStack(new ItemStack(Registries.ITEM.get(Identifier.of({0})), {1}))",
                                   Imports: ["net.minecraft.item.ItemStack", "net.minecraft.registry.Registries", "net.minecraft.util.Identifier"]),
         ["ClearInventory"]  = new("{target}.getInventory().clear()"),
 
         // Effects
-        ["GiveEffect"]      = new("{target}.addStatusEffect(new StatusEffectInstance(Registries.STATUS_EFFECT.get(new Identifier({0})), {1}, {2}))",
+        ["GiveEffect"]      = new("{target}.addStatusEffect(new StatusEffectInstance(Registries.STATUS_EFFECT.get(Identifier.of({0})), {1}, {2}))",
                                   Imports: ["net.minecraft.entity.effect.StatusEffectInstance", "net.minecraft.registry.Registries", "net.minecraft.util.Identifier"]),
-        ["RemoveEffect"]    = new("{target}.removeStatusEffect(Registries.STATUS_EFFECT.get(new Identifier({0})))"),
+        ["RemoveEffect"]    = new("{target}.removeStatusEffect(Registries.STATUS_EFFECT.get(Identifier.of({0})))"),
         ["ClearEffects"]    = new("{target}.clearStatusEffects()"),
 
         // XP
@@ -70,7 +70,7 @@ public static class MethodMapper
         ["IsOp"]            = new("{target}.hasPermissionLevel(2)"),
 
         // Misc
-        ["PlaySound"]       = new("{target}.playSoundToPlayer(Registries.SOUND_EVENT.get(new Identifier({0})), SoundCategory.PLAYERS, 1.0f, 1.0f)",
+        ["PlaySound"]       = new("{target}.playSoundToPlayer(Registries.SOUND_EVENT.get(Identifier.of({0})), SoundCategory.PLAYERS, 1.0f, 1.0f)",
                                   Imports: ["net.minecraft.sound.SoundCategory"]),
         ["SetSpawn"]        = new("{target}.setSpawnPoint(World.OVERWORLD, new BlockPos({0},{1},{2}), 0f, true, false)"),
     };
@@ -80,7 +80,7 @@ public static class MethodMapper
     private static readonly Dictionary<string, MethodMapping> WorldMethods = new()
     {
         // Blocks
-        ["SetBlock"]        = new("{target}.setBlockState(new BlockPos({0},{1},{2}), Registries.BLOCK.get(new Identifier({3})).getDefaultState())",
+        ["SetBlock"]        = new("{target}.setBlockState(new BlockPos({0},{1},{2}), Registries.BLOCK.get(Identifier.of({3})).getDefaultState())",
                                   Imports: ["net.minecraft.registry.Registries", "net.minecraft.util.Identifier", "net.minecraft.util.math.BlockPos"]),
         ["GetBlock"]        = new("Registries.BLOCK.getId({target}.getBlockState(new BlockPos({0},{1},{2})).getBlock()).toString()"),
         ["BreakBlock"]      = new("{target}.breakBlock(new BlockPos({0},{1},{2}), true)"),
@@ -104,7 +104,7 @@ public static class MethodMapper
         ["CreateExplosion"] = new("{target}.createExplosion(null, {0}, {1}, {2}, {3}, World.ExplosionSourceType.NONE)"),
 
         // Fill & random
-        ["FillBlocks"]      = new("BlockPos.stream(new BlockPos({0},{1},{2}), new BlockPos({3},{4},{5})).forEach(p -> {target}.setBlockState(p, Registries.BLOCK.get(new Identifier({6})).getDefaultState()))",
+        ["FillBlocks"]      = new("BlockPos.stream(new BlockPos({0},{1},{2}), new BlockPos({3},{4},{5})).forEach(p -> {target}.setBlockState(p, Registries.BLOCK.get(Identifier.of({6})).getDefaultState()))",
                                    Imports: ["net.minecraft.util.math.BlockPos", "net.minecraft.registry.Registries", "net.minecraft.util.Identifier"]),
         ["GetRandomInt"]    = new("{target}.getRandom().nextBetween({0}, {1})"),
 
@@ -167,7 +167,7 @@ public static class MethodMapper
                                    Imports: ["net.minecraft.text.Text"]),
         ["GetDamage"]       = new("{target}.getDamage()"),
         ["SetDamage"]       = new("{target}.setDamage({0})"),
-        ["AddEnchantment"]  = new("{ var _enchKey = net.minecraft.registry.RegistryKey.of(net.minecraft.registry.RegistryKeys.ENCHANTMENT, new Identifier({0})); Registries.ENCHANTMENT.getEntry(_enchKey).ifPresent(e -> {target}.addEnchantment(e, {1})); }",
+        ["AddEnchantment"]  = new("{ var _enchKey = net.minecraft.registry.RegistryKey.of(net.minecraft.registry.RegistryKeys.ENCHANTMENT, Identifier.of({0})); Registries.ENCHANTMENT.getEntry(_enchKey).ifPresent(e -> {target}.addEnchantment(e, {1})); }",
                                    Imports: ["net.minecraft.registry.RegistryKey", "net.minecraft.registry.RegistryKeys", "net.minecraft.util.Identifier"]),
         ["GetNbtString"]    = new("{target}.contains(net.minecraft.component.DataComponentTypes.CUSTOM_DATA) ? {target}.get(net.minecraft.component.DataComponentTypes.CUSTOM_DATA).getNbt().getString({0}) : \"\""),
         ["SetNbtString"]    = new("{ var _nbtS = {target}.contains(net.minecraft.component.DataComponentTypes.CUSTOM_DATA) ? {target}.get(net.minecraft.component.DataComponentTypes.CUSTOM_DATA).getNbt().copy() : new NbtCompound(); _nbtS.putString({0}, {1}); {target}.set(net.minecraft.component.DataComponentTypes.CUSTOM_DATA, net.minecraft.component.type.NbtComponent.of(_nbtS)); }",
@@ -210,13 +210,14 @@ public static class MethodMapper
         // new BlockPos(x, y, z) → new BlockPos(x, y, z)  (same!)
         ["BlockPos"]        = "new BlockPos({0}, {1}, {2})",
         // new ItemStack("minecraft:diamond", 1) → new ItemStack(Registries.ITEM.get(...), 1)
-        ["ItemStack"]       = "new ItemStack(Registries.ITEM.get(new Identifier({0})), {1})",
+        ["ItemStack"]       = "new ItemStack(Registries.ITEM.get(Identifier.of({0})), {1})",
         // new McText("hello") → Text.literal("hello")
         ["McText"]          = "Text.literal({0})",
         ["ChatMessage"]     = "Text.literal({0})",
-        // new McIdentifier("minecraft:stone") → new Identifier("minecraft:stone")
-        ["McIdentifier"]    = "new Identifier({0})",
-        ["ResourceLocation"]= "new Identifier({0})",
+        // new McIdentifier("minecraft:stone") → Identifier.of("minecraft:stone")
+        ["McIdentifier"]    = "Identifier.of({0})",
+        ["ResourceLocation"]= "Identifier.of({0})",
+        ["Identifier"]      = "Identifier.of({0})",
     };
 
     // ── McPlayer extended methods ─────────────────────────────────────────────
@@ -236,7 +237,7 @@ public static class MethodMapper
         ["SetBoots"]            = new("{target}.equipStack(net.minecraft.entity.EquipmentSlot.FEET, {0})"),
         ["GetActiveEffects"]    = new("new java.util.ArrayList<>({target}.getStatusEffects())"),
         ["HasPermissionLevel"]  = new("{target}.hasPermissionLevel({0})"),
-        ["HasEffect"]           = new("{target}.hasStatusEffect(Registries.STATUS_EFFECT.get(new Identifier({0})))"),
+        ["HasEffect"]           = new("{target}.hasStatusEffect(Registries.STATUS_EFFECT.get(Identifier.of({0})))"),
         ["SendTitle"]           = new("{target}.networkHandler.sendPacket(new net.minecraft.network.packet.s2c.play.TitleS2CPacket(Text.literal({0}))); {target}.networkHandler.sendPacket(new net.minecraft.network.packet.s2c.play.SubtitleS2CPacket(Text.literal({1})))"),
         ["LookAt"]              = new("{target}.lookAt(net.minecraft.command.argument.EntityAnchorArgumentType.EntityAnchor.EYES, new net.minecraft.util.math.Vec3d({0},{1},{2}))"),
     };
@@ -250,9 +251,9 @@ public static class MethodMapper
         ["GetTopY"]         = new("{target}.getTopY(Heightmap.Type.WORLD_SURFACE, {0}, {1})",
                                   Imports: ["net.minecraft.world.Heightmap"]),
         ["IsInBorder"]      = new("{target}.getWorldBorder().contains(new BlockPos({0},{1},{2}))"),
-        ["PlaySound"]       = new("{target}.playSound(null, new BlockPos((int){1}, (int){2}, (int){3}), Registries.SOUND_EVENT.get(new Identifier({0})), SoundCategory.BLOCKS, 1.0f, 1.0f)",
+        ["PlaySound"]       = new("{target}.playSound(null, new BlockPos((int){1}, (int){2}, (int){3}), Registries.SOUND_EVENT.get(Identifier.of({0})), SoundCategory.BLOCKS, 1.0f, 1.0f)",
                                   Imports: ["net.minecraft.sound.SoundCategory", "net.minecraft.registry.Registries", "net.minecraft.util.Identifier"]),
-        ["SpawnParticle"]   = new("{target}.spawnParticles(Registries.PARTICLE_TYPE.get(new Identifier({0})), {1}, {2}, {3}, {4}, 0, 0, 0, 0)",
+        ["SpawnParticle"]   = new("{target}.spawnParticles(Registries.PARTICLE_TYPE.get(Identifier.of({0})), {1}, {2}, {3}, {4}, 0, 0, 0, 0)",
                                   Imports: ["net.minecraft.registry.Registries", "net.minecraft.util.Identifier"]),
     };
 
@@ -304,49 +305,49 @@ public static class MethodMapper
         // ── McRegistry ──────────────────────────────────────────────────────
 
         // Block registration
-        ["McRegistry.RegisterBlock"]    = "Registry.register(Registries.BLOCK, new Identifier({0}), new Block(AbstractBlock.Settings.create().strength({1})))",
-        ["McRegistry.RegisterBlockWithSettings"] = "Registry.register(Registries.BLOCK, new Identifier({0}), new Block({1}))",
+        ["McRegistry.RegisterBlock"]    = "Registry.register(Registries.BLOCK, Identifier.of({0}), new Block(AbstractBlock.Settings.create().strength({1})))",
+        ["McRegistry.RegisterBlockWithSettings"] = "Registry.register(Registries.BLOCK, Identifier.of({0}), new Block({1}))",
 
         // Item registration
-        ["McRegistry.RegisterItem"]         = "Registry.register(Registries.ITEM, new Identifier({0}), new Item(new Item.Settings()))",
-        ["McRegistry.RegisterItemWithSettings"] = "Registry.register(Registries.ITEM, new Identifier({0}), new Item({1}))",
-        ["McRegistry.RegisterBlockItem"]    = "Registry.register(Registries.ITEM, new Identifier({0}), new BlockItem({1}, new Item.Settings()))",
+        ["McRegistry.RegisterItem"]         = "Registry.register(Registries.ITEM, Identifier.of({0}), new Item(new Item.Settings()))",
+        ["McRegistry.RegisterItemWithSettings"] = "Registry.register(Registries.ITEM, Identifier.of({0}), new Item({1}))",
+        ["McRegistry.RegisterBlockItem"]    = "Registry.register(Registries.ITEM, Identifier.of({0}), new BlockItem({1}, new Item.Settings()))",
 
         // Tool/weapon registration
-        ["McRegistry.RegisterSword"]    = "Registry.register(Registries.ITEM, new Identifier({0}), new SwordItem(ToolMaterials.{1}, {2}, {3}f, new Item.Settings()))",
-        ["McRegistry.RegisterPickaxe"]  = "Registry.register(Registries.ITEM, new Identifier({0}), new PickaxeItem(ToolMaterials.{1}, {2}, {3}f, new Item.Settings()))",
-        ["McRegistry.RegisterAxe"]      = "Registry.register(Registries.ITEM, new Identifier({0}), new AxeItem(ToolMaterials.{1}, {2}f, {3}f, new Item.Settings()))",
-        ["McRegistry.RegisterShovel"]   = "Registry.register(Registries.ITEM, new Identifier({0}), new ShovelItem(ToolMaterials.{1}, {2}f, {3}f, new Item.Settings()))",
-        ["McRegistry.RegisterHoe"]      = "Registry.register(Registries.ITEM, new Identifier({0}), new HoeItem(ToolMaterials.{1}, {2}, {3}f, new Item.Settings()))",
+        ["McRegistry.RegisterSword"]    = "Registry.register(Registries.ITEM, Identifier.of({0}), new SwordItem(ToolMaterials.{1}, {2}, {3}f, new Item.Settings()))",
+        ["McRegistry.RegisterPickaxe"]  = "Registry.register(Registries.ITEM, Identifier.of({0}), new PickaxeItem(ToolMaterials.{1}, {2}, {3}f, new Item.Settings()))",
+        ["McRegistry.RegisterAxe"]      = "Registry.register(Registries.ITEM, Identifier.of({0}), new AxeItem(ToolMaterials.{1}, {2}f, {3}f, new Item.Settings()))",
+        ["McRegistry.RegisterShovel"]   = "Registry.register(Registries.ITEM, Identifier.of({0}), new ShovelItem(ToolMaterials.{1}, {2}f, {3}f, new Item.Settings()))",
+        ["McRegistry.RegisterHoe"]      = "Registry.register(Registries.ITEM, Identifier.of({0}), new HoeItem(ToolMaterials.{1}, {2}, {3}f, new Item.Settings()))",
 
         // Food registration
-        ["McRegistry.RegisterFood"]     = "Registry.register(Registries.ITEM, new Identifier({0}), new Item(new Item.Settings().food(new FoodComponent.Builder().nutrition({1}).saturationModifier({2}).build())))",
+        ["McRegistry.RegisterFood"]     = "Registry.register(Registries.ITEM, Identifier.of({0}), new Item(new Item.Settings().food(new FoodComponent.Builder().nutrition({1}).saturationModifier({2}).build())))",
 
         // Armor registration
-        ["McRegistry.RegisterHelmet"]       = "Registry.register(Registries.ITEM, new Identifier({0}), new ArmorItem(ArmorMaterials.{1}, EquipmentSlot.HEAD, new Item.Settings()))",
-        ["McRegistry.RegisterChestplate"]   = "Registry.register(Registries.ITEM, new Identifier({0}), new ArmorItem(ArmorMaterials.{1}, EquipmentSlot.CHEST, new Item.Settings()))",
-        ["McRegistry.RegisterLeggings"]     = "Registry.register(Registries.ITEM, new Identifier({0}), new ArmorItem(ArmorMaterials.{1}, EquipmentSlot.LEGS, new Item.Settings()))",
-        ["McRegistry.RegisterBoots"]        = "Registry.register(Registries.ITEM, new Identifier({0}), new ArmorItem(ArmorMaterials.{1}, EquipmentSlot.FEET, new Item.Settings()))",
+        ["McRegistry.RegisterHelmet"]       = "Registry.register(Registries.ITEM, Identifier.of({0}), new ArmorItem(ArmorMaterials.{1}, EquipmentSlot.HEAD, new Item.Settings()))",
+        ["McRegistry.RegisterChestplate"]   = "Registry.register(Registries.ITEM, Identifier.of({0}), new ArmorItem(ArmorMaterials.{1}, EquipmentSlot.CHEST, new Item.Settings()))",
+        ["McRegistry.RegisterLeggings"]     = "Registry.register(Registries.ITEM, Identifier.of({0}), new ArmorItem(ArmorMaterials.{1}, EquipmentSlot.LEGS, new Item.Settings()))",
+        ["McRegistry.RegisterBoots"]        = "Registry.register(Registries.ITEM, Identifier.of({0}), new ArmorItem(ArmorMaterials.{1}, EquipmentSlot.FEET, new Item.Settings()))",
 
         // Sound registration
-        ["McRegistry.RegisterSound"]    = "Registry.register(Registries.SOUND_EVENT, new Identifier({0}), SoundEvent.of(new Identifier({0})))",
+        ["McRegistry.RegisterSound"]    = "Registry.register(Registries.SOUND_EVENT, Identifier.of({0}), SoundEvent.of(Identifier.of({0})))",
 
         // Attribute registration
-        ["McRegistry.RegisterAttribute"]= "Registry.register(Registries.ATTRIBUTE, new Identifier({0}), new ClampedEntityAttribute({0}, {1}, {2}, {3}))",
+        ["McRegistry.RegisterAttribute"]= "Registry.register(Registries.ATTRIBUTE, Identifier.of({0}), new ClampedEntityAttribute({0}, {1}, {2}, {3}))",
 
         // Entity type registration
-        ["McRegistry.RegisterEntity"]       = "Registry.register(Registries.ENTITY_TYPE, new Identifier({0}), EntityType.Builder.create(net.minecraft.entity.mob.MobEntity::new, net.minecraft.entity.SpawnGroup.valueOf({1}.toUpperCase())).dimensions({2}f, {3}f).build(new Identifier({0}).toString()))",
+        ["McRegistry.RegisterEntity"]       = "Registry.register(Registries.ENTITY_TYPE, Identifier.of({0}), EntityType.Builder.create(net.minecraft.entity.mob.MobEntity::new, net.minecraft.entity.SpawnGroup.valueOf({1}.toUpperCase())).dimensions({2}f, {3}f).build(Identifier.of({0}).toString()))",
 
         // Block entity registration
-        ["McRegistry.RegisterBlockEntity"]  = "Registry.register(Registries.BLOCK_ENTITY_TYPE, new Identifier({0}), net.minecraft.block.entity.BlockEntityType.Builder.create(net.minecraft.block.entity.BlockEntity::new).build())",
+        ["McRegistry.RegisterBlockEntity"]  = "Registry.register(Registries.BLOCK_ENTITY_TYPE, Identifier.of({0}), net.minecraft.block.entity.BlockEntityType.Builder.create(net.minecraft.block.entity.BlockEntity::new).build())",
 
         // Game rule registration
         ["McRegistry.RegisterBoolRule"]     = "GameRuleRegistry.register({0}, GameRules.Category.MISC, GameRuleFactory.createBooleanRule({1}))",
         ["McRegistry.RegisterIntRule"]      = "GameRuleRegistry.register({0}, GameRules.Category.MISC, GameRuleFactory.createIntRule({1}))",
 
         // Enchantment helpers
-        ["McEnchantment.GetLevel"]      = "EnchantmentHelper.getLevel(Registries.ENCHANTMENT.get(new Identifier({1})), {0})",
-        ["McEnchantment.HasEnchantment"]= "EnchantmentHelper.getLevel(Registries.ENCHANTMENT.get(new Identifier({1})), {0}) > 0",
+        ["McEnchantment.GetLevel"]      = "EnchantmentHelper.getLevel(Registries.ENCHANTMENT.get(Identifier.of({1})), {0})",
+        ["McEnchantment.HasEnchantment"]= "EnchantmentHelper.getLevel(Registries.ENCHANTMENT.get(Identifier.of({1})), {0}) > 0",
 
         // Block settings factory
         ["McBlockSettings.Create"]      = "AbstractBlock.Settings.create()",
@@ -376,18 +377,18 @@ public static class MethodMapper
         ["McAttribute.GetBaseValue"]    = "{0}.getAttributeBaseValue(EntityAttributes.GENERIC_{1})",
 
         // ── McTag ────────────────────────────────────────────────────────────
-        ["McTag.BlockIsIn"]             = "{0}.getBlockState(new BlockPos({1},{2},{3})).isIn(net.minecraft.registry.tag.BlockTags.create(new Identifier({4})))",
-        ["McTag.IsInTag"]               = "{0}.getDefaultState().isIn(net.minecraft.registry.tag.BlockTags.create(new Identifier({1})))",
+        ["McTag.BlockIsIn"]             = "{0}.getBlockState(new BlockPos({1},{2},{3})).isIn(net.minecraft.registry.tag.BlockTags.create(Identifier.of({4})))",
+        ["McTag.IsInTag"]               = "{0}.getDefaultState().isIn(net.minecraft.registry.tag.BlockTags.create(Identifier.of({1})))",
         ["McTag.IsLog"]                 = "{0}.getBlockState(new BlockPos({1},{2},{3})).isIn(net.minecraft.registry.tag.BlockTags.LOGS)",
         ["McTag.IsLeaves"]              = "{0}.getBlockState(new BlockPos({1},{2},{3})).isIn(net.minecraft.registry.tag.BlockTags.LEAVES)",
         ["McTag.IsDirt"]                = "{0}.getBlockState(new BlockPos({1},{2},{3})).isIn(net.minecraft.registry.tag.BlockTags.DIRT)",
         ["McTag.IsStone"]               = "{0}.getBlockState(new BlockPos({1},{2},{3})).isIn(net.minecraft.registry.tag.BlockTags.STONE_ORE_REPLACEABLES)",
-        ["McTag.ItemIsIn"]              = "{0}.isIn(net.minecraft.registry.tag.ItemTags.create(new Identifier({1})))",
+        ["McTag.ItemIsIn"]              = "{0}.isIn(net.minecraft.registry.tag.ItemTags.create(Identifier.of({1})))",
         ["McTag.IsSword"]               = "{0}.isIn(net.minecraft.registry.tag.ItemTags.SWORDS)",
         ["McTag.IsPickaxe"]             = "{0}.isIn(net.minecraft.registry.tag.ItemTags.PICKAXES)",
         ["McTag.IsAxe"]                 = "{0}.isIn(net.minecraft.registry.tag.ItemTags.AXES)",
         ["McTag.IsFish"]                = "{0}.isIn(net.minecraft.registry.tag.ItemTags.FISHES)",
-        ["McTag.EntityIsIn"]            = "{0}.getType().isIn(net.minecraft.registry.tag.EntityTypeTags.create(new Identifier({1})))",
+        ["McTag.EntityIsIn"]            = "{0}.getType().isIn(net.minecraft.registry.tag.EntityTypeTags.create(Identifier.of({1})))",
         ["McTag.IsUndead"]              = "{0}.getType().isIn(net.minecraft.registry.tag.EntityTypeTags.UNDEAD)",
         ["McTag.CanBreatheUnderwater"]  = "{0}.getType().isIn(net.minecraft.registry.tag.EntityTypeTags.CAN_BREATHE_UNDER_WATER)",
         ["McTag.IsBoss"]                = "{0} instanceof net.minecraft.entity.boss.WitherEntity || {0} instanceof net.minecraft.entity.boss.dragon.EnderDragonEntity",
@@ -407,25 +408,25 @@ public static class MethodMapper
         ["McFluid.IsPlayerInLava"]      = "{0}.isInLava()",
 
         // ── McStructure ───────────────────────────────────────────────────────
-        ["McStructure.IsInsideStructure"] = "{0}.hasStructure(new BlockPos({1},{2},{3}), Registries.STRUCTURE.getOrThrow(net.minecraft.registry.RegistryKey.of(net.minecraft.registry.RegistryKeys.STRUCTURE, new Identifier({4}))))",
-        ["McStructure.FindNearest"]       = "{0}.locateStructure(Registries.STRUCTURE.getOrThrow(net.minecraft.registry.RegistryKey.of(net.minecraft.registry.RegistryKeys.STRUCTURE, new Identifier({1}))), new BlockPos((int){0}.getLevelProperties().getSpawnX(), 64, (int){0}.getLevelProperties().getSpawnZ()), 100, false)",
-        ["McStructure.Place"]             = "{ var _structManager = {0}.getServer().getStructureTemplateManager(); var _template = _structManager.getTemplateOrBlank(new Identifier({4})); var _placement = new net.minecraft.structure.StructurePlacementData(); _template.place((ServerWorld){0}, new BlockPos({1},{2},{3}), new BlockPos({1},{2},{3}), _placement, {0}.getRandom(), 2); }",
+        ["McStructure.IsInsideStructure"] = "{0}.hasStructure(new BlockPos({1},{2},{3}), Registries.STRUCTURE.getOrThrow(net.minecraft.registry.RegistryKey.of(net.minecraft.registry.RegistryKeys.STRUCTURE, Identifier.of({4}))))",
+        ["McStructure.FindNearest"]       = "{0}.locateStructure(Registries.STRUCTURE.getOrThrow(net.minecraft.registry.RegistryKey.of(net.minecraft.registry.RegistryKeys.STRUCTURE, Identifier.of({1}))), new BlockPos((int){0}.getLevelProperties().getSpawnX(), 64, (int){0}.getLevelProperties().getSpawnZ()), 100, false)",
+        ["McStructure.Place"]             = "{ var _structManager = {0}.getServer().getStructureTemplateManager(); var _template = _structManager.getTemplateOrBlank(Identifier.of({4})); var _placement = new net.minecraft.structure.StructurePlacementData(); _template.place((ServerWorld){0}, new BlockPos({1},{2},{3}), new BlockPos({1},{2},{3}), _placement, {0}.getRandom(), 2); }",
 
         // ── McAdvancement ─────────────────────────────────────────────────────
-        ["McAdvancement.Grant"]          = "{ var _adv = {0}.getServer().getAdvancementLoader().get(new Identifier({1})); if (_adv != null) { var _prog = {0}.getAdvancementTracker().getProgress(_adv); for (var _crit : _prog.getUnobtainedCriteria()) {0}.getAdvancementTracker().grantCriterion(_adv, _crit); } }",
-        ["McAdvancement.Revoke"]         = "{ var _adv2 = {0}.getServer().getAdvancementLoader().get(new Identifier({1})); if (_adv2 != null) { var _prog2 = {0}.getAdvancementTracker().getProgress(_adv2); for (var _crit2 : _prog2.getObtainedCriteria()) {0}.getAdvancementTracker().revokeCriterion(_adv2, _crit2); } }",
-        ["McAdvancement.HasCompleted"]   = "{ var _adv3 = {0}.getServer().getAdvancementLoader().get(new Identifier({1})); _adv3 != null && {0}.getAdvancementTracker().getProgress(_adv3).isDone(); }",
-        ["McAdvancement.GrantCriterion"] = "{ var _adv4 = {0}.getServer().getAdvancementLoader().get(new Identifier({1})); if (_adv4 != null) {0}.getAdvancementTracker().grantCriterion(_adv4, {2}); }",
+        ["McAdvancement.Grant"]          = "{ var _adv = {0}.getServer().getAdvancementLoader().get(Identifier.of({1})); if (_adv != null) { var _prog = {0}.getAdvancementTracker().getProgress(_adv); for (var _crit : _prog.getUnobtainedCriteria()) {0}.getAdvancementTracker().grantCriterion(_adv, _crit); } }",
+        ["McAdvancement.Revoke"]         = "{ var _adv2 = {0}.getServer().getAdvancementLoader().get(Identifier.of({1})); if (_adv2 != null) { var _prog2 = {0}.getAdvancementTracker().getProgress(_adv2); for (var _crit2 : _prog2.getObtainedCriteria()) {0}.getAdvancementTracker().revokeCriterion(_adv2, _crit2); } }",
+        ["McAdvancement.HasCompleted"]   = "{ var _adv3 = {0}.getServer().getAdvancementLoader().get(Identifier.of({1})); _adv3 != null && {0}.getAdvancementTracker().getProgress(_adv3).isDone(); }",
+        ["McAdvancement.GrantCriterion"] = "{ var _adv4 = {0}.getServer().getAdvancementLoader().get(Identifier.of({1})); if (_adv4 != null) {0}.getAdvancementTracker().grantCriterion(_adv4, {2}); }",
 
         // ── McLootTable ───────────────────────────────────────────────────────
-        ["McLootTable.DropLoot"]         = "{ var _lootCtx = new net.minecraft.loot.context.LootContextParameterSet.Builder((ServerWorld){0}).add(net.minecraft.loot.context.LootContextParameters.ORIGIN, new net.minecraft.util.math.Vec3d({2},{3},{4})).build(net.minecraft.loot.context.LootContextTypes.CHEST); var _table = {0}.getServer().getReloadableRegistries().getLootTable(net.minecraft.registry.RegistryKey.of(net.minecraft.loot.LootTable.REGISTRY_KEY, new Identifier({1}))); _table.generateLoot(_lootCtx).forEach(s -> net.minecraft.entity.ItemEntity.spawn((ServerWorld){0}, new net.minecraft.util.math.BlockPos((int){2},(int){3},(int){4}), s)); }",
-        ["McLootTable.GiveLootToPlayer"] = "{ var _lootCtx2 = new net.minecraft.loot.context.LootContextParameterSet.Builder((ServerWorld){0}.getWorld()).add(net.minecraft.loot.context.LootContextParameters.THIS_ENTITY, {0}).build(net.minecraft.loot.context.LootContextTypes.ENTITY); var _table2 = {0}.getServer().getReloadableRegistries().getLootTable(net.minecraft.registry.RegistryKey.of(net.minecraft.loot.LootTable.REGISTRY_KEY, new Identifier({1}))); _table2.generateLoot(_lootCtx2).forEach(s -> {0}.getInventory().insertStack(s)); }",
+        ["McLootTable.DropLoot"]         = "{ var _lootCtx = new net.minecraft.loot.context.LootContextParameterSet.Builder((ServerWorld){0}).add(net.minecraft.loot.context.LootContextParameters.ORIGIN, new net.minecraft.util.math.Vec3d({2},{3},{4})).build(net.minecraft.loot.context.LootContextTypes.CHEST); var _table = {0}.getServer().getReloadableRegistries().getLootTable(net.minecraft.registry.RegistryKey.of(net.minecraft.loot.LootTable.REGISTRY_KEY, Identifier.of({1}))); _table.generateLoot(_lootCtx).forEach(s -> net.minecraft.entity.ItemEntity.spawn((ServerWorld){0}, new net.minecraft.util.math.BlockPos((int){2},(int){3},(int){4}), s)); }",
+        ["McLootTable.GiveLootToPlayer"] = "{ var _lootCtx2 = new net.minecraft.loot.context.LootContextParameterSet.Builder((ServerWorld){0}.getWorld()).add(net.minecraft.loot.context.LootContextParameters.THIS_ENTITY, {0}).build(net.minecraft.loot.context.LootContextTypes.ENTITY); var _table2 = {0}.getServer().getReloadableRegistries().getLootTable(net.minecraft.registry.RegistryKey.of(net.minecraft.loot.LootTable.REGISTRY_KEY, Identifier.of({1}))); _table2.generateLoot(_lootCtx2).forEach(s -> {0}.getInventory().insertStack(s)); }",
 
         // ── McPotion ──────────────────────────────────────────────────────────
         ["McPotion.GetPotionId"]             = "PotionUtil.getPotion({0}).getId(Registries.POTION)",
-        ["McPotion.HasEffect"]               = "PotionUtil.getPotionEffects({0}).stream().anyMatch(e -> e.getEffectType() == Registries.STATUS_EFFECT.get(new Identifier({1})))",
+        ["McPotion.HasEffect"]               = "PotionUtil.getPotionEffects({0}).stream().anyMatch(e -> e.getEffectType() == Registries.STATUS_EFFECT.get(Identifier.of({1})))",
         ["McPotion.GetEffects"]              = "PotionUtil.getPotionEffects({0})",
-        ["McPotion.RegisterBrewingRecipe"]   = "BrewingRecipeRegistry.registerPotionRecipe(Registries.POTION.get(new Identifier({0})), {1}.asItem(), Registries.POTION.get(new Identifier({2})))",
+        ["McPotion.RegisterBrewingRecipe"]   = "BrewingRecipeRegistry.registerPotionRecipe(Registries.POTION.get(Identifier.of({0})), {1}.asItem(), Registries.POTION.get(Identifier.of({2})))",
 
         // ── McProjectile ──────────────────────────────────────────────────────
         ["McProjectile.ThrowSnowball"]  = "{ SnowballEntity _proj = new SnowballEntity({0}.getServerWorld(), {0}); _proj.setVelocity({0}, {0}.getPitch(), {0}.getYaw(), 0, 1.5f, 1.0f); {0}.getServerWorld().spawnEntity(_proj); }",
@@ -448,9 +449,9 @@ public static class MethodMapper
         ["McRecipe.RegisterSmoking"]        = "/* TODO: register smoking recipe {0} as JSON in data/modid/recipes/ */",
         ["McRecipe.RegisterCampfire"]       = "/* TODO: register campfire recipe {0} as JSON in data/modid/recipes/ */",
         ["McRecipe.RegisterStonecutting"]   = "/* TODO: register stonecutting recipe {0} as JSON in data/modid/recipes/ */",
-        ["McRecipe.PlayerKnowsRecipe"]      = "{0}.getRecipeBook().contains(new Identifier({1}))",
-        ["McRecipe.UnlockForPlayer"]        = "{0}.unlockRecipes(new net.minecraft.util.Identifier[] {{ new Identifier({1}) }})",
-        ["McRecipe.LockForPlayer"]          = "{0}.lockRecipes(new net.minecraft.util.Identifier[] {{ new Identifier({1}) }})",
+        ["McRecipe.PlayerKnowsRecipe"]      = "{0}.getRecipeBook().contains(Identifier.of({1}))",
+        ["McRecipe.UnlockForPlayer"]        = "{0}.unlockRecipes(new net.minecraft.util.Identifier[] {{ Identifier.of({1}) }})",
+        ["McRecipe.LockForPlayer"]          = "{0}.lockRecipes(new net.minecraft.util.Identifier[] {{ Identifier.of({1}) }})",
 
         // ── McCreativeTab ─────────────────────────────────────────────────────
         ["McCreativeTab.AddToBuildingBlocks"]   = "ItemGroupEvents.modifyEntriesEvent(ItemGroups.BUILDING_BLOCKS).register(e -> e.add({0}))",
@@ -463,7 +464,7 @@ public static class MethodMapper
         ["McCreativeTab.AddToIngredients"]      = "ItemGroupEvents.modifyEntriesEvent(ItemGroups.INGREDIENTS).register(e -> e.add({0}))",
         ["McCreativeTab.AddToSpawnEggs"]        = "ItemGroupEvents.modifyEntriesEvent(ItemGroups.SPAWN_EGGS).register(e -> e.add({0}))",
         ["McCreativeTab.AddToOperator"]         = "ItemGroupEvents.modifyEntriesEvent(ItemGroups.OPERATOR).register(e -> e.add({0}))",
-        ["McCreativeTab.AddToTab"]              = "ItemGroupEvents.modifyEntriesEvent(RegistryKey.of(RegistryKeys.ITEM_GROUP, new Identifier({0}))).register(e -> e.add({1}))",
+        ["McCreativeTab.AddToTab"]              = "ItemGroupEvents.modifyEntriesEvent(RegistryKey.of(RegistryKeys.ITEM_GROUP, Identifier.of({0}))).register(e -> e.add({1}))",
     };
 
     // ── Property mappings (C# properties → Java getter calls) ────────────────

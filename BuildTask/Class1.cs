@@ -55,6 +55,8 @@ public class TranspileMod : Microsoft.Build.Utilities.Task
 
     // ── Execute ───────────────────────────────────────────────────────────────
 
+    private readonly Dictionary<string, string> _allLangEntries = new();
+
     public override bool Execute()
     {
         Directory.CreateDirectory(OutputDirectory);
@@ -134,6 +136,11 @@ public class TranspileMod : Microsoft.Build.Utilities.Task
             // ── Recipe JSON generation ────────────────────────────────────────
             if (!string.IsNullOrWhiteSpace(ResourcesDirectory))
             {
+                // modId = last dot-segment of PackageName, e.g. "com.example.mymod" → "mymod"
+                string modId = PackageName.Contains('.')
+                    ? PackageName[(PackageName.LastIndexOf('.') + 1)..]
+                    : PackageName;
+
                 var recipeWarnings = new List<string>();
                 var recipes = RecipeGenerator.Generate(csSource, recipeWarnings);
 
@@ -145,11 +152,6 @@ public class TranspileMod : Microsoft.Build.Utilities.Task
 
                 if (recipes.Count > 0)
                 {
-                    // modId = last dot-segment of PackageName, e.g. "com.example.mymod" → "mymod"
-                    string modId = PackageName.Contains('.')
-                        ? PackageName[(PackageName.LastIndexOf('.') + 1)..]
-                        : PackageName;
-
                     string recipeDir = Path.Combine(ResourcesDirectory, "data", modId, "recipe");
                     Directory.CreateDirectory(recipeDir);
 
@@ -162,7 +164,65 @@ public class TranspileMod : Microsoft.Build.Utilities.Task
                         generated.Add(new TaskItem(recipePath));
                     }
                 }
+
+                // ── Resource JSON generation (models, blockstates, lang) ─────
+                var resourceWarnings = new List<string>();
+                var resources = ResourceGenerator.Generate(csSource, modId, resourceWarnings);
+
+                foreach (var w in resourceWarnings)
+                    Log.LogWarning(subcategory: "CSCraft", warningCode: "CSCRAFT004",
+                        helpKeyword: null, file: csPath,
+                        lineNumber: 0, columnNumber: 0, endLineNumber: 0, endColumnNumber: 0,
+                        message: w);
+
+                // Write model/blockstate JSON files
+                foreach (var (relPath, json) in resources.Files)
+                {
+                    string fullPath = Path.Combine(ResourcesDirectory, relPath.Replace('/', Path.DirectorySeparatorChar));
+                    Directory.CreateDirectory(Path.GetDirectoryName(fullPath)!);
+                    File.WriteAllText(fullPath, json);
+                    Log.LogMessage(MessageImportance.Normal,
+                        $"CSCraft resource: {relPath} → {fullPath}");
+                    generated.Add(new TaskItem(fullPath));
+                }
+
+                // Accumulate lang entries (merge across all source files)
+                foreach (var (key, value) in resources.LangEntries)
+                    _allLangEntries[key] = value;
             }
+        }
+
+        // ── Write merged en_us.json lang file ─────────────────────────────
+        if (_allLangEntries.Count > 0 && !string.IsNullOrWhiteSpace(ResourcesDirectory))
+        {
+            string modId = PackageName.Contains('.')
+                ? PackageName[(PackageName.LastIndexOf('.') + 1)..]
+                : PackageName;
+
+            string langDir = Path.Combine(ResourcesDirectory, "assets", modId, "lang");
+            Directory.CreateDirectory(langDir);
+            string langPath = Path.Combine(langDir, "en_us.json");
+
+            // Merge with existing lang file if present
+            if (File.Exists(langPath))
+            {
+                try
+                {
+                    var existing = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(
+                        File.ReadAllText(langPath));
+                    if (existing != null)
+                    {
+                        foreach (var (k, v) in existing)
+                            _allLangEntries.TryAdd(k, v);
+                    }
+                }
+                catch { /* ignore parse errors in existing file */ }
+            }
+
+            File.WriteAllText(langPath, ResourceGenerator.BuildLangJson(_allLangEntries));
+            Log.LogMessage(MessageImportance.Normal,
+                $"CSCraft lang: {_allLangEntries.Count} entries → {langPath}");
+            generated.Add(new TaskItem(langPath));
         }
 
         GeneratedFiles = generated.ToArray();

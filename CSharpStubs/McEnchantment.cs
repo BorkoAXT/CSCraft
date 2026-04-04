@@ -26,10 +26,10 @@ public class McEnchantment
     // ── Static helpers (via EnchantmentHelper) ────────────────────────────────
 
     /// <summary>Get the level of a specific enchantment on an ItemStack (0 if not present).</summary>
-    [JavaMethod("EnchantmentHelper.getLevel(Registries.ENCHANTMENT.get(new Identifier({1})), {0})")]
+    [JavaMethod("EnchantmentHelper.getLevel(Registries.ENCHANTMENT.get(Identifier.of({1})), {0})")]
     public static int GetLevel(McItemStack stack, string enchantmentId) => 0;
 
     /// <summary>Check whether an ItemStack has a specific enchantment.</summary>
-    [JavaMethod("EnchantmentHelper.getLevel(Registries.ENCHANTMENT.get(new Identifier({1})), {0}) > 0")]
+    [JavaMethod("EnchantmentHelper.getLevel(Registries.ENCHANTMENT.get(Identifier.of({1})), {0}) > 0")]
     public static bool HasEnchantment(McItemStack stack, string enchantmentId) => false;
 }

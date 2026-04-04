@@ -52,7 +52,7 @@ public class McItemStack
     public void SetDamage(int damage) { }
 
     /// <summary>Add an enchantment. enchId example: "minecraft:sharpness"</summary>
-    [JavaMethod("{ var _enchKey = net.minecraft.registry.RegistryKey.of(net.minecraft.registry.RegistryKeys.ENCHANTMENT, new Identifier({0})); Registries.ENCHANTMENT.getEntry(_enchKey).ifPresent(e -> {target}.addEnchantment(e, {1})); }")]
+    [JavaMethod("{ var _enchKey = net.minecraft.registry.RegistryKey.of(net.minecraft.registry.RegistryKeys.ENCHANTMENT, Identifier.of({0})); Registries.ENCHANTMENT.getEntry(_enchKey).ifPresent(e -> {target}.addEnchantment(e, {1})); }")]
     public void AddEnchantment(string enchId, int level) { }
 
     // ── Custom NBT data on the stack ─────────────────────────────────────────

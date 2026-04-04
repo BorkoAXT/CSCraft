@@ -37,7 +37,7 @@ public class McWorld
 
     // ── Blocks ────────────────────────────────────────────────────────────────
 
-    [JavaMethod("{target}.setBlockState(new BlockPos({0},{1},{2}), Registries.BLOCK.get(new Identifier({3})).getDefaultState())")]
+    [JavaMethod("{target}.setBlockState(new BlockPos({0},{1},{2}), Registries.BLOCK.get(Identifier.of({3})).getDefaultState())")]
     public void SetBlock(int x, int y, int z, string blockId) { }
 
     [JavaMethod("Registries.BLOCK.getId({target}.getBlockState(new BlockPos({0},{1},{2})).getBlock()).toString()")]
@@ -81,13 +81,13 @@ public class McWorld
     // ── Particles ─────────────────────────────────────────────────────────────
 
     /// <summary>Spawn particles at a world position. particleId: e.g. McParticles.Flame</summary>
-    [JavaMethod("{target}.spawnParticles(Registries.PARTICLE_TYPE.get(new Identifier({0})), {1}, {2}, {3}, {4}, 0, 0, 0, 0)")]
+    [JavaMethod("{target}.spawnParticles(Registries.PARTICLE_TYPE.get(Identifier.of({0})), {1}, {2}, {3}, {4}, 0, 0, 0, 0)")]
     public void SpawnParticle(string particleId, double x, double y, double z, int count = 1) { }
 
     // ── Sounds ────────────────────────────────────────────────────────────────
 
     /// <summary>Play a sound at a position in the world.</summary>
-    [JavaMethod("{target}.playSound(null, new BlockPos((int){1}, (int){2}, (int){3}), Registries.SOUND_EVENT.get(new Identifier({0})), SoundCategory.BLOCKS, 1.0f, 1.0f)")]
+    [JavaMethod("{target}.playSound(null, new BlockPos((int){1}, (int){2}, (int){3}), Registries.SOUND_EVENT.get(Identifier.of({0})), SoundCategory.BLOCKS, 1.0f, 1.0f)")]
     public void PlaySound(string soundId, double x, double y, double z) { }
 
     // ── Block info ────────────────────────────────────────────────────────────
@@ -105,7 +105,7 @@ public class McWorld
     public int GetTopY(int x, int z) => 0;
 
     /// <summary>Fill a rectangular region with a block. Same as the /fill command.</summary>
-    [JavaMethod("BlockPos.stream(new BlockPos({0},{1},{2}), new BlockPos({3},{4},{5})).forEach(p -> {target}.setBlockState(p, Registries.BLOCK.get(new Identifier({6})).getDefaultState()))")]
+    [JavaMethod("BlockPos.stream(new BlockPos({0},{1},{2}), new BlockPos({3},{4},{5})).forEach(p -> {target}.setBlockState(p, Registries.BLOCK.get(Identifier.of({6})).getDefaultState()))")]
     public void FillBlocks(int x1, int y1, int z1, int x2, int y2, int z2, string blockId) { }
 
     /// <summary>Get a seeded random integer between min and max (inclusive).</summary>
@@ -115,7 +115,7 @@ public class McWorld
     // ── Item drops ────────────────────────────────────────────────────────────
 
     /// <summary>Drop an item stack at a world position.</summary>
-    [JavaMethod("{target}.spawnEntity(new net.minecraft.entity.ItemEntity({target}, {1}, {2}, {3}, new ItemStack(Registries.ITEM.get(new Identifier({0})), {4})))")]
+    [JavaMethod("{target}.spawnEntity(new net.minecraft.entity.ItemEntity({target}, {1}, {2}, {3}, new ItemStack(Registries.ITEM.get(Identifier.of({0})), {4})))")]
     public void DropItem(string itemId, double x, double y, double z, int count = 1) { }
 
     // ── Lightning ─────────────────────────────────────────────────────────────

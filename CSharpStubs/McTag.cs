@@ -10,11 +10,11 @@ public static class McTag
     // ── Block tags ────────────────────────────────────────────────────────────
 
     /// <summary>Check whether the block at a position matches a tag.</summary>
-    [JavaMethod("{0}.getBlockState(new BlockPos({1},{2},{3})).isIn(net.minecraft.registry.tag.BlockTags.create(new Identifier({4})))")]
+    [JavaMethod("{0}.getBlockState(new BlockPos({1},{2},{3})).isIn(net.minecraft.registry.tag.BlockTags.create(Identifier.of({4})))")]
     public static bool BlockIsIn(McWorld world, int x, int y, int z, string tagId) => false;
 
     /// <summary>Check whether a block type matches a tag.</summary>
-    [JavaMethod("{0}.getDefaultState().isIn(net.minecraft.registry.tag.BlockTags.create(new Identifier({1})))")]
+    [JavaMethod("{0}.getDefaultState().isIn(net.minecraft.registry.tag.BlockTags.create(Identifier.of({1})))")]
     public static bool IsInTag(McBlock block, string tagId) => false;
 
     // ── Common block tags ─────────────────────────────────────────────────────
@@ -38,7 +38,7 @@ public static class McTag
     // ── Item tags ─────────────────────────────────────────────────────────────
 
     /// <summary>Check whether an item matches a tag.</summary>
-    [JavaMethod("{0}.isIn(net.minecraft.registry.tag.ItemTags.create(new Identifier({1})))")]
+    [JavaMethod("{0}.isIn(net.minecraft.registry.tag.ItemTags.create(Identifier.of({1})))")]
     public static bool ItemIsIn(McItemStack stack, string tagId) => false;
 
     /// <summary>Check whether an item is a sword.</summary>
@@ -60,7 +60,7 @@ public static class McTag
     // ── Entity type tags ──────────────────────────────────────────────────────
 
     /// <summary>Check whether an entity type matches a tag.</summary>
-    [JavaMethod("{0}.getType().isIn(net.minecraft.registry.tag.EntityTypeTags.create(new Identifier({1})))")]
+    [JavaMethod("{0}.getType().isIn(net.minecraft.registry.tag.EntityTypeTags.create(Identifier.of({1})))")]
     public static bool EntityIsIn(McEntity entity, string tagId) => false;
 
     /// <summary>Check whether an entity is undead.</summary>

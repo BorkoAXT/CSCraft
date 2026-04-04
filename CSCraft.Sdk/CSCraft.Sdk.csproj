@@ -7,13 +7,13 @@
 
     <!-- NuGet package identity -->
     <PackageId>CSCraft.Sdk</PackageId>
-    <Version>1.0.1</Version>
+    <Version>1.0.4</Version>
 
     <!-- NuGet listing metadata -->
     <Title>CSCraft SDK — Write Minecraft Fabric Mods in C#</Title>
     <Description>Write Minecraft Fabric mods in C# instead of Java. Reference this package, write your mod logic using the CSCraft API, then run dotnet build — the transpiler converts your C# to Java, generates recipe JSON files automatically, and optionally runs Gradle to produce a ready-to-install .jar.
 
-Supports: blocks, items, armor, tools, food, events, commands, recipes (shaped, shapeless, smelting, blasting, smoking, campfire, stonecutting), entity tags, status effects, enchantments, particles, sounds, advancements, loot tables, villager trades, game rules, and more.
+Supports: blocks, items, armor, tools, food, events, commands, recipes (shaped, shapeless, smelting, blasting, smoking, campfire, stonecutting), auto-generated models/blockstates/lang files, entity tags, status effects, enchantments, particles, sounds, advancements, loot tables, villager trades, game rules, and more.
 
 Target: Minecraft 1.21.1 · Fabric API 0.116.9+1.21.1 · Java 21</Description>
     <Authors>CSCraft</Authors>

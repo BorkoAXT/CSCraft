@@ -13,6 +13,7 @@
     <CSCraftPackageName Condition="'$(CSCraftPackageName)' == ''"></CSCraftPackageName>
     <CSCraftRunGradle   Condition="'$(CSCraftRunGradle)'   == ''">true</CSCraftRunGradle>
     <CSCraftJavaHome    Condition="'$(CSCraftJavaHome)'    == ''"></CSCraftJavaHome>
+    <CSCraftFabricPath  Condition="'$(CSCraftFabricPath)'  == ''">$(MSBuildProjectDirectory)\FabricTemplate</CSCraftFabricPath>
 
     <!-- Path to the bundled Gradle wrapper in the NuGet package -->
     <_CSCraftGradleWrapperDir>$(MSBuildThisFileDirectory)gradle-wrapper/</_CSCraftGradleWrapperDir>

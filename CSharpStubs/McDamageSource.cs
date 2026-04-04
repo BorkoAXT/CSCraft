@@ -32,7 +32,7 @@ public static class McDamage
     // ── Damage helpers ────────────────────────────────────────────────────────
 
     /// <summary>Deal typed damage to a living entity using a damage type registry key.</summary>
-    [JavaMethod("if ({0} instanceof LivingEntity _le) _le.damage({0}.getWorld().getDamageSources().create(net.minecraft.registry.RegistryKey.of(net.minecraft.registry.RegistryKeys.DAMAGE_TYPE, new Identifier({1}))), {2})")]
+    [JavaMethod("if ({0} instanceof LivingEntity _le) _le.damage({0}.getWorld().getDamageSources().create(net.minecraft.registry.RegistryKey.of(net.minecraft.registry.RegistryKeys.DAMAGE_TYPE, Identifier.of({1}))), {2})")]
     public static void DealDamage(McEntity entity, string damageTypeId, float amount) { }
 
     /// <summary>Deal generic damage to a player.</summary>
@@ -40,7 +40,7 @@ public static class McDamage
     public static void DealDamage(McPlayer player, float amount) { }
 
     /// <summary>Deal typed damage to a player using a damage type registry key.</summary>
-    [JavaMethod("{0}.damage({0}.getWorld().getDamageSources().create(net.minecraft.registry.RegistryKey.of(net.minecraft.registry.RegistryKeys.DAMAGE_TYPE, new Identifier({1}))), {2})")]
+    [JavaMethod("{0}.damage({0}.getWorld().getDamageSources().create(net.minecraft.registry.RegistryKey.of(net.minecraft.registry.RegistryKeys.DAMAGE_TYPE, Identifier.of({1}))), {2})")]
     public static void DealDamage(McPlayer player, string damageTypeId, float amount) { }
 
     /// <summary>Deal fire damage to an entity.</summary>

@@ -146,7 +146,7 @@ public class McPlayer
 
     // ── Items ─────────────────────────────────────────────────────────────────
 
-    [JavaMethod("{target}.getInventory().insertStack(new ItemStack(Registries.ITEM.get(new Identifier({0})), {1}))")]
+    [JavaMethod("{target}.getInventory().insertStack(new ItemStack(Registries.ITEM.get(Identifier.of({0})), {1}))")]
     public void GiveItem(string itemId, int count = 1) { }
 
     [JavaMethod("{target}.getInventory().clear()")]
@@ -154,10 +154,10 @@ public class McPlayer
 
     // ── Effects ───────────────────────────────────────────────────────────────
 
-    [JavaMethod("{target}.addStatusEffect(new StatusEffectInstance(Registries.STATUS_EFFECT.get(new Identifier({0})), {1}, {2}))")]
+    [JavaMethod("{target}.addStatusEffect(new StatusEffectInstance(Registries.STATUS_EFFECT.get(Identifier.of({0})), {1}, {2}))")]
     public void GiveEffect(string effectId, int duration, int amplifier = 0) { }
 
-    [JavaMethod("{target}.removeStatusEffect(Registries.STATUS_EFFECT.get(new Identifier({0})))")]
+    [JavaMethod("{target}.removeStatusEffect(Registries.STATUS_EFFECT.get(Identifier.of({0})))")]
     public void RemoveEffect(string effectId) { }
 
     [JavaMethod("{target}.clearStatusEffects()")]
@@ -192,10 +192,10 @@ public class McPlayer
 
     // ── Cooldowns ─────────────────────────────────────────────────────────────
 
-    [JavaMethod("{target}.getItemCooldownManager().isCoolingDown(Registries.ITEM.get(new Identifier({0})))")]
+    [JavaMethod("{target}.getItemCooldownManager().isCoolingDown(Registries.ITEM.get(Identifier.of({0})))")]
     public bool IsOnCooldown(string itemId) => false;
 
-    [JavaMethod("{target}.getItemCooldownManager().set(Registries.ITEM.get(new Identifier({0})), {1})")]
+    [JavaMethod("{target}.getItemCooldownManager().set(Registries.ITEM.get(Identifier.of({0})), {1})")]
     public void SetCooldown(string itemId, int ticks) { }
 
     // ── Connection / locale ───────────────────────────────────────────────────
@@ -252,12 +252,12 @@ public class McPlayer
     [JavaMethod("{target}.hasPermissionLevel({0})")]
     public bool HasPermissionLevel(int level) => false;
 
-    [JavaMethod("{target}.hasStatusEffect(Registries.STATUS_EFFECT.get(new Identifier({0})))")]
+    [JavaMethod("{target}.hasStatusEffect(Registries.STATUS_EFFECT.get(Identifier.of({0})))")]
     public bool HasEffect(string effectId) => false;
 
     // ── Misc ──────────────────────────────────────────────────────────────────
 
-    [JavaMethod("{target}.playSoundToPlayer(Registries.SOUND_EVENT.get(new Identifier({0})), SoundCategory.PLAYERS, 1.0f, 1.0f)")]
+    [JavaMethod("{target}.playSoundToPlayer(Registries.SOUND_EVENT.get(Identifier.of({0})), SoundCategory.PLAYERS, 1.0f, 1.0f)")]
     public void PlaySound(string soundId) { }
 
     [JavaMethod("{target}.setSpawnPoint(World.OVERWORLD, new BlockPos({0},{1},{2}), 0f, true, false)")]
@@ -266,7 +266,7 @@ public class McPlayer
     // ── Particles ─────────────────────────────────────────────────────────────
 
     /// <summary>Spawn particles visible only to this player. particleId: e.g. McParticles.Flame</summary>
-    [JavaMethod("{target}.networkHandler.sendPacket(new ParticleS2CPacket(ParticleTypes.byId(Registry.PARTICLE_TYPE.getRawId(Registries.PARTICLE_TYPE.get(new Identifier({0})))), true, {1}, {2}, {3}, 0, 0, 0, 0, {4}))")]
+    [JavaMethod("{target}.networkHandler.sendPacket(new ParticleS2CPacket(ParticleTypes.byId(Registry.PARTICLE_TYPE.getRawId(Registries.PARTICLE_TYPE.get(Identifier.of({0})))), true, {1}, {2}, {3}, 0, 0, 0, 0, {4}))")]
     public void SpawnParticle(string particleId, double x, double y, double z, int count = 1) { }
 
     // ── Biome & dimension ─────────────────────────────────────────────────────
