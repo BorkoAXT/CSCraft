@@ -1,6 +1,8 @@
 # CSCraft
 
-CSCraft lets you write Minecraft Fabric mods in C# instead of Java. You write mod logic in C#, and CSCraft transpiles it into a working Fabric mod `.jar` — no Gradle or Java knowledge required.
+CSCraft lets you write Minecraft Fabric mods in C# instead of Java. You write mod logic in C#, and CSCraft transpiles it into a working Fabric mod `.jar` — no Gradle, no Java knowledge, no manual setup required.
+
+One command: `dotnet build` does everything.
 
 ---
 
@@ -47,7 +49,13 @@ public class MyMod : IMod
 dotnet build
 ```
 
-That's it. CSCraft reads the `[ModInfo]` attribute, generates the entire Fabric template, transpiles your C# to Java, and runs Gradle to produce the mod `.jar`.
+That's it. A single `dotnet build` does everything in one pass:
+
+1. Reads `[ModInfo]` and generates the Fabric template
+2. Auto-discovers your JDK (no `JAVA_HOME` setup needed)
+3. Transpiles your C# to Java
+4. Generates recipe JSONs, model JSONs, blockstate JSONs, and lang files
+5. Runs Gradle to produce the mod `.jar`
 
 The output is in `FabricTemplate/build/libs/`. Copy it to your Minecraft `mods/` folder and launch with Fabric Loader.
 
@@ -56,8 +64,19 @@ The output is in `FabricTemplate/build/libs/`. Copy it to your Minecraft `mods/`
 ## Prerequisites
 
 - [.NET 9 SDK](https://dotnet.microsoft.com/download)
-- [Java 21+](https://adoptium.net/) (must be on PATH, or set `<CSCraftJavaHome>` in your .csproj)
+- [Java 21](https://adoptium.net/) (auto-discovered — see below)
 - [Fabric Loader](https://fabricmc.net/use/installer/) installed in your Minecraft instance
+
+### Automatic Java Discovery
+
+CSCraft automatically finds a suitable JDK on your system. It checks (in order):
+
+1. `<CSCraftJavaHome>` in your `.csproj` (manual override)
+2. `JAVA_HOME` / `JDK_HOME` environment variables
+3. Windows Registry (Eclipse Adoptium, AdoptOpenJDK, Oracle, Zulu, etc.)
+4. Common install folders (`C:\Program Files\Java\`, `/usr/lib/jvm/`, `/Library/Java/JavaVirtualMachines/`, etc.)
+
+Prefers JDK 21, then JDK 17. If none is found, the build will tell you exactly what to do.
 
 ---
 
@@ -84,6 +103,25 @@ CSCraft automatically resolves the correct Yarn mappings, Fabric Loader, Fabric 
 
 ---
 
+## How the Build Pipeline Works
+
+When you run `dotnet build`, CSCraft executes a single unified build target:
+
+```
+dotnet build
+  |
+  |-- 1. Setup:     Reads [ModInfo], generates FabricTemplate/, copies Gradle wrapper
+  |-- 2. Transpile: Converts all .cs files to .java, generates recipe/model/lang JSONs
+  |-- 3. Gradle:    Runs gradlew build to compile Java and produce the mod .jar
+  |
+  v
+FabricTemplate/build/libs/mymod-1.0.0.jar   <-- ready to install
+```
+
+Everything happens in one pass — no need to build twice or run Gradle manually.
+
+---
+
 ## Manual Setup (Advanced)
 
 If you prefer to manage the Fabric template yourself instead of using `[ModInfo]`, set these in your `.csproj`:
@@ -98,6 +136,8 @@ If you prefer to manage the Fabric template yourself instead of using `[ModInfo]
 </PropertyGroup>
 ```
 
+All properties are optional — sensible defaults are applied automatically.
+
 ---
 
 ## Building the SDK (for SDK developers)
@@ -106,12 +146,7 @@ If you're working on CSCraft itself:
 
 ```bash
 dotnet build CSharpStubs/CSharpStubs.csproj -c Release
-dotnet build Transpiler/Transpiler.csproj -c Release
-dotnet build BuildTask/BuildTask.csproj -c Release
-
-cp Transpiler/bin/Release/net9.0/Transpiler.dll CSCraft.Sdk/build/tasks/
-cp BuildTask/bin/Release/net9.0/BuildTask.dll   CSCraft.Sdk/build/tasks/
-
+dotnet publish BuildTask/BuildTask.csproj -c Release -o CSCraft.Sdk/build/tasks/
 dotnet pack CSCraft.Sdk/CSCraft.Sdk.csproj -o nupkg
 dotnet nuget locals all --clear
 ```
@@ -207,7 +242,7 @@ player.SetCooldown("minecraft:ender_pearl", 60);
 bool onCd = player.IsOnCooldown("minecraft:ender_pearl");
 
 // Active item use
-bool using  = player.IsUsingItem;
+bool usingItem = player.IsUsingItem;
 McItemStack active = player.GetActiveItem();
 
 // Ender chest
@@ -545,7 +580,7 @@ McCommand.Register("sethp", "amount", (src, hp) => src.Player?.Heal(hp));
 // Boolean argument
 McCommand.Register("fly", "enabled", (src, on) => { ... });
 
-// Player selector — resolves to an online player
+// Player selector -- resolves to an online player
 McCommand.RegisterWithPlayer("heal", "target", (src, target) =>
 {
     target.Heal(target.MaxHealth);
@@ -750,14 +785,16 @@ McAttribute.AddModifier(entity, McAttributes.MaxHealth, 10.0, 0); // +10 max HP
 
 ## Troubleshooting
 
-**`Java not found`** — Add Java 21 to your PATH, or set `<CSCraftJavaHome>` in your .csproj.
+**`Could not find a suitable JDK`** — Install [JDK 21](https://adoptium.net/). CSCraft auto-discovers it. If it still fails, set `<CSCraftJavaHome>C:\path\to\jdk-21</CSCraftJavaHome>` in your `.csproj`.
 
-**`release version X not supported`** — Wrong Java version. Point `<CSCraftJavaHome>` to Java 21.
+**`release version X not supported`** — Wrong Java version. You need JDK 21 (not JRE, not JDK 8).
 
-**`mappings not found`** — Update `MinecraftVersion` in your `[ModInfo]` attribute to a supported version.
+**`mappings not found`** — Update `MinecraftVersion` in your `[ModInfo]` attribute to a supported version (1.20.1 through 1.21.1).
 
-**Recipe JSON not generated** — All `McRecipe.Register*()` arguments must be string/char/numeric literals. Variables emit a CSCRAFT003 warning.
+**`No package name found`** — Add `[ModInfo(Id = "mymod", Name = "My Mod")]` to your mod class, or set `<CSCraftPackageName>` in your `.csproj`.
 
-**Model/blockstate JSON not generated** — All `McRegistry.Register*()` arguments must be string literals. Variables emit a CSCRAFT004 warning.
+**Recipe/model JSON not generated** — All `McRecipe.Register*()` and `McRegistry.Register*()` arguments must be compile-time literals (strings, chars, numbers). Variables are not supported and emit CSCRAFT003/CSCRAFT004 warnings.
 
-**Build succeeds but no `.jar`** — Check that `<CSCraftRunGradle>` is `true` (the default) and Java is available.
+**Build succeeds but no `.jar`** — Make sure `<CSCraftRunGradle>` is `true` (the default) and a JDK is available.
+
+**Gradle shows `NO-SOURCE`** — Run `dotnet build --no-incremental` to force a full retranspile. If you just created the project, make sure your `.cs` file is in the project directory (not a subfolder).
