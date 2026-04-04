@@ -120,3 +120,32 @@ public sealed class McBlockSettings
     [JavaMethod("{target}.mapColor(MapColor.{0})")]
     public McBlockSettings MapColor(string color) => null!;
 }
+
+/// <summary>
+/// The tool type required to mine a block efficiently.
+/// Used with McRegistry.RegisterBlock to auto-generate Fabric block tags.
+/// </summary>
+public enum McMineTool
+{
+    None,
+    Pickaxe,
+    Axe,
+    Shovel,
+    Hoe
+}
+
+/// <summary>
+/// The minimum tool tier required to drop items from the block.
+/// Maps to Fabric's needs_*_tool block tags.
+/// </summary>
+public enum McMineLevel
+{
+    /// <summary>Any tool works (wood or above).</summary>
+    Wood = 0,
+    /// <summary>Needs at least a stone tool.</summary>
+    Stone = 1,
+    /// <summary>Needs at least an iron tool.</summary>
+    Iron = 2,
+    /// <summary>Needs at least a diamond tool.</summary>
+    Diamond = 3
+}

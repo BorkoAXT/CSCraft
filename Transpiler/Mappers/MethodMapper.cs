@@ -218,6 +218,12 @@ public static class MethodMapper
         ["McIdentifier"]    = "Identifier.of({0})",
         ["ResourceLocation"]= "Identifier.of({0})",
         ["Identifier"]      = "Identifier.of({0})",
+        // new McNbt() → new NbtCompound()
+        ["McNbt"]           = "new NbtCompound()",
+        // new McBossBar("title", color) → new ServerBossBar(Text.literal("title"), BossBar.Color.PURPLE, BossBar.Style.PROGRESS)
+        ["McBossBar"]       = "new ServerBossBar(Text.literal({0}), BossBar.Color.PURPLE, BossBar.Style.PROGRESS)",
+        // new McItemStack("id", count) → new ItemStack(Registries.ITEM.get(Identifier.of("id")), count)
+        ["McItemStack"]     = "new ItemStack(Registries.ITEM.get(Identifier.of({0})), {1})",
     };
 
     // ── McPlayer extended methods ─────────────────────────────────────────────
@@ -274,6 +280,78 @@ public static class MethodMapper
         ["SendError"]       = new("{target}.sendError(Text.literal({0}))",
                                   Imports: ["net.minecraft.text.Text"]),
         ["HasPermission"]   = new("{target}.hasPermissionLevel({0})"),
+    };
+
+    // ── McNbt (NbtCompound) ─────────────────────────────────────────────────
+
+    private static readonly Dictionary<string, MethodMapping> NbtMethods = new()
+    {
+        ["GetString"]   = new("{target}.getString({0})"),
+        ["SetString"]   = new("{target}.putString({0}, {1})"),
+        ["HasString"]   = new("{target}.contains({0}) && {target}.getType({0}) == 8"),
+        ["GetInt"]      = new("{target}.getInt({0})"),
+        ["SetInt"]      = new("{target}.putInt({0}, {1})"),
+        ["GetLong"]     = new("{target}.getLong({0})"),
+        ["SetLong"]     = new("{target}.putLong({0}, {1})"),
+        ["GetFloat"]    = new("{target}.getFloat({0})"),
+        ["SetFloat"]    = new("{target}.putFloat({0}, {1})"),
+        ["GetDouble"]   = new("{target}.getDouble({0})"),
+        ["SetDouble"]   = new("{target}.putDouble({0}, {1})"),
+        ["GetBool"]     = new("{target}.getBoolean({0})"),
+        ["SetBool"]     = new("{target}.putBoolean({0}, {1})"),
+        ["GetCompound"] = new("{target}.getCompound({0})"),
+        ["SetCompound"] = new("{target}.put({0}, {1})"),
+        ["Has"]         = new("{target}.contains({0})"),
+        ["Remove"]      = new("{target}.remove({0})"),
+        ["GetKeys"]     = new("new java.util.ArrayList<>({target}.getKeys())"),
+    };
+
+    // ── McBossBar (ServerBossBar) ────────────────────────────────────────────
+
+    private static readonly Dictionary<string, MethodMapping> BossBarMethods = new()
+    {
+        ["SetTitle"]        = new("{target}.setName(Text.literal({0}))",
+                                  Imports: ["net.minecraft.text.Text"]),
+        ["SetProgress"]     = new("{target}.setPercent({0})"),
+        ["SetColor"]        = new("{target}.setColor(BossBar.Color.valueOf({0}.toUpperCase()))"),
+        ["SetStyle"]        = new("{target}.setStyle(BossBar.Style.valueOf({0}))"),
+        ["SetVisible"]      = new("{target}.setVisible({0})"),
+        ["AddPlayer"]       = new("{target}.addPlayer({0})"),
+        ["RemovePlayer"]    = new("{target}.removePlayer({0})"),
+        ["AddAllPlayers"]   = new("{0}.getPlayerManager().getPlayerList().forEach({target}::addPlayer)"),
+        ["RemoveAllPlayers"]= new("{target}.clearPlayers()"),
+        ["GetPlayers"]      = new("{target}.getPlayers()"),
+        ["SetDarkenSky"]    = new("{target}.setDarkenSky({0})"),
+        ["SetDragonMusic"]  = new("{target}.setDragonMusic({0})"),
+        ["SetThickenFog"]   = new("{target}.setThickenFog({0})"),
+    };
+
+    // ── McInventory (Inventory) ──────────────────────────────────────────────
+
+    private static readonly Dictionary<string, MethodMapping> InventoryMethods = new()
+    {
+        ["GetSlot"]     = new("{target}.getStack({0})"),
+        ["SetSlot"]     = new("{target}.setStack({0}, {1})"),
+        ["TakeSlot"]    = new("{target}.removeStack({0}, {1})"),
+        ["ClearSlot"]   = new("{target}.removeStack({0})"),
+        ["Clear"]       = new("{target}.clear()"),
+        ["MarkDirty"]   = new("{target}.markDirty()"),
+        ["Count"]       = new("java.util.stream.IntStream.range(0, {target}.size()).mapToObj({target}::getStack).filter(s -> !s.isEmpty() && Registries.ITEM.getId(s.getItem()).toString().equals({0})).mapToInt(net.minecraft.item.ItemStack::getCount).sum()"),
+        ["Contains"]    = new("java.util.stream.IntStream.range(0, {target}.size()).anyMatch(i -> !{target}.getStack(i).isEmpty() && Registries.ITEM.getId({target}.getStack(i).getItem()).toString().equals({0}))"),
+        ["FindSlot"]    = new("java.util.stream.IntStream.range(0, {target}.size()).filter(i -> !{target}.getStack(i).isEmpty() && Registries.ITEM.getId({target}.getStack(i).getItem()).toString().equals({0})).findFirst().orElse(-1)"),
+    };
+
+    // ── McBlockEntity (BlockEntity) ──────────────────────────────────────────
+
+    private static readonly Dictionary<string, MethodMapping> BlockEntityMethods = new()
+    {
+        ["MarkDirty"]       = new("{target}.markDirty()"),
+        ["GetNbt"]          = new("{target}.createNbt()"),
+        ["SetNbt"]          = new("{target}.readNbt({0})"),
+        ["GetInventory"]    = new("{target} instanceof net.minecraft.inventory.Inventory _inv ? _inv : null"),
+        ["IsBurning"]       = new("{target} instanceof net.minecraft.block.entity.AbstractFurnaceBlockEntity _fbe2 && _fbe2.isBurning()"),
+        ["GetFurnaceCookTime"] = new("{target} instanceof net.minecraft.block.entity.AbstractFurnaceBlockEntity _fbe ? _fbe.getPropertyDelegate().get(0) : 0"),
+        ["GetSignLine"]     = new("{target} instanceof net.minecraft.block.entity.SignBlockEntity _sbe ? _sbe.getFrontText().getMessage({0}, false).getString() : \"\""),
     };
 
     // ── Static method calls (Math.X, Console.X, McRegistry.X, etc.) ──────────
@@ -558,6 +636,29 @@ public static class MethodMapper
         ["ItemStack.Count"]         = "{target}.getCount()",
         ["ItemStack.IsEmpty"]       = "{target}.isEmpty()",
         ["ItemStack.HasNbt"]        = "{target}.hasNbt()",
+
+        // McNbt properties
+        ["McNbt.IsEmpty"]           = "{target}.isEmpty()",
+
+        // McBossBar properties
+        ["McBossBar.Title"]         = "{target}.getName().getString()",
+        ["McBossBar.Progress"]      = "{target}.getPercent()",
+        ["McBossBar.Color"]         = "{target}.getColor().name().toLowerCase()",
+        ["McBossBar.Style"]         = "{target}.getStyle().name()",
+        ["McBossBar.IsVisible"]     = "{target}.isVisible()",
+
+        // McInventory properties
+        ["McInventory.Size"]        = "{target}.size()",
+        ["McInventory.IsEmpty"]     = "{target}.isEmpty()",
+
+        // McBlockEntity properties
+        ["McBlockEntity.Pos"]       = "{target}.getPos()",
+        ["McBlockEntity.World"]     = "{target}.getWorld()",
+        ["McBlockEntity.TypeId"]    = "net.minecraft.registry.Registries.BLOCK_ENTITY_TYPE.getId({target}.getType()).toString()",
+        ["McBlockEntity.IsRemoved"] = "{target}.isRemoved()",
+        ["McBlockEntity.IsChest"]   = "{target} instanceof net.minecraft.block.entity.ChestBlockEntity",
+        ["McBlockEntity.IsFurnace"] = "{target} instanceof net.minecraft.block.entity.AbstractFurnaceBlockEntity",
+        ["McBlockEntity.IsHopper"]  = "{target} instanceof net.minecraft.block.entity.HopperBlockEntity",
     };
 
     // ── Public lookup API ─────────────────────────────────────────────────────
@@ -614,6 +715,10 @@ public static class MethodMapper
         "McEntity" or "Entity" or "LivingEntity"           => EntityMethods,
         "BlockPos" or "McBlockPos"                         => BlockPosMethods,
         "ItemStack" or "McItemStack"                       => ItemStackMethods,
+        "McNbt" or "NbtCompound"                           => NbtMethods,
+        "McBossBar" or "ServerBossBar"                     => BossBarMethods,
+        "McInventory" or "Inventory"                       => InventoryMethods,
+        "McBlockEntity" or "BlockEntity"                   => BlockEntityMethods,
         _ => null
     };
 
@@ -622,7 +727,7 @@ public static class MethodMapper
         Dictionary<string, MethodMapping> extra)
     {
         var merged = new Dictionary<string, MethodMapping>(primary);
-        foreach (var (k, v) in extra) merged.TryAdd(k, v);
+        foreach (var kvp in extra) if (!merged.ContainsKey(kvp.Key)) merged[kvp.Key] = kvp.Value;
         return merged;
     }
 }

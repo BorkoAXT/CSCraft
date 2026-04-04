@@ -1,3 +1,4 @@
+using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -592,7 +593,7 @@ public class JavaEmitter : CSharpSyntaxWalker
 
         if (!string.IsNullOrWhiteSpace(preamble))
         {
-            foreach (var stmt in preamble.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            foreach (var stmt in preamble.Split(';').Select(s => s.Trim()).Where(s => s.Length > 0))
             {
                 var eqIdx = stmt.IndexOf('=');
                 if (eqIdx < 0) { _w.Line($"{innerIndent}{stmt};"); continue; }

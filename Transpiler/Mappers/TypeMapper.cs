@@ -90,6 +90,7 @@ public static class TypeMapper
         ["McIdentifier"]        = "Identifier",
 
         // NBT
+        ["McNbt"]               = "NbtCompound",
         ["NbtCompound"]         = "NbtCompound",
         ["NbtElement"]          = "NbtElement",
 
@@ -117,6 +118,7 @@ public static class TypeMapper
         ["DamageSource"]        = "DamageSource",
 
         // Inventory
+        ["McInventory"]         = "Inventory",
         ["Inventory"]           = "Inventory",
         ["PlayerInventory"]     = "PlayerInventory",
 
@@ -142,6 +144,16 @@ public static class TypeMapper
         // Villager
         ["McVillager"]          = "VillagerEntity",
         ["VillagerEntity"]      = "VillagerEntity",
+
+        // Boss bar
+        ["McBossBar"]           = "ServerBossBar",
+
+        // Block entity
+        ["McBlockEntity"]       = "BlockEntity",
+
+        // Damage
+        ["McDamageSource"]      = "DamageSource",
+        ["McDamage"]            = "DamageSource",
     };
 
     // ── Java standard library extras ─────────────────────────────────────────
@@ -342,6 +354,13 @@ public static class TypeMapper
         ["ArrowEntity"]             = "net.minecraft.entity.projectile.ArrowEntity",
         ["SmallFireballEntity"]     = "net.minecraft.entity.projectile.SmallFireballEntity",
         ["ThrownPotionEntity"]      = "net.minecraft.entity.projectile.thrown.ThrownPotionEntity",
+        // Boss bar
+        ["ServerBossBar"]           = "net.minecraft.entity.boss.ServerBossBar",
+        ["BossBar"]                 = "net.minecraft.entity.boss.BossBar",
+        // Block entity
+        ["BlockEntity"]             = "net.minecraft.block.entity.BlockEntity",
+        // Scoreboard
+        ["ScoreboardDisplaySlot"]   = "net.minecraft.scoreboard.ScoreboardDisplaySlot",
         // Potions (legacy util still present in 1.21.x)
         ["PotionUtil"]              = "net.minecraft.potion.PotionUtil",
         ["BrewingRecipeRegistry"]   = "net.minecraft.recipe.BrewingRecipeRegistry",

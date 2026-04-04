@@ -14,6 +14,12 @@ public static class McRegistry
     /// <summary>Register a block using a hardness value (resistance = hardness * 3).</summary>
     public static McBlock RegisterBlock(string id, float hardness = 1.0f) => null!;
 
+    /// <summary>Register a block with a mining tool and mining level (auto-generates block tags).</summary>
+    public static McBlock RegisterBlock(string id, float hardness, McMineTool tool, McMineLevel level = McMineLevel.Wood) => null!;
+
+    /// <summary>Register a block with settings, mining tool and mining level.</summary>
+    public static McBlock RegisterBlock(string id, McBlockSettings settings, McMineTool tool, McMineLevel level = McMineLevel.Wood) => null!;
+
     // ── Items ─────────────────────────────────────────────────────────────────
 
     /// <summary>Register a plain item.</summary>

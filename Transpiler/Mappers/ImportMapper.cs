@@ -86,15 +86,15 @@ public class ImportTracker
     {
         var groups = new[]
         {
-            _imports.Where(i => i.StartsWith("java.")).Order(),
-            _imports.Where(i => i.StartsWith("javax.")).Order(),
-            _imports.Where(i => i.StartsWith("net.minecraft.")).Order(),
-            _imports.Where(i => i.StartsWith("net.fabricmc.")).Order(),
-            _imports.Where(i => i.StartsWith("org.")).Order(),
+            _imports.Where(i => i.StartsWith("java.")).OrderBy(x => x),
+            _imports.Where(i => i.StartsWith("javax.")).OrderBy(x => x),
+            _imports.Where(i => i.StartsWith("net.minecraft.")).OrderBy(x => x),
+            _imports.Where(i => i.StartsWith("net.fabricmc.")).OrderBy(x => x),
+            _imports.Where(i => i.StartsWith("org.")).OrderBy(x => x),
             _imports.Where(i => !i.StartsWith("java") &&
                                 !i.StartsWith("javax") &&
                                 !i.StartsWith("net.") &&
-                                !i.StartsWith("org.")).Order(),
+                                !i.StartsWith("org.")).OrderBy(x => x),
         };
 
         var lines = new List<string>();

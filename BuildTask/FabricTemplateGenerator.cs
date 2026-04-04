@@ -120,7 +120,16 @@ public static class FabricTemplateGenerator
             pkg = $"com.{authorSlug}.{id.ToLowerInvariant()}";
         }
 
-        return new ModInfo(id, name, version, author, desc, mcVer, pkg);
+        // Extract the actual class name that the [ModInfo] attribute is on
+        // Look for "class ClassName" after the attribute
+        string className = id; // fallback
+        int attrEnd = attrMatch.Index + attrMatch.Length;
+        string afterAttr = source[attrEnd..];
+        var classMatch = Regex.Match(afterAttr, @"\bclass\s+(\w+)");
+        if (classMatch.Success)
+            className = classMatch.Groups[1].Value;
+
+        return new ModInfo(id, name, version, author, desc, mcVer, pkg, className);
     }
 
     // ── Version resolution ────────────────────────────────────────────────────
@@ -225,8 +234,9 @@ public static class FabricTemplateGenerator
 
     private static void WriteFabricModJson(string templatePath, ModInfo info)
     {
-        // Determine the entry point class name from the package + mod ID
-        string entryClass = $"{info.PackageName}.{char.ToUpper(info.Id[0])}{info.Id[1..]}";
+        // Use the actual C# class name for the entry point
+        string className = !string.IsNullOrWhiteSpace(info.ClassName) ? info.ClassName : info.Id;
+        string entryClass = $"{info.PackageName}.{className}";
 
         string authors = string.IsNullOrWhiteSpace(info.Author) ? "" : $"\"{info.Author}\"";
 
@@ -367,5 +377,6 @@ public record ModInfo(
     string Author,
     string Description,
     string MinecraftVersion,
-    string PackageName
+    string PackageName,
+    string ClassName = ""
 );

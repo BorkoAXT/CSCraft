@@ -54,7 +54,7 @@ A single `dotnet build` performs the following steps in one pass:
 4.  **Resource Generation:** Generates recipe, model, blockstate, and lang JSONs.
 5.  **Gradle:** Runs Gradle to produce the final mod `.jar`.
 
-The output is located in `FabricTemplate/build/libs/`. Simply copy it to your Minecraft `mods/` folder.
+The output `.jar` is automatically copied to your project folder. Simply move it to your Minecraft `mods/` folder.
 
 ---
 
@@ -92,6 +92,32 @@ Register Blocks, Items, Tools, and Armor with a single line of code. CSCraft aut
 - Blockstates and Models
 - Handheld Item Models
 - Language entries (`en_us.json`)
+- Mining tags (tool type + mining level)
+
+### Block Categories (Mining Levels)
+Register blocks with mining requirements — the correct Fabric block tags are auto-generated:
+```csharp
+// Ore block: requires a pickaxe, iron tier minimum
+var rubyOre = McRegistry.RegisterBlock("mymod:ruby_ore", 3.0f, McMineTool.Pickaxe, McMineLevel.Iron);
+```
+This generates `mineable/pickaxe.json` and `needs_iron_tool.json` tags automatically.
+
+### Custom Textures & Assets
+Place your texture PNGs in an `Assets/` folder in your project:
+```
+MyMod/
+├── Assets/
+│   ├── textures/
+│   │   ├── block/
+│   │   │   └── ruby_ore.png
+���   │   └── item/
+│   │       ���── ruby.png
+│   └── sounds/
+│       └── my_sound.ogg
+├── MyMod.cs
+└── MyMod.csproj
+```
+They are automatically copied to the Fabric resource pack on build.
 
 ### Commands
 Register custom commands with arguments, selectors, and permissions:
@@ -114,12 +140,14 @@ When you run `dotnet build`, the following unified target executes:
 ```text
 dotnet build
   |
-  |-- 1. Setup:     Reads [ModInfo], generates FabricTemplate/
-  |-- 2. Transpile: Converts .cs files to .java, generates JSON resources
-  |-- 3. Gradle:    Runs gradlew build to compile and JAR
+  |-- 1. Setup:      Reads [ModInfo], generates FabricTemplate/
+  |-- 2. Assets:     Copies textures/sounds from Assets/ folder
+  |-- 3. Transpile:  Converts .cs files to .java, generates JSON resources + block tags
+  |-- 4. Gradle:     Runs gradlew build to compile and JAR
+  |-- 5. Copy JAR:   Copies the .jar to your project folder
   |
   v
-FabricTemplate/build/libs/mymod-1.0.0.jar
+MyMod/mymod-1.0.0.jar
 ```
 
 ---
@@ -145,7 +173,7 @@ You can manually override settings in your `.csproj`:
 - **Resources Not Generated:** Ensure `McRegistry` and `McRecipe` calls use compile-time string literals.
 - **Build Error:** If your on Visual Studio 2022, make sure you are using the CLI dotnet build instead of the built-in button as the button doesn't work for now.
 - **Force Rebuild:** If changes aren't reflecting, run `dotnet build --no-incremental`.
-- **Fabric Json Error:** If your getting an entrypoint stage 'main', it's because your class is probably something like MyMod. Until future updates, it's preferred for mod classes to be written entirely in lowercase.
+- **Fabric Json Error:** If your getting an entrypoint error, make sure your `[ModInfo]` attribute is on the class that implements `IMod`.
 - **Other errors:" If you have any build errors or you don't see the jar file, make sure to remove the obj, bin and FabricTemplate folders and do a dotnet clean. If the error isn't here, send a message via email or discord at BorkoAXT#5390
 
 ---

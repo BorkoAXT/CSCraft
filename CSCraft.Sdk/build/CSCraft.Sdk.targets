@@ -57,6 +57,24 @@
       <CSCraftResourcesPath Condition="'$(CSCraftResourcesPath)' == ''">$(CSCraftFabricPath)\src\main\resources</CSCraftResourcesPath>
     </PropertyGroup>
 
+    <!-- ── Step 1b: Copy user assets (textures, sounds) ───────────────── -->
+
+    <ItemGroup>
+      <_CSCraftAssets Include="$(MSBuildProjectDirectory)\Assets\**\*"
+                      Condition="Exists('$(MSBuildProjectDirectory)\Assets')" />
+    </ItemGroup>
+
+    <PropertyGroup>
+      <_CSCraftAssetsTarget>$(CSCraftResourcesPath)\assets\$(_CSCraftAutoModId)</_CSCraftAssetsTarget>
+    </PropertyGroup>
+
+    <Copy SourceFiles="@(_CSCraftAssets)"
+          DestinationFiles="@(_CSCraftAssets->'$(_CSCraftAssetsTarget)\%(RecursiveDir)%(Filename)%(Extension)')"
+          Condition="'@(_CSCraftAssets)' != ''" SkipUnchangedFiles="true" />
+
+    <Message Condition="'@(_CSCraftAssets)' != ''"
+             Importance="High" Text="CSCraft: Copied %(RecursiveDir)%(Filename)%(Extension) → assets/$(_CSCraftAutoModId)/%(RecursiveDir)%(Filename)%(Extension)" />
+
     <!-- ── Step 2: Transpile ── Convert C# to Java ──────────────────────── -->
 
     <Error Condition="'$(CSCraftPackageName)' == ''"
@@ -102,9 +120,21 @@
           Command="export JAVA_HOME=&quot;$(CSCraftJavaHome)&quot; &amp;&amp; chmod +x &quot;$(CSCraftFabricPath)/gradlew&quot; &amp;&amp; &quot;$(CSCraftFabricPath)/gradlew&quot; build"
           WorkingDirectory="$(CSCraftFabricPath)" />
 
+    <!-- ── Step 4: Copy JAR to project folder ─────────────────────────── -->
+
+    <ItemGroup Condition="'$(CSCraftRunGradle)' == 'true'">
+      <_CSCraftJars Include="$(CSCraftFabricPath)\build\libs\*.jar"
+                    Exclude="$(CSCraftFabricPath)\build\libs\*-sources.jar;$(CSCraftFabricPath)\build\libs\*-dev.jar" />
+    </ItemGroup>
+
+    <Copy SourceFiles="@(_CSCraftJars)"
+          DestinationFolder="$(MSBuildProjectDirectory)"
+          Condition="'$(CSCraftRunGradle)' == 'true' and '@(_CSCraftJars)' != ''"
+          SkipUnchangedFiles="false" />
+
     <Message Condition="'$(CSCraftRunGradle)' == 'true'" Importance="High" Text=" " />
     <Message Condition="'$(CSCraftRunGradle)' == 'true'" Importance="High" Text="----------------------------------------------------------" />
-    <Message Condition="'$(CSCraftRunGradle)' == 'true'" Importance="High" Text="SUCCESS: Mod JAR created at $(CSCraftFabricPath)\build\libs\" />
+    <Message Condition="'$(CSCraftRunGradle)' == 'true'" Importance="High" Text="SUCCESS: Mod JAR copied to $(MSBuildProjectDirectory)" />
     <Message Condition="'$(CSCraftRunGradle)' == 'true'" Importance="High" Text="----------------------------------------------------------" />
     <Message Condition="'$(CSCraftRunGradle)' == 'true'" Importance="High" Text=" " />
 

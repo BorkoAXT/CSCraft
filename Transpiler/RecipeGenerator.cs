@@ -132,10 +132,10 @@ public static class RecipeGenerator
         // key
         sb.AppendLine("  \"key\": {");
         int ki = 0;
-        foreach (var (ch, itemId) in keyMap)
+        foreach (var kvp in keyMap)
         {
             string comma = ki < keyMap.Count - 1 ? "," : "";
-            sb.AppendLine($"    \"{ch}\": {{ \"item\": \"{EscapeJson(itemId)}\" }}{comma}");
+            sb.AppendLine($"    \"{kvp.Key}\": {{ \"item\": \"{EscapeJson(kvp.Value)}\" }}{comma}");
             ki++;
         }
         sb.AppendLine("  },");

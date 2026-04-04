@@ -181,7 +181,6 @@ public static class JavaDiscovery
         return results;
     }
 
-    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
     private static void ScanRegistryKey(List<JdkInfo> results, string keyPath)
     {
         try

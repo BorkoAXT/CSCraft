@@ -21,7 +21,8 @@ public static class ResourceGenerator
 {
     public record ResourceOutput(
         Dictionary<string, string> Files,        // relative path → JSON content
-        Dictionary<string, string> LangEntries   // translation key → display name
+        Dictionary<string, string> LangEntries,  // translation key → display name
+        Dictionary<string, List<string>> BlockTags // tag path → list of block IDs
     );
 
     /// <summary>
@@ -34,6 +35,7 @@ public static class ResourceGenerator
         var root = tree.GetRoot();
         var files = new Dictionary<string, string>();
         var lang = new Dictionary<string, string>();
+        var blockTags = new Dictionary<string, List<string>>();
 
         // Track block IDs registered so we know which RegisterBlockItem calls refer to blocks
         var registeredBlocks = new HashSet<string>();
@@ -50,7 +52,7 @@ public static class ResourceGenerator
 
             try
             {
-                ProcessRegistryCall(method, args, modId, line, warnings, files, lang, registeredBlocks);
+                ProcessRegistryCall(method, args, modId, line, warnings, files, lang, registeredBlocks, blockTags);
             }
             catch (ResourceArgException ex)
             {
@@ -58,7 +60,7 @@ public static class ResourceGenerator
             }
         }
 
-        return new ResourceOutput(files, lang);
+        return new ResourceOutput(files, lang, blockTags);
     }
 
     /// <summary>
@@ -69,10 +71,10 @@ public static class ResourceGenerator
         var sb = new StringBuilder();
         sb.AppendLine("{");
         int i = 0;
-        foreach (var (key, value) in entries.OrderBy(e => e.Key))
+        foreach (var kvp in entries.OrderBy(e => e.Key))
         {
             string comma = i < entries.Count - 1 ? "," : "";
-            sb.AppendLine($"  \"{EscapeJson(key)}\": \"{EscapeJson(value)}\"{comma}");
+            sb.AppendLine($"  \"{EscapeJson(kvp.Key)}\": \"{EscapeJson(kvp.Value)}\"{comma}");
             i++;
         }
         sb.Append("}");
@@ -89,12 +91,13 @@ public static class ResourceGenerator
         List<string> warnings,
         Dictionary<string, string> files,
         Dictionary<string, string> lang,
-        HashSet<string> registeredBlocks)
+        HashSet<string> registeredBlocks,
+        Dictionary<string, List<string>> blockTags)
     {
         switch (method)
         {
             case "RegisterBlock":
-                HandleBlock(args, modId, files, lang, registeredBlocks);
+                HandleBlock(args, modId, files, lang, registeredBlocks, blockTags);
                 break;
 
             case "RegisterBlockItem":
@@ -147,7 +150,8 @@ public static class ResourceGenerator
         string modId,
         Dictionary<string, string> files,
         Dictionary<string, string> lang,
-        HashSet<string> registeredBlocks)
+        HashSet<string> registeredBlocks,
+        Dictionary<string, List<string>> blockTags)
     {
         if (args.Count < 1) return;
         string? fullId = TryGetString(args[0].Expression);
@@ -175,6 +179,47 @@ public static class ResourceGenerator
 
         // Lang entry
         lang[$"block.{ns}.{name}"] = PrettyName(name);
+
+        // ── Mining tool & level tags ─────────────────────────────────────
+        // Detect McMineTool and McMineLevel enum args
+        string? toolName = null;
+        string? levelName = null;
+
+        foreach (var arg in args)
+        {
+            string argText = arg.Expression.ToString();
+            if (argText.StartsWith("McMineTool."))
+                toolName = argText.Substring("McMineTool.".Length);
+            else if (argText.StartsWith("McMineLevel."))
+                levelName = argText.Substring("McMineLevel.".Length);
+        }
+
+        if (toolName != null && toolName != "None")
+        {
+            // e.g. data/minecraft/tags/block/mineable/pickaxe.json
+            string tagPath = $"data/minecraft/tags/block/mineable/{toolName.ToLowerInvariant()}.json";
+            if (!blockTags.ContainsKey(tagPath))
+                blockTags[tagPath] = new List<string>();
+            blockTags[tagPath].Add(fullId);
+        }
+
+        if (levelName != null)
+        {
+            string? levelTag = null;
+            switch (levelName)
+            {
+                case "Stone": levelTag = "needs_stone_tool"; break;
+                case "Iron":  levelTag = "needs_iron_tool";  break;
+                case "Diamond": levelTag = "needs_diamond_tool"; break;
+            }
+            if (levelTag != null)
+            {
+                string tagPath = $"data/minecraft/tags/block/{levelTag}.json";
+                if (!blockTags.ContainsKey(tagPath))
+                    blockTags[tagPath] = new List<string>();
+                blockTags[tagPath].Add(fullId);
+            }
+        }
     }
 
     // ── Block Item ────────────────────────────────────────────────────────────
@@ -306,6 +351,25 @@ public static class ResourceGenerator
         if (expr is LiteralExpressionSyntax lit && lit.IsKind(SyntaxKind.StringLiteralExpression))
             return lit.Token.ValueText;
         return null;
+    }
+
+    /// <summary>
+    /// Build a Minecraft tag JSON from a list of block/item IDs.
+    /// </summary>
+    public static string BuildTagJson(List<string> ids)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("{");
+        sb.AppendLine("  \"replace\": false,");
+        sb.AppendLine("  \"values\": [");
+        for (int i = 0; i < ids.Count; i++)
+        {
+            string comma = i < ids.Count - 1 ? "," : "";
+            sb.AppendLine($"    \"{EscapeJson(ids[i])}\"{comma}");
+        }
+        sb.AppendLine("  ]");
+        sb.Append("}");
+        return sb.ToString();
     }
 
     private static string EscapeJson(string s)

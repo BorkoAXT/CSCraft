@@ -138,7 +138,7 @@ public class TranspileMod : Microsoft.Build.Utilities.Task
             {
                 // modId = last dot-segment of PackageName, e.g. "com.example.mymod" → "mymod"
                 string modId = PackageName.Contains('.')
-                    ? PackageName[(PackageName.LastIndexOf('.') + 1)..]
+                    ? PackageName.Substring(PackageName.LastIndexOf('.') + 1)
                     : PackageName;
 
                 var recipeWarnings = new List<string>();
@@ -155,12 +155,12 @@ public class TranspileMod : Microsoft.Build.Utilities.Task
                     string recipeDir = Path.Combine(ResourcesDirectory, "data", modId, "recipe");
                     Directory.CreateDirectory(recipeDir);
 
-                    foreach (var (filename, json) in recipes)
+                    foreach (var kvp in recipes)
                     {
-                        string recipePath = Path.Combine(recipeDir, filename);
-                        File.WriteAllText(recipePath, json);
+                        string recipePath = Path.Combine(recipeDir, kvp.Key);
+                        File.WriteAllText(recipePath, kvp.Value);
                         Log.LogMessage(MessageImportance.Normal,
-                            $"CSCraft recipe: {filename} → {recipePath}");
+                            $"CSCraft recipe: {kvp.Key} → {recipePath}");
                         generated.Add(new TaskItem(recipePath));
                     }
                 }
@@ -175,20 +175,59 @@ public class TranspileMod : Microsoft.Build.Utilities.Task
                         lineNumber: 0, columnNumber: 0, endLineNumber: 0, endColumnNumber: 0,
                         message: w);
 
-                // Write model/blockstate JSON files
-                foreach (var (relPath, json) in resources.Files)
+                // Write block tag JSON files (mineable/pickaxe, needs_iron_tool, etc.)
+                foreach (var kvp in resources.BlockTags)
                 {
-                    string fullPath = Path.Combine(ResourcesDirectory, relPath.Replace('/', Path.DirectorySeparatorChar));
-                    Directory.CreateDirectory(Path.GetDirectoryName(fullPath)!);
-                    File.WriteAllText(fullPath, json);
+                    string tagPath = Path.Combine(ResourcesDirectory, kvp.Key.Replace('/', Path.DirectorySeparatorChar));
+                    string tagDir = Path.GetDirectoryName(tagPath);
+                    if (tagDir != null) Directory.CreateDirectory(tagDir);
+
+                    // Merge with existing tag file if present
+                    var ids = new List<string>(kvp.Value);
+                    if (File.Exists(tagPath))
+                    {
+                        try
+                        {
+                            var existing = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(
+                                File.ReadAllText(tagPath));
+                            if (existing != null && existing.ContainsKey("values"))
+                            {
+                                var arr = existing["values"] as System.Text.Json.JsonElement?;
+                                if (arr.HasValue && arr.Value.ValueKind == System.Text.Json.JsonValueKind.Array)
+                                {
+                                    foreach (var elem in arr.Value.EnumerateArray())
+                                    {
+                                        string? val = elem.GetString();
+                                        if (val != null && !ids.Contains(val))
+                                            ids.Add(val);
+                                    }
+                                }
+                            }
+                        }
+                        catch { /* ignore parse errors */ }
+                    }
+
+                    File.WriteAllText(tagPath, ResourceGenerator.BuildTagJson(ids));
                     Log.LogMessage(MessageImportance.Normal,
-                        $"CSCraft resource: {relPath} → {fullPath}");
+                        $"CSCraft tag: {kvp.Key} → {tagPath}");
+                    generated.Add(new TaskItem(tagPath));
+                }
+
+                // Write model/blockstate JSON files
+                foreach (var kvp in resources.Files)
+                {
+                    string fullPath = Path.Combine(ResourcesDirectory, kvp.Key.Replace('/', Path.DirectorySeparatorChar));
+                    string dir = Path.GetDirectoryName(fullPath);
+                    if (dir != null) Directory.CreateDirectory(dir);
+                    File.WriteAllText(fullPath, kvp.Value);
+                    Log.LogMessage(MessageImportance.Normal,
+                        $"CSCraft resource: {kvp.Key} → {fullPath}");
                     generated.Add(new TaskItem(fullPath));
                 }
 
                 // Accumulate lang entries (merge across all source files)
-                foreach (var (key, value) in resources.LangEntries)
-                    _allLangEntries[key] = value;
+                foreach (var kvp in resources.LangEntries)
+                    _allLangEntries[kvp.Key] = kvp.Value;
             }
         }
 
@@ -196,7 +235,7 @@ public class TranspileMod : Microsoft.Build.Utilities.Task
         if (_allLangEntries.Count > 0 && !string.IsNullOrWhiteSpace(ResourcesDirectory))
         {
             string modId = PackageName.Contains('.')
-                ? PackageName[(PackageName.LastIndexOf('.') + 1)..]
+                ? PackageName.Substring(PackageName.LastIndexOf('.') + 1)
                 : PackageName;
 
             string langDir = Path.Combine(ResourcesDirectory, "assets", modId, "lang");
@@ -212,8 +251,9 @@ public class TranspileMod : Microsoft.Build.Utilities.Task
                         File.ReadAllText(langPath));
                     if (existing != null)
                     {
-                        foreach (var (k, v) in existing)
-                            _allLangEntries.TryAdd(k, v);
+                        foreach (var kvp in existing)
+                            if (!_allLangEntries.ContainsKey(kvp.Key))
+                                _allLangEntries[kvp.Key] = kvp.Value;
                     }
                 }
                 catch { /* ignore parse errors in existing file */ }
