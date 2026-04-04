@@ -7,7 +7,7 @@
 
     <!-- NuGet package identity -->
     <PackageId>CSCraft.Sdk</PackageId>
-    <Version>1.0.4</Version>
+    <Version>1.1.1</Version>
 
     <!-- NuGet listing metadata -->
     <Title>CSCraft SDK — Write Minecraft Fabric Mods in C#</Title>

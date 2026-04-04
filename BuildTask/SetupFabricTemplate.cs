@@ -47,6 +47,19 @@ public class SetupFabricTemplate : Microsoft.Build.Utilities.Task
     [Output]
     public bool ModInfoFound { get; set; }
 
+    /// <summary>
+    /// Auto-discovered JDK home path. Set when the SDK finds a suitable JDK
+    /// (17 or 21) on the system. Empty if none found.
+    /// </summary>
+    [Output]
+    public string DiscoveredJavaHome { get; set; } = "";
+
+    /// <summary>
+    /// Optional: the user's manual CSCraftJavaHome override, passed in from .targets
+    /// so discovery can prioritize it.
+    /// </summary>
+    public string ManualJavaHome { get; set; } = "";
+
     public override bool Execute()
     {
         var sourcePaths = SourceFiles
@@ -90,6 +103,28 @@ public class SetupFabricTemplate : Microsoft.Build.Utilities.Task
             return false;
         }
 
+        // ── Java Discovery ────────────────────────────────────────────────────
+        DiscoverJava();
+
         return true;
+    }
+
+    private void DiscoverJava()
+    {
+        string? manual = !string.IsNullOrWhiteSpace(ManualJavaHome) ? ManualJavaHome : null;
+        var jdk = JavaDiscovery.FindBestJdk(manual);
+
+        if (jdk != null)
+        {
+            DiscoveredJavaHome = jdk.Path;
+            Log.LogMessage(MessageImportance.High,
+                $"CSCraft: Found JDK {jdk.MajorVersion} at {jdk.Path}");
+        }
+        else
+        {
+            Log.LogMessage(MessageImportance.High,
+                "CSCraft: No suitable JDK found automatically. " +
+                "Set <CSCraftJavaHome> in your .csproj or install JDK 17/21.");
+        }
     }
 }

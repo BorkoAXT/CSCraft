@@ -11,57 +11,53 @@
 
   <!--
     ═══════════════════════════════════════════════════════════════════════════
-    Step 1: Scan for [ModInfo] and generate FabricTemplate automatically.
-    Also defaults CSCraftFabricPath so the transpile target never skips.
+    Single unified target: Setup → Transpile → Gradle
+
+    All three steps run in one target to avoid MSBuild condition-evaluation
+    race conditions (target Condition is evaluated BEFORE DependsOnTargets).
+    No Inputs/Outputs — runs on every build so changes are always picked up.
     ═══════════════════════════════════════════════════════════════════════════
   -->
-  <Target Name="CSCraftSetupTemplate" BeforeTargets="CSCraftTranspile">
+  <Target Name="CSCraftBuild" BeforeTargets="CoreCompile">
 
-    <!-- Collect all .cs files for scanning -->
+    <!-- ── Step 1: Setup ── Scan for [ModInfo], generate FabricTemplate ──── -->
+
     <ItemGroup>
-      <_CSCraftAllSources Include="@(Compile)"
+      <_CSCraftSources Include="@(Compile)"
         Exclude="$(IntermediateOutputPath)**;**/*.g.cs;**/*.AssemblyInfo.cs" />
     </ItemGroup>
 
     <SetupFabricTemplate
-      SourceFiles="@(_CSCraftAllSources)"
+      SourceFiles="@(_CSCraftSources)"
       ProjectDirectory="$(MSBuildProjectDirectory)"
-      GradleWrapperSourceDir="$(_CSCraftGradleWrapperDir)">
+      GradleWrapperSourceDir="$(_CSCraftGradleWrapperDir)"
+      ManualJavaHome="$(CSCraftJavaHome)">
 
-      <Output TaskParameter="FabricTemplatePath" PropertyName="_CSCraftAutoFabricPath" />
-      <Output TaskParameter="PackageName"        PropertyName="_CSCraftAutoPackageName" />
-      <Output TaskParameter="ModId"              PropertyName="_CSCraftAutoModId" />
-      <Output TaskParameter="ModInfoFound"       PropertyName="_CSCraftModInfoFound" />
+      <Output TaskParameter="FabricTemplatePath"  PropertyName="_CSCraftAutoFabricPath" />
+      <Output TaskParameter="PackageName"         PropertyName="_CSCraftAutoPackageName" />
+      <Output TaskParameter="ModId"               PropertyName="_CSCraftAutoModId" />
+      <Output TaskParameter="ModInfoFound"        PropertyName="_CSCraftModInfoFound" />
+      <Output TaskParameter="DiscoveredJavaHome"  PropertyName="_CSCraftDiscoveredJava" />
     </SetupFabricTemplate>
 
-    <!--
-      If [ModInfo] was found, use its outputs.
-      If not found, still default FabricPath so the transpile target doesn't skip.
-    -->
+    <!-- Apply ModInfo outputs -->
     <PropertyGroup Condition="'$(_CSCraftModInfoFound)' == 'True'">
       <CSCraftFabricPath    Condition="'$(CSCraftFabricPath)' == ''">$(_CSCraftAutoFabricPath)</CSCraftFabricPath>
       <CSCraftPackageName   Condition="'$(CSCraftPackageName)' == ''">$(_CSCraftAutoPackageName)</CSCraftPackageName>
     </PropertyGroup>
 
-    <!-- Fallback: default FabricPath even without [ModInfo] so manual .csproj configs work -->
+    <!-- Use discovered JDK if the user didn't set one manually -->
+    <PropertyGroup Condition="'$(CSCraftJavaHome)' == '' and '$(_CSCraftDiscoveredJava)' != ''">
+      <CSCraftJavaHome>$(_CSCraftDiscoveredJava)</CSCraftJavaHome>
+    </PropertyGroup>
+
+    <!-- Fallback defaults -->
     <PropertyGroup>
-      <CSCraftFabricPath Condition="'$(CSCraftFabricPath)' == ''">$(MSBuildProjectDirectory)\FabricTemplate</CSCraftFabricPath>
+      <CSCraftFabricPath    Condition="'$(CSCraftFabricPath)' == ''">$(MSBuildProjectDirectory)\FabricTemplate</CSCraftFabricPath>
       <CSCraftResourcesPath Condition="'$(CSCraftResourcesPath)' == ''">$(CSCraftFabricPath)\src\main\resources</CSCraftResourcesPath>
     </PropertyGroup>
 
-  </Target>
-
-  <!--
-    ═══════════════════════════════════════════════════════════════════════════
-    Step 2: Transpile C# to Java.
-    No Inputs/Outputs — this target runs on EVERY build to ensure changes
-    are always picked up and Gradle never sees stale/missing source.
-    ═══════════════════════════════════════════════════════════════════════════
-  -->
-  <Target Name="CSCraftTranspile"
-          DependsOnTargets="CSCraftSetupTemplate"
-          BeforeTargets="CoreCompile"
-          Condition="Exists('$(CSCraftFabricPath)')">
+    <!-- ── Step 2: Transpile ── Convert C# to Java ──────────────────────── -->
 
     <Error Condition="'$(CSCraftPackageName)' == ''"
            Text="CSCraft: No package name found. Either add [ModInfo(Id=&quot;mymod&quot;, Name=&quot;My Mod&quot;)] to your mod class, or set &lt;CSCraftPackageName&gt; in your .csproj." />
@@ -75,12 +71,6 @@
     <!-- Ensure the output directory exists before writing .java files -->
     <MakeDir Directories="$(CSCraftOutputDir)" />
 
-    <!-- Collect all .cs files that aren't generated or in obj/ -->
-    <ItemGroup>
-      <_CSCraftSources Include="@(Compile)"
-        Exclude="$(IntermediateOutputPath)**;**/*.g.cs;**/*.AssemblyInfo.cs" />
-    </ItemGroup>
-
     <Message Text="CSCraft: transpiling %(_CSCraftSources.Filename)%(_CSCraftSources.Extension)"
              Importance="High" Condition="'@(_CSCraftSources)' != ''" />
 
@@ -92,35 +82,31 @@
 
     <Message Text="CSCraft: Java written to $(CSCraftOutputDir)" Importance="High" />
 
-  </Target>
+    <!-- ── Step 3: Gradle ── Build the mod JAR ──────────────────────────── -->
 
-  <!--
-    ═══════════════════════════════════════════════════════════════════════════
-    Step 3: Run Gradle to produce the mod .jar (fully automated).
-    Runs after transpilation when CSCraftRunGradle is true.
-    ═══════════════════════════════════════════════════════════════════════════
-  -->
-  <Target Name="CSCraftPackage"
-          AfterTargets="CSCraftTranspile"
-          Condition="'$(CSCraftRunGradle)' == 'true' and Exists('$(CSCraftFabricPath)')">
+    <Error Condition="'$(CSCraftRunGradle)' == 'true' and '$(CSCraftJavaHome)' == ''"
+           Text="CSCraft: Could not find a suitable JDK (17 or 21). Please install a JDK from https://adoptium.net/ or set &lt;CSCraftJavaHome&gt; in your .csproj." />
 
-    <Message Importance="High" Text="CSCraft: Starting Fabric Gradle build (generating JAR)..." />
+    <Message Condition="'$(CSCraftRunGradle)' == 'true'"
+             Importance="High" Text="CSCraft: Using JDK at $(CSCraftJavaHome)" />
+    <Message Condition="'$(CSCraftRunGradle)' == 'true'"
+             Importance="High" Text="CSCraft: Starting Fabric Gradle build (generating JAR)..." />
 
     <!-- Windows -->
-    <Exec Condition="$([MSBuild]::IsOSPlatform('Windows')) and Exists('$(CSCraftFabricPath)\gradlew.bat')"
-          Command="if defined CSCraftJavaHome (set JAVA_HOME=$(CSCraftJavaHome)) &amp;&amp; &quot;$(CSCraftFabricPath)\gradlew.bat&quot; build"
+    <Exec Condition="'$(CSCraftRunGradle)' == 'true' and $([MSBuild]::IsOSPlatform('Windows')) and Exists('$(CSCraftFabricPath)\gradlew.bat')"
+          Command="set &quot;JAVA_HOME=$(CSCraftJavaHome)&quot; &amp;&amp; &quot;$(CSCraftFabricPath)\gradlew.bat&quot; build"
           WorkingDirectory="$(CSCraftFabricPath)" />
 
     <!-- Linux / macOS -->
-    <Exec Condition="!$([MSBuild]::IsOSPlatform('Windows')) and Exists('$(CSCraftFabricPath)/gradlew')"
+    <Exec Condition="'$(CSCraftRunGradle)' == 'true' and !$([MSBuild]::IsOSPlatform('Windows')) and Exists('$(CSCraftFabricPath)/gradlew')"
           Command="export JAVA_HOME=&quot;$(CSCraftJavaHome)&quot; &amp;&amp; chmod +x &quot;$(CSCraftFabricPath)/gradlew&quot; &amp;&amp; &quot;$(CSCraftFabricPath)/gradlew&quot; build"
           WorkingDirectory="$(CSCraftFabricPath)" />
 
-    <Message Importance="High" Text=" " />
-    <Message Importance="High" Text="----------------------------------------------------------" />
-    <Message Importance="High" Text="SUCCESS: Mod JAR created at $(CSCraftFabricPath)\build\libs\" />
-    <Message Importance="High" Text="----------------------------------------------------------" />
-    <Message Importance="High" Text=" " />
+    <Message Condition="'$(CSCraftRunGradle)' == 'true'" Importance="High" Text=" " />
+    <Message Condition="'$(CSCraftRunGradle)' == 'true'" Importance="High" Text="----------------------------------------------------------" />
+    <Message Condition="'$(CSCraftRunGradle)' == 'true'" Importance="High" Text="SUCCESS: Mod JAR created at $(CSCraftFabricPath)\build\libs\" />
+    <Message Condition="'$(CSCraftRunGradle)' == 'true'" Importance="High" Text="----------------------------------------------------------" />
+    <Message Condition="'$(CSCraftRunGradle)' == 'true'" Importance="High" Text=" " />
 
   </Target>
 
