@@ -14,7 +14,9 @@
       "Bash(cp -f BuildTask/bin/Release/net472/BuildTask.dll CSCraft.Sdk/build/tasks/)",
       "Bash(cp -f BuildTask/bin/Release/net472/Transpiler.dll CSCraft.Sdk/build/tasks/)",
       "Bash(set \"JAVA_HOME=C:\\\\Program Files\\\\Eclipse Adoptium\\\\jdk-21.0.10.7-hotspot\")",
-      "Bash(./gradlew.bat compileJava)"
+      "Bash(./gradlew.bat compileJava)",
+      "Read(//home/borkoaxt/Downloads/**)",
+      "Bash(python3 -c ':*)"
     ]
   }
 }

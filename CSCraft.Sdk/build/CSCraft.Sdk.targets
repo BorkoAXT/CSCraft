@@ -2,12 +2,27 @@
 
   <!-- Register MSBuild tasks from the DLLs bundled in this package -->
   <UsingTask
-  TaskName="BuildTask.TranspileMod"
-  AssemblyFile="$(MSBuildThisFileDirectory)tasks\BuildTask.dll" />
+          TaskName="BuildTask.TranspileMod"
+          AssemblyFile="$(MSBuildThisFileDirectory)tasks/BuildTask.dll" />
 
-<UsingTask
-  TaskName="BuildTask.SetupFabricTemplate"
-  AssemblyFile="$(MSBuildThisFileDirectory)tasks\BuildTask.dll" />
+  <UsingTask
+          TaskName="BuildTask.SetupFabricTemplate"
+          AssemblyFile="$(MSBuildThisFileDirectory)tasks/BuildTask.dll" />
+
+  <!--
+    ═══════════════════════════════════════════════════════════════════════════
+    Path separator helper — use $(_Sep) everywhere instead of \ or /
+    ═══════════════════════════════════════════════════════════════════════════
+  -->
+  <PropertyGroup>
+    <_Sep>$([System.IO.Path]::DirectorySeparatorChar)</_Sep>
+    <_IsWindows Condition="$([MSBuild]::IsOSPlatform('Windows'))">true</_IsWindows>
+    <_IsWindows Condition="'$(_IsWindows)' == ''">false</_IsWindows>
+    <_IsLinux Condition="$([MSBuild]::IsOSPlatform('Linux'))">true</_IsLinux>
+    <_IsLinux Condition="'$(_IsLinux)' == ''">false</_IsLinux>
+    <_IsMac Condition="$([MSBuild]::IsOSPlatform('OSX'))">true</_IsMac>
+    <_IsMac Condition="'$(_IsMac)' == ''">false</_IsMac>
+  </PropertyGroup>
 
   <!--
     ═══════════════════════════════════════════════════════════════════════════
@@ -20,18 +35,18 @@
   -->
   <Target Name="CSCraftBuild" BeforeTargets="CoreCompile">
 
-    <!-- ── Step 1: Setup ── Scan for [ModInfo], generate FabricTemplate ──── -->
+    <!-- ── Step 1: Setup — Scan for [ModInfo], generate FabricTemplate ──── -->
 
     <ItemGroup>
       <_CSCraftSources Include="@(Compile)"
-        Exclude="$(IntermediateOutputPath)**;**/*.g.cs;**/*.AssemblyInfo.cs" />
+                       Exclude="$(IntermediateOutputPath)**;**/*.g.cs;**/*.AssemblyInfo.cs" />
     </ItemGroup>
 
     <SetupFabricTemplate
-      SourceFiles="@(_CSCraftSources)"
-      ProjectDirectory="$(MSBuildProjectDirectory)"
-      GradleWrapperSourceDir="$(_CSCraftGradleWrapperDir)"
-      ManualJavaHome="$(CSCraftJavaHome)">
+            SourceFiles="@(_CSCraftSources)"
+            ProjectDirectory="$(MSBuildProjectDirectory)"
+            GradleWrapperSourceDir="$(_CSCraftGradleWrapperDir)"
+            ManualJavaHome="$(CSCraftJavaHome)">
 
       <Output TaskParameter="FabricTemplatePath"  PropertyName="_CSCraftAutoFabricPath" />
       <Output TaskParameter="PackageName"         PropertyName="_CSCraftAutoPackageName" />
@@ -42,8 +57,8 @@
 
     <!-- Apply ModInfo outputs -->
     <PropertyGroup Condition="'$(_CSCraftModInfoFound)' == 'True'">
-      <CSCraftFabricPath    Condition="'$(CSCraftFabricPath)' == ''">$(_CSCraftAutoFabricPath)</CSCraftFabricPath>
-      <CSCraftPackageName   Condition="'$(CSCraftPackageName)' == ''">$(_CSCraftAutoPackageName)</CSCraftPackageName>
+      <CSCraftFabricPath  Condition="'$(CSCraftFabricPath)' == ''">$(_CSCraftAutoFabricPath)</CSCraftFabricPath>
+      <CSCraftPackageName Condition="'$(CSCraftPackageName)' == ''">$(_CSCraftAutoPackageName)</CSCraftPackageName>
     </PropertyGroup>
 
     <!-- Use discovered JDK if the user didn't set one manually -->
@@ -53,78 +68,105 @@
 
     <!-- Fallback defaults -->
     <PropertyGroup>
-      <CSCraftFabricPath    Condition="'$(CSCraftFabricPath)' == ''">$(MSBuildProjectDirectory)\FabricTemplate</CSCraftFabricPath>
-      <CSCraftResourcesPath Condition="'$(CSCraftResourcesPath)' == ''">$(CSCraftFabricPath)\src\main\resources</CSCraftResourcesPath>
+      <CSCraftFabricPath    Condition="'$(CSCraftFabricPath)' == ''">$(MSBuildProjectDirectory)$(_Sep)FabricTemplate</CSCraftFabricPath>
+      <CSCraftResourcesPath Condition="'$(CSCraftResourcesPath)' == ''">$(CSCraftFabricPath)$(_Sep)src$(_Sep)main$(_Sep)resources</CSCraftResourcesPath>
     </PropertyGroup>
 
-    <!-- ── Step 1b: Copy user assets (textures, sounds) ───────────────── -->
+    <!-- ── Step 1b: Copy user assets (textures, sounds) ─────────────────── -->
 
     <ItemGroup>
-      <_CSCraftAssets Include="$(MSBuildProjectDirectory)\Assets\**\*"
-                      Condition="Exists('$(MSBuildProjectDirectory)\Assets')" />
+      <_CSCraftAssets Include="$(MSBuildProjectDirectory)$(_Sep)Assets$(_Sep)**$(_Sep)*"
+                      Condition="Exists('$(MSBuildProjectDirectory)$(_Sep)Assets')" />
     </ItemGroup>
 
     <PropertyGroup>
-      <_CSCraftAssetsTarget>$(CSCraftResourcesPath)\assets\$(_CSCraftAutoModId)</_CSCraftAssetsTarget>
+      <_CSCraftAssetsTarget>$(CSCraftResourcesPath)$(_Sep)assets$(_Sep)$(_CSCraftAutoModId)</_CSCraftAssetsTarget>
     </PropertyGroup>
 
     <Copy SourceFiles="@(_CSCraftAssets)"
-          DestinationFiles="@(_CSCraftAssets->'$(_CSCraftAssetsTarget)\%(RecursiveDir)%(Filename)%(Extension)')"
-          Condition="'@(_CSCraftAssets)' != ''" SkipUnchangedFiles="true" />
+          DestinationFiles="@(_CSCraftAssets->'$(_CSCraftAssetsTarget)$(_Sep)%(RecursiveDir)%(Filename)%(Extension)')"
+          Condition="'@(_CSCraftAssets)' != ''"
+          SkipUnchangedFiles="true" />
 
     <Message Condition="'@(_CSCraftAssets)' != ''"
-             Importance="High" Text="CSCraft: Copied %(RecursiveDir)%(Filename)%(Extension) → assets/$(_CSCraftAutoModId)/%(RecursiveDir)%(Filename)%(Extension)" />
+             Importance="High"
+             Text="CSCraft: Copied %(RecursiveDir)%(Filename)%(Extension) → assets/$(_CSCraftAutoModId)/%(RecursiveDir)%(Filename)%(Extension)" />
 
-    <!-- ── Step 2: Transpile ── Convert C# to Java ──────────────────────── -->
+    <!-- ── Step 2: Transpile — Convert C# to Java ────────────────────────── -->
 
     <Error Condition="'$(CSCraftPackageName)' == ''"
            Text="CSCraft: No package name found. Either add [ModInfo(Id=&quot;mymod&quot;, Name=&quot;My Mod&quot;)] to your mod class, or set &lt;CSCraftPackageName&gt; in your .csproj." />
 
-    <!-- Resolve the Java output directory dynamically from the package name -->
     <PropertyGroup>
-      <_PackageFolder>$(CSCraftPackageName.Replace('.', '\'))</_PackageFolder>
-      <CSCraftOutputDir>$(CSCraftFabricPath)\src\main\java\$(_PackageFolder)</CSCraftOutputDir>
+      <_PackageFolder>$(CSCraftPackageName.Replace('.', '$(_Sep)'))</_PackageFolder>
+      <CSCraftOutputDir>$(CSCraftFabricPath)$(_Sep)src$(_Sep)main$(_Sep)java$(_Sep)$(_PackageFolder)</CSCraftOutputDir>
     </PropertyGroup>
 
-    <!-- Ensure the output directory exists before writing .java files -->
     <MakeDir Directories="$(CSCraftOutputDir)" />
 
     <Message Text="CSCraft: transpiling %(_CSCraftSources.Filename)%(_CSCraftSources.Extension)"
-             Importance="High" Condition="'@(_CSCraftSources)' != ''" />
+             Importance="High"
+             Condition="'@(_CSCraftSources)' != ''" />
 
     <TranspileMod
-      SourceFiles="@(_CSCraftSources)"
-      OutputDirectory="$(CSCraftOutputDir)"
-      PackageName="$(CSCraftPackageName)"
-      ResourcesDirectory="$(CSCraftResourcesPath)" />
+            SourceFiles="@(_CSCraftSources)"
+            OutputDirectory="$(CSCraftOutputDir)"
+            PackageName="$(CSCraftPackageName)"
+            ResourcesDirectory="$(CSCraftResourcesPath)" />
 
     <Message Text="CSCraft: Java written to $(CSCraftOutputDir)" Importance="High" />
 
-    <!-- ── Step 3: Gradle ── Build the mod JAR ──────────────────────────── -->
+    <!-- ── Step 3: Gradle — Build the mod JAR ────────────────────────────── -->
 
     <Error Condition="'$(CSCraftRunGradle)' == 'true' and '$(CSCraftJavaHome)' == ''"
            Text="CSCraft: Could not find a suitable JDK (17 or 21). Please install a JDK from https://adoptium.net/ or set &lt;CSCraftJavaHome&gt; in your .csproj." />
 
     <Message Condition="'$(CSCraftRunGradle)' == 'true'"
-             Importance="High" Text="CSCraft: Using JDK at $(CSCraftJavaHome)" />
+             Importance="High"
+             Text="CSCraft: Using JDK at $(CSCraftJavaHome)" />
     <Message Condition="'$(CSCraftRunGradle)' == 'true'"
-             Importance="High" Text="CSCraft: Starting Fabric Gradle build (generating JAR)..." />
+             Importance="High"
+             Text="CSCraft: Starting Fabric Gradle build (generating JAR)..." />
 
     <!-- Windows -->
-    <Exec Condition="'$(CSCraftRunGradle)' == 'true' and $([MSBuild]::IsOSPlatform('Windows')) and Exists('$(CSCraftFabricPath)\gradlew.bat')"
+    <Exec Condition="'$(CSCraftRunGradle)' == 'true' and '$(_IsWindows)' == 'true' and Exists('$(CSCraftFabricPath)\gradlew.bat')"
           Command="set &quot;JAVA_HOME=$(CSCraftJavaHome)&quot; &amp;&amp; &quot;$(CSCraftFabricPath)\gradlew.bat&quot; remapJar"
           WorkingDirectory="$(CSCraftFabricPath)" />
 
-    <Exec Condition="'$(CSCraftRunGradle)' == 'true' and !$([MSBuild]::IsOSPlatform('Windows')) and Exists('$(CSCraftFabricPath)/gradlew')"
-          Command="export JAVA_HOME=&quot;$(CSCraftJavaHome)&quot; &amp;&amp; chmod +x &quot;$(CSCraftFabricPath)/gradlew&quot; &amp;&amp; &quot;$(CSCraftFabricPath)/gradlew&quot; remapJar"
+    <!--
+      Linux / macOS: strip Windows line endings (CRLF) from gradlew before running.
+      gradlew is often generated on Windows and contains \r\n line endings which
+      cause Linux/macOS to see "/bin/sh^M" as the interpreter and fail with
+      "bad interpreter: No such file or directory".
+      sed strips the \r in-place before chmod and execution.
+      IMPORTANT: macOS uses BSD sed which requires an explicit empty string "" after
+      the -i flag. Linux uses GNU sed which does not accept the empty string.
+      They must be separate Exec tags — a single combined command would break one OS.
+    -->
+
+    <!-- Linux -->
+    <Exec Condition="'$(CSCraftRunGradle)' == 'true' and '$(_IsLinux)' == 'true' and Exists('$(CSCraftFabricPath)/gradlew')"
+          Command="sed -i 's/\r//' &quot;$(CSCraftFabricPath)/gradlew&quot; &amp;&amp; chmod +x &quot;$(CSCraftFabricPath)/gradlew&quot; &amp;&amp; export JAVA_HOME=&quot;$(CSCraftJavaHome)&quot; &amp;&amp; &quot;$(CSCraftFabricPath)/gradlew&quot; remapJar"
           WorkingDirectory="$(CSCraftFabricPath)" />
 
-    <!-- ── Step 4: Copy JAR to project folder ─────────────────────────── -->
+    <!-- macOS -->
+    <Exec Condition="'$(CSCraftRunGradle)' == 'true' and '$(_IsMac)' == 'true' and Exists('$(CSCraftFabricPath)/gradlew')"
+          Command="sed -i '' 's/\r//' &quot;$(CSCraftFabricPath)/gradlew&quot; &amp;&amp; chmod +x &quot;$(CSCraftFabricPath)/gradlew&quot; &amp;&amp; export JAVA_HOME=&quot;$(CSCraftJavaHome)&quot; &amp;&amp; &quot;$(CSCraftFabricPath)/gradlew&quot; remapJar"
+          WorkingDirectory="$(CSCraftFabricPath)" />
 
-    <ItemGroup Condition="'$(CSCraftRunGradle)' == 'true'">
-  <_CSCraftJars Include="$(CSCraftFabricPath)\build\libs\*.jar"
-                Exclude="$(CSCraftFabricPath)\build\libs\*-sources.jar;$(CSCraftFabricPath)\build\libs\*-dev.jar;$(CSCraftFabricPath)\build\libs\*-shadow.jar" />
-</ItemGroup>
+    <!-- ── Step 4: Copy JAR to project folder ────────────────────────────── -->
+
+    <!-- Windows glob -->
+    <ItemGroup Condition="'$(CSCraftRunGradle)' == 'true' and '$(_IsWindows)' == 'true'">
+      <_CSCraftJars Include="$(CSCraftFabricPath)\build\libs\*.jar"
+                    Exclude="$(CSCraftFabricPath)\build\libs\*-sources.jar;$(CSCraftFabricPath)\build\libs\*-dev.jar;$(CSCraftFabricPath)\build\libs\*-shadow.jar" />
+    </ItemGroup>
+
+    <!-- Linux / macOS glob -->
+    <ItemGroup Condition="'$(CSCraftRunGradle)' == 'true' and '$(_IsWindows)' == 'false'">
+      <_CSCraftJars Include="$(CSCraftFabricPath)/build/libs/*.jar"
+                    Exclude="$(CSCraftFabricPath)/build/libs/*-sources.jar;$(CSCraftFabricPath)/build/libs/*-dev.jar;$(CSCraftFabricPath)/build/libs/*-shadow.jar" />
+    </ItemGroup>
 
     <Copy SourceFiles="@(_CSCraftJars)"
           DestinationFolder="$(MSBuildProjectDirectory)"

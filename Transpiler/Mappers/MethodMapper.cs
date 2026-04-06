@@ -589,6 +589,85 @@ public static class MethodMapper
         ["McCreativeTab.AddToSpawnEggs"]        = "ItemGroupEvents.modifyEntriesEvent(ItemGroups.SPAWN_EGGS).register(e -> e.add({0}))",
         ["McCreativeTab.AddToOperator"]         = "ItemGroupEvents.modifyEntriesEvent(ItemGroups.OPERATOR).register(e -> e.add({0}))",
         ["McCreativeTab.AddToTab"]              = "ItemGroupEvents.modifyEntriesEvent(RegistryKey.of(RegistryKeys.ITEM_GROUP, Identifier.of({0}))).register(e -> e.add({1}))",
+
+        // ── PlayerData ────────────────────────────────────────────────────────
+        // Overloads handled by suffix: Set(player, key, int) etc.
+        ["PlayerData.Set"]          = "{0}.getCustomData().putInt({1}, {2})",       // int fallback
+        ["PlayerData.GetInt"]       = "({0}.getCustomData().contains({1}) ? {0}.getCustomData().getInt({1}) : {2})",
+        ["PlayerData.GetLong"]      = "({0}.getCustomData().contains({1}) ? {0}.getCustomData().getLong({1}) : {2})",
+        ["PlayerData.GetFloat"]     = "({0}.getCustomData().contains({1}) ? {0}.getCustomData().getFloat({1}) : {2})",
+        ["PlayerData.GetDouble"]    = "({0}.getCustomData().contains({1}) ? {0}.getCustomData().getDouble({1}) : {2})",
+        ["PlayerData.GetBool"]      = "({0}.getCustomData().contains({1}) ? {0}.getCustomData().getBoolean({1}) : {2})",
+        ["PlayerData.GetString"]    = "({0}.getCustomData().contains({1}) ? {0}.getCustomData().getString({1}) : {2})",
+        ["PlayerData.GetBlockPos"]  = "new net.minecraft.util.math.BlockPos({0}.getCustomData().getInt({1} + \"_x\"), {0}.getCustomData().getInt({1} + \"_y\"), {0}.getCustomData().getInt({1} + \"_z\"))",
+        ["PlayerData.Has"]          = "{0}.getCustomData().contains({1})",
+        ["PlayerData.Remove"]       = "{0}.getCustomData().remove({1})",
+
+        // ── WorldData ─────────────────────────────────────────────────────────
+        ["WorldData.GetInt"]        = "/* WorldData.GetInt — use WorldData-generated PersistentState */",
+        ["WorldData.GetBool"]       = "/* WorldData.GetBool — use WorldData-generated PersistentState */",
+        ["WorldData.GetString"]     = "/* WorldData.GetString — use WorldData-generated PersistentState */",
+        ["WorldData.GetFloat"]      = "/* WorldData.GetFloat — use WorldData-generated PersistentState */",
+        ["WorldData.Has"]           = "/* WorldData.Has — use WorldData-generated PersistentState */",
+        ["WorldData.Remove"]        = "/* WorldData.Remove — use WorldData-generated PersistentState */",
+
+        // ── Schedule ──────────────────────────────────────────────────────────
+        // McScheduler already handles RunLater/RunRepeating — Schedule.After/Every map to those
+        ["Schedule.After"]          = "/* Schedule.After({0}) — use McScheduler.RunLater(server, ticks, action) */",
+        ["Schedule.Every"]          = "/* Schedule.Every({0}) — use McScheduler.RunRepeating(server, ticks, action) */",
+
+        // ── LootTables ────────────────────────────────────────────────────────
+        ["LootTables.AddMobDrop"]   = "/* TODO: register mob loot for {0}: add {1} with chance {2} in data/modid/loot_table/entities/ */",
+        ["LootTables.RemoveMobDrop"]= "/* TODO: remove mob drop {1} from {0} — use Fabric LootTableEvents.MODIFY */",
+        ["LootTables.AddChestLoot"] = "/* TODO: add {1} to chest loot table — use Fabric LootTableEvents.MODIFY */",
+        ["LootTables.AddToTable"]   = "/* TODO: add {1} to loot table {0} — use Fabric LootTableEvents.MODIFY */",
+        ["LootTables.RemoveFromTable"] = "/* TODO: remove {1} from loot table {0} — use Fabric LootTableEvents.MODIFY */",
+
+        // ── Recipes fluent (build-time only — emit TODO) ──────────────────────
+        ["Recipes.AddShaped"]       = "/* TODO: shaped recipe {0} — define in data/modid/recipes/ */",
+        ["Recipes.AddShapeless"]    = "/* TODO: shapeless recipe {0} — define in data/modid/recipes/ */",
+        ["Recipes.AddSmelting"]     = "/* TODO: smelting recipe {0} — define in data/modid/recipes/ */",
+        ["Recipes.AddBlasting"]     = "/* TODO: blasting recipe {0} — define in data/modid/recipes/ */",
+        ["Recipes.AddSmoking"]      = "/* TODO: smoking recipe {0} — define in data/modid/recipes/ */",
+        ["Recipes.AddCampfire"]     = "/* TODO: campfire recipe {0} — define in data/modid/recipes/ */",
+        ["Recipes.AddStonecutting"] = "/* TODO: stonecutting recipe {0} — define in data/modid/recipes/ */",
+        ["Recipes.AddSmithingTransform"] = "/* TODO: smithing recipe {0} — define in data/modid/recipes/ */",
+
+        // ── Config ────────────────────────────────────────────────────────────
+        ["Config.Load"]             = "/* Config.Load<T>() — generated config class, use field directly */",
+        ["Config.Reload"]           = "/* Config.Reload<T>() — re-read config/modid.toml */",
+        ["Config.Save"]             = "/* Config.Save(cfg) — write config/modid.toml */",
+
+        // ── McScoreboard static ────────────────────────────────────────────────
+        ["McScoreboard.CreateObjective"] = "{ var _sb = {0}.getScoreboard(); if (_sb.getNullableObjective({1}) == null) _sb.addObjective({1}, ScoreboardCriterion.DUMMY, Text.literal({2}), ScoreboardCriterion.RenderType.INTEGER, false, null); }",
+        ["McScoreboard.RemoveObjective"] = "{0}.getScoreboard().removeObjective({0}.getScoreboard().getNullableObjective({1}))",
+        ["McScoreboard.ShowSidebar"]     = "{0}.getScoreboard().setObjectiveSlot(ScoreboardDisplaySlot.SIDEBAR, {0}.getScoreboard().getNullableObjective({1}))",
+        ["McScoreboard.HideSidebar"]     = "{0}.getScoreboard().setObjectiveSlot(ScoreboardDisplaySlot.SIDEBAR, null)",
+        ["McScoreboard.ShowTabList"]     = "{0}.getScoreboard().setObjectiveSlot(ScoreboardDisplaySlot.LIST, {0}.getScoreboard().getNullableObjective({1}))",
+        ["McScoreboard.ShowBelowName"]   = "{0}.getScoreboard().setObjectiveSlot(ScoreboardDisplaySlot.BELOW_NAME, {0}.getScoreboard().getNullableObjective({1}))",
+        ["McScoreboard.GetScore"]        = "{0}.getScoreboard().getOrCreateScore({1}, {0}.getScoreboard().getNullableObjective({2})).getScore()",
+        ["McScoreboard.SetScore"]        = "{0}.getScoreboard().getOrCreateScore({1}, {0}.getScoreboard().getNullableObjective({2})).setScore({3})",
+        ["McScoreboard.AddScore"]        = "{0}.getScoreboard().getOrCreateScore({1}, {0}.getScoreboard().getNullableObjective({2})).incrementScore({3})",
+        ["McScoreboard.ResetScore"]      = "{0}.getScoreboard().resetPlayerScore({1}.getEntityName(), {0}.getScoreboard().getNullableObjective({2}))",
+        ["McScoreboard.CreateTeam"]      = "{ if ({0}.getScoreboard().getTeam({1}) == null) {0}.getScoreboard().addTeam({1}); }",
+        ["McScoreboard.RemoveTeam"]      = "if ({0}.getScoreboard().getTeam({1}) != null) {0}.getScoreboard().removeTeam({0}.getScoreboard().getTeam({1}))",
+        ["McScoreboard.AddPlayerToTeam"] = "{0}.getScoreboard().addPlayerToTeam({1}.getEntityName(), {0}.getScoreboard().getTeam({2}))",
+        ["McScoreboard.RemovePlayerFromTeam"] = "{0}.getScoreboard().removePlayerFromTeam({1}.getEntityName(), {0}.getScoreboard().getPlayerTeam({1}.getEntityName()))",
+        ["McScoreboard.GetPlayerTeam"]   = "({0}.getScoreboard().getPlayerTeam({1}.getEntityName()) != null ? {0}.getScoreboard().getPlayerTeam({1}.getEntityName()).getName() : null)",
+        ["McScoreboard.SetTeamPrefix"]   = "{ var _t = {0}.getScoreboard().getTeam({1}); if (_t != null) _t.setPrefix(Text.literal({2})); }",
+        ["McScoreboard.SetTeamSuffix"]   = "{ var _t2 = {0}.getScoreboard().getTeam({1}); if (_t2 != null) _t2.setSuffix(Text.literal({2})); }",
+        ["McScoreboard.SetTeamColor"]    = "{ var _t3 = {0}.getScoreboard().getTeam({1}); if (_t3 != null) _t3.setColor(net.minecraft.util.Formatting.byName({2})); }",
+        ["McScoreboard.SetFriendlyFire"] = "{ var _t4 = {0}.getScoreboard().getTeam({1}); if (_t4 != null) _t4.setFriendlyFireAllowed({2}); }",
+
+        // ── McScheduler static ────────────────────────────────────────────────
+        ["McScheduler.RunLater"]     = "{ int _delay = {1}; {0}.execute(() -> { try { Thread.sleep(_delay * 50L); } catch (Exception _e) {} }); }",
+        ["McScheduler.RunAsync"]     = "java.util.concurrent.CompletableFuture.runAsync(() -> {1})",
+
+        // ── McInventory static ────────────────────────────────────────────────
+        ["McInventory.FromPlayer"]   = "{0}.getInventory()",
+        ["McInventory.EnderChest"]   = "{0}.getEnderChestInventory()",
+        ["McInventory.Give"]         = "{0}.getInventory().insertStack({1})",
+        ["McInventory.Take"]         = "{ int _rem = {2}; for (int _i = 0; _i < {0}.getInventory().size() && _rem > 0; _i++) { var _s = {0}.getInventory().getStack(_i); if (!_s.isEmpty() && Registries.ITEM.getId(_s.getItem()).toString().equals({1})) { int _take = Math.min(_s.getCount(), _rem); _s.decrement(_take); _rem -= _take; } } }",
     };
 
     // ── Property mappings (C# properties → Java getter calls) ────────────────

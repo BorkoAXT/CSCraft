@@ -42,6 +42,12 @@ public static class McCommand
     public static void RegisterSub(string parent, string sub, string argName, Action<McCommandSource, string> handler) { }
 
     /// <summary>
+    /// Register a subcommand with an integer argument.
+    /// Example: McCommand.RegisterSub("myplugin", "setlevel", "level", (src, n) => ...) → /myplugin setlevel &lt;level&gt;
+    /// </summary>
+    public static void RegisterSub(string parent, string sub, string argName, Action<McCommandSource, int> handler) { }
+
+    /// <summary>
     /// Register a command that requires operator permissions (level 2+).
     /// </summary>
     public static void RegisterOp(string name, Action<McCommandSource> handler) { }
