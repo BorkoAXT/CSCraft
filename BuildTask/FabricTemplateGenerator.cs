@@ -45,41 +45,59 @@ public static class FabricTemplateGenerator
     /// fabric.mod.json and gradle.properties (preserves user customizations to build.gradle).
     /// </summary>
     public static void Generate(ModInfo info, string templatePath, string? gradleWrapperSourceDir)
+{
+    string modJsonPath = Path.Combine(templatePath, "src", "main", "resources", "fabric.mod.json");
+
+    // ── SMART SKIP ──
+    // If the template already exists, check if the ModId and Entrypoint match.
+    // This prevents re-generating the whole structure on every single tiny code change.
+    if (File.Exists(modJsonPath))
     {
-        Directory.CreateDirectory(templatePath);
-
-        var versions = GetVersions(info.MinecraftVersion);
-        bool isFirstRun = !File.Exists(Path.Combine(templatePath, "build.gradle"));
-
-        // Always regenerate these (they're derived from ModInfo)
-        WriteGradleProperties(templatePath, info, versions);
-        WriteFabricModJson(templatePath, info);
-
-        if (isFirstRun)
+        string existingJson = File.ReadAllText(modJsonPath);
+        string expectedEntrypoint = $"{info.PackageName}.{info.ClassName}";
+        
+        if (existingJson.Contains($"\"id\": \"{info.Id}\"") && 
+            existingJson.Contains($"\"{expectedEntrypoint}\""))
         {
-            WriteBuildGradle(templatePath, info);
-            WriteSettingsGradle(templatePath);
-            WriteGitignore(templatePath);
-
-            // Create the source directory structure
-            var packageDir = info.PackageName.Replace('.', Path.DirectorySeparatorChar);
-            Directory.CreateDirectory(Path.Combine(templatePath, "src", "main", "java", packageDir));
-            Directory.CreateDirectory(Path.Combine(templatePath, "src", "main", "resources", "assets", info.Id));
-
-            // Copy Gradle wrapper from SDK bundle
-            if (gradleWrapperSourceDir != null && Directory.Exists(gradleWrapperSourceDir))
-            {
-                CopyGradleWrapper(gradleWrapperSourceDir, templatePath);
-            }
-            else
-            {
-                // Generate wrapper properties at minimum; user will need to provide gradle-wrapper.jar
-                WriteGradleWrapperProperties(templatePath, versions.Gradle);
-                WriteGradlew(templatePath);
-                WriteGradlewBat(templatePath);
-            }
+            // The template is already up-to-date for this mod configuration.
+            return; 
         }
     }
+
+    // ── GENERATION LOGIC ──
+    Directory.CreateDirectory(templatePath);
+
+    var versions = GetVersions(info.MinecraftVersion);
+    
+    // Always write these as they are small and drive the build
+    WriteGradleProperties(templatePath, info, versions);
+    WriteFabricModJson(templatePath, info);
+
+    // Only write the heavy boilerplate if it's missing
+    if (!File.Exists(Path.Combine(templatePath, "build.gradle")))
+    {
+        WriteBuildGradle(templatePath, info);
+        WriteSettingsGradle(templatePath);
+        WriteGitignore(templatePath);
+
+        // Create the source directory structure
+        var packageDir = info.PackageName.Replace('.', Path.DirectorySeparatorChar);
+        Directory.CreateDirectory(Path.Combine(templatePath, "src", "main", "java", packageDir));
+        Directory.CreateDirectory(Path.Combine(templatePath, "src", "main", "resources", "assets", info.Id));
+
+        // Copy Gradle wrapper from SDK bundle
+        if (gradleWrapperSourceDir != null && Directory.Exists(gradleWrapperSourceDir))
+        {
+            CopyGradleWrapper(gradleWrapperSourceDir, templatePath);
+        }
+        else
+        {
+            WriteGradleWrapperProperties(templatePath, versions.Gradle);
+            WriteGradlew(templatePath);
+            WriteGradlewBat(templatePath);
+        }
+    }
+}
 
     // ── Parsing ───────────────────────────────────────────────────────────────
 
@@ -236,7 +254,7 @@ public static class FabricTemplateGenerator
     {
         // Use the actual C# class name for the entry point
         string className = !string.IsNullOrWhiteSpace(info.ClassName) ? info.ClassName : info.Id;
-        string entryClass = $"{info.PackageName}.{className}";
+        string entryClass = $"{info.PackageName}.{info.ClassName}";
 
         string authors = string.IsNullOrWhiteSpace(info.Author) ? "" : $"\"{info.Author}\"";
 

@@ -1,5 +1,6 @@
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
+using System.Reflection;
 using Transpiler;
 
 namespace BuildTask;
@@ -9,47 +10,90 @@ namespace BuildTask;
 /// and places the output next to the Fabric template source tree.
 /// Also scans each source file for McRecipe.Register* calls and generates
 /// the corresponding Minecraft recipe JSON files.
-///
-/// Usage in a .csproj:
-///   &lt;UsingTask TaskName="TranspileMod" AssemblyFile="path\to\BuildTask.dll" /&gt;
-///   &lt;Target Name="Transpile" BeforeTargets="Build"&gt;
-///     &lt;TranspileMod
-///         SourceFiles="@(CSCraftSource)"
-///         OutputDirectory="$(FabricSrcDir)"
-///         PackageName="com.example.mymod"
-///         ResourcesDirectory="$(FabricResourcesDir)" /&gt;
-///   &lt;/Target&gt;
-///
-/// ResourcesDirectory is optional. When provided, recipe JSONs are written to:
-///   {ResourcesDirectory}/data/{modId}/recipe/{recipeName}.json
-/// where modId is the last segment of PackageName (e.g. "mymod" from "com.example.mymod").
 /// </summary>
 public class TranspileMod : Microsoft.Build.Utilities.Task
 {
+    // ── Assembly resolver ─────────────────────────────────────────────────────
+    // MSBuild doesn't automatically probe the task DLL's directory for
+    // dependencies (Microsoft.CodeAnalysis, Transpiler, etc.).
+    // Hook AssemblyResolve in the static constructor — BEFORE any method
+    // referencing Transpiler types is JIT-compiled.
+
+    static TranspileMod()
+    {
+        AppDomain.CurrentDomain.AssemblyResolve += ResolveAssembly;
+    }
+
+    private static string GetTaskDirectory()
+    {
+        try
+        {
+            string loc = typeof(TranspileMod).Assembly.Location;
+            if (!string.IsNullOrEmpty(loc))
+                return Path.GetDirectoryName(loc) ?? "";
+        }
+        catch { /* ignore */ }
+
+        try
+        {
+            // Fallback for .NET Framework: CodeBase is a file:// URI
+#pragma warning disable SYSLIB0012
+            string codeBase = typeof(TranspileMod).Assembly.CodeBase;
+#pragma warning restore SYSLIB0012
+            if (!string.IsNullOrEmpty(codeBase))
+            {
+                var uri = new Uri(codeBase);
+                return Path.GetDirectoryName(uri.LocalPath) ?? "";
+            }
+        }
+        catch { /* ignore */ }
+
+        return "";
+    }
+
+    private static Assembly? ResolveAssembly(object? sender, ResolveEventArgs args)
+    {
+        string name = new AssemblyName(args.Name).Name;
+
+        // Skip system libraries that VS/MSBuild already provides
+        if (name.StartsWith("System.") || name.StartsWith("Microsoft.Build") || name == "mscorlib")
+            return null;
+
+        string taskDir = GetTaskDirectory();
+        if (string.IsNullOrEmpty(taskDir)) return null;
+
+        string candidate = Path.Combine(taskDir, name + ".dll");
+        if (File.Exists(candidate))
+        {
+            try
+            {
+                // Check if already loaded to avoid double-load errors
+                var loaded = AppDomain.CurrentDomain.GetAssemblies()
+                            .FirstOrDefault(a => a.GetName().Name == name);
+                if (loaded != null) return loaded;
+
+                return Assembly.LoadFrom(candidate);
+            }
+            catch { /* ignore */ }
+        }
+        return null;
+    }
+
     // ── Inputs ────────────────────────────────────────────────────────────────
 
-    /// <summary>The .cs source files to transpile.</summary>
     [Required]
     public ITaskItem[] SourceFiles { get; set; } = [];
 
-    /// <summary>Directory to write the generated .java files into.</summary>
     [Required]
     public string OutputDirectory { get; set; } = "";
 
-    /// <summary>Java package name, e.g. "com.example.mymod".</summary>
     [Required]
     public string PackageName { get; set; } = "";
 
-    /// <summary>
-    /// Root resources directory of the Fabric project (the one containing assets/ and data/).
-    /// When set, recipe JSON files are generated under {ResourcesDirectory}/data/{modId}/recipe/.
-    /// Optional — omit to skip recipe JSON generation.
-    /// </summary>
     public string ResourcesDirectory { get; set; } = "";
 
     // ── Outputs ───────────────────────────────────────────────────────────────
 
-    /// <summary>The generated .java file paths (for incremental build support).</summary>
     [Output]
     public ITaskItem[] GeneratedFiles { get; set; } = [];
 
@@ -133,10 +177,21 @@ public class TranspileMod : Microsoft.Build.Utilities.Task
             Log.LogMessage(MessageImportance.Normal, $"CSCraft: {csPath} → {javaPath}");
             generated.Add(new TaskItem(javaPath));
 
+            // Write extra helper classes if any
+            if (result.ExtraJavaFiles != null)
+            {
+                foreach (var kvp in result.ExtraJavaFiles)
+                {
+                    string extraPath = Path.Combine(OutputDirectory, kvp.Key);
+                    File.WriteAllText(extraPath, kvp.Value);
+                    Log.LogMessage(MessageImportance.Normal, $"CSCraft: Generated helper {kvp.Key}");
+                    generated.Add(new TaskItem(extraPath));
+                }
+            }
+
             // ── Recipe JSON generation ────────────────────────────────────────
             if (!string.IsNullOrWhiteSpace(ResourcesDirectory))
             {
-                // modId = last dot-segment of PackageName, e.g. "com.example.mymod" → "mymod"
                 string modId = PackageName.Contains('.')
                     ? PackageName.Substring(PackageName.LastIndexOf('.') + 1)
                     : PackageName;
@@ -182,7 +237,6 @@ public class TranspileMod : Microsoft.Build.Utilities.Task
                     string tagDir = Path.GetDirectoryName(tagPath);
                     if (tagDir != null) Directory.CreateDirectory(tagDir);
 
-                    // Merge with existing tag file if present
                     var ids = new List<string>(kvp.Value);
                     if (File.Exists(tagPath))
                     {
@@ -242,7 +296,6 @@ public class TranspileMod : Microsoft.Build.Utilities.Task
             Directory.CreateDirectory(langDir);
             string langPath = Path.Combine(langDir, "en_us.json");
 
-            // Merge with existing lang file if present
             if (File.Exists(langPath))
             {
                 try

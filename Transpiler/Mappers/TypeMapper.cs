@@ -294,7 +294,7 @@ public static class TypeMapper
         ["HoeItem"]                 = "net.minecraft.item.HoeItem",
         ["ArmorItem"]               = "net.minecraft.item.ArmorItem",
         ["EquipmentSlot"]           = "net.minecraft.entity.EquipmentSlot",
-        ["FoodComponent"]           = "net.minecraft.item.FoodComponent",
+        ["FoodComponent"]           = "net.minecraft.component.type.FoodComponent",
         ["Rarity"]                  = "net.minecraft.util.Rarity",
         // Text
         ["Text"]                    = "net.minecraft.text.Text",

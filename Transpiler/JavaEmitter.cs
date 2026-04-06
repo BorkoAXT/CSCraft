@@ -17,6 +17,9 @@ public class JavaEmitter : CSharpSyntaxWalker
     // Track the C# type name of the current receiver so property/method lookups work.
     private readonly Dictionary<string, string> _localTypes = new();
 
+    // Set to true when player NBT methods are used, so the helper class gets emitted.
+    public bool NeedsPlayerDataHelper { get; private set; }
+
     // Indentation state — updated as we enter/leave class and method bodies.
     // _memberIndent : indentation for class members (methods, fields)
     // _stmtIndent   : indentation for statements inside the current method/lambda
@@ -101,6 +104,7 @@ public class JavaEmitter : CSharpSyntaxWalker
             string name    = v.Identifier.Text;
 
             _localTypes[name] = csType;
+            _imports.AddForCsType(csType);
 
             if (v.Initializer != null)
             {
@@ -225,6 +229,7 @@ public class JavaEmitter : CSharpSyntaxWalker
             string javaType = csType == "var" ? "var" : MapTypeName(csType);
             string name     = v.Identifier.Text;
             _localTypes[name] = csType;
+            if (csType != "var") _imports.AddForCsType(csType);
 
             string line = v.Initializer != null
                 ? $"{_stmtIndent}{javaType} {name} = {EmitExpression(v.Initializer.Value)};"
@@ -297,7 +302,7 @@ public class JavaEmitter : CSharpSyntaxWalker
         PostfixUnaryExpressionSyntax post       => EmitPostfixUnary(post),
         InterpolatedStringExpressionSyntax istr => EmitInterpolatedString(istr),
         ParenthesizedExpressionSyntax paren     => $"({EmitExpression(paren.Expression)})",
-        CastExpressionSyntax cast               => $"({MapTypeName(cast.Type.ToString())}){EmitExpression(cast.Expression)}",
+        CastExpressionSyntax cast               => $"(({MapTypeName(cast.Type.ToString())}){EmitExpression(cast.Expression)})",
         ConditionalExpressionSyntax cond        => $"{EmitExpression(cond.Condition)} ? {EmitExpression(cond.WhenTrue)} : {EmitExpression(cond.WhenFalse)}",
         IsPatternExpressionSyntax isp           => EmitIsPattern(isp),
         LambdaExpressionSyntax lam              => EmitLambda(lam),
@@ -331,25 +336,39 @@ public class JavaEmitter : CSharpSyntaxWalker
         if (prop != null)
         {
             _imports.AddForCsType(csType);
-            return MethodMapper.Apply(prop, target);
+            string result = MethodMapper.Apply(prop, target);
+            AddImportsFromTemplate(result);
+            return result;
         }
 
         string fullName = $"{mae.Expression}.{member}";
         string? staticM = MethodMapper.GetStatic(fullName);
         if (staticM != null)
+        {
+            AddImportsFromTemplate(staticM);
             return staticM;
+        }
 
         return $"{target}.{ToCamelCase(member)}";
     }
 
     private string EmitInvocation(InvocationExpressionSyntax inv)
     {
+        // Special handling for McCommand.* — lambdas need to be inlined, not invoked
+        string fullExpr = inv.Expression.ToString();
+        if (fullExpr.StartsWith("McCommand."))
+            return EmitCommandRegistration(inv);
+
         var args = inv.ArgumentList.Arguments.Select(a => EmitExpression(a.Expression)).ToArray();
 
-        string fullName = inv.Expression.ToString();
-        string? staticM = MethodMapper.GetStatic(fullName);
+        string fullName = fullExpr;
+        string? staticM = MethodMapper.GetStatic(fullName, args.Length);
         if (staticM != null)
-            return FillArgs(staticM, null, args);
+        {
+            string filled = FillArgs(staticM, null, args);
+            AddImportsFromTemplate(filled);
+            return filled;
+        }
 
         if (inv.Expression is MemberAccessExpressionSyntax mae)
         {
@@ -362,7 +381,9 @@ public class JavaEmitter : CSharpSyntaxWalker
             {
                 _imports.AddFromMethod(mapping);
                 _imports.AddForCsType(csType);
-                return FillArgs(mapping.Template, target, args);
+                string filled = FillArgs(mapping.Template, target, args);
+                AddImportsFromTemplate(filled);
+                return filled;
             }
 
             _diag.Warn(inv, $"Unknown method {csType}.{method} — emitting as-is");
@@ -372,6 +393,114 @@ public class JavaEmitter : CSharpSyntaxWalker
 
         string argList = string.Join(", ", args);
         return $"{ToCamelCase(inv.Expression.ToString())}({argList})";
+    }
+
+    /// <summary>
+    /// Special-case: McCommand.Register/RegisterOp/RegisterWithPlayer etc.
+    /// Extracts the lambda body and inlines it into the Fabric command registration boilerplate,
+    /// so we get proper Java instead of trying to "invoke" a lambda literal.
+    /// </summary>
+    private string EmitCommandRegistration(InvocationExpressionSyntax inv)
+    {
+        var mae = (MemberAccessExpressionSyntax)inv.Expression;
+        string method = mae.Name.Identifier.Text;
+        var rawArgs = inv.ArgumentList.Arguments;
+
+        _imports.Add("net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback");
+        _imports.Add("net.minecraft.server.command.CommandManager");
+        _imports.Add("net.minecraft.server.command.ServerCommandSource");
+
+        // Extract the command name (always the first arg)
+        string cmdName = EmitExpression(rawArgs[0].Expression);
+
+        // Find the lambda argument (always the last one)
+        var lambdaArg = rawArgs.Last().Expression as LambdaExpressionSyntax;
+        if (lambdaArg == null)
+        {
+            // Fallback: emit as TODO comment
+            return $"/* TODO: McCommand.{method}({string.Join(", ", rawArgs.Select(a => EmitExpression(a.Expression)))}) */";
+        }
+
+        // Extract lambda parameter names
+        var paramNames = lambdaArg switch
+        {
+            SimpleLambdaExpressionSyntax sl => new[] { sl.Parameter.Identifier.Text },
+            ParenthesizedLambdaExpressionSyntax pl =>
+                pl.ParameterList.Parameters.Select(p => p.Identifier.Text).ToArray(),
+            _ => new[] { "src" },
+        };
+
+        string srcVar = paramNames[0];
+
+        // Register all lambda parameter types BEFORE emitting the body so method resolution works
+        _localTypes[srcVar] = "McCommandSource";
+        if (paramNames.Length > 1)
+        {
+            string secondParam = paramNames[1];
+            // For WithPlayer variants, second param is McPlayer; for others it's a primitive
+            if (method is "RegisterWithPlayer" or "RegisterOpWithPlayer")
+                _localTypes[secondParam] = "McPlayer";
+            // String/Int/Sub variants: second param is string or int — no special mapping needed
+        }
+
+        // Emit the lambda body as inline statements
+        string body = "";
+        if (lambdaArg.Block != null)
+            body = string.Join(" ", lambdaArg.Block.Statements.Select(s => EmitStatementInline(s)));
+        else if (lambdaArg.ExpressionBody != null)
+            body = EmitExpression(lambdaArg.ExpressionBody) + ";";
+        string requires = "";
+
+        switch (method)
+        {
+            case "Register":
+                // McCommand.Register("name", (src) => { body })
+                return $"CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal({cmdName}).executes(ctx -> {{ ServerCommandSource {srcVar} = ctx.getSource(); {body} return 1; }})))";
+
+            case "RegisterOp":
+                return $"CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal({cmdName}).requires(src -> src.hasPermissionLevel(2)).executes(ctx -> {{ ServerCommandSource {srcVar} = ctx.getSource(); {body} return 1; }})))";
+
+            case "RegisterWithPlayer":
+            case "RegisterOpWithPlayer":
+            {
+                // McCommand.RegisterWithPlayer("name", "argName", (src, target) => { body })
+                string argName = EmitExpression(rawArgs[1].Expression);
+                string targetVar = paramNames.Length > 1 ? paramNames[1] : "target";
+                _localTypes[targetVar] = "McPlayer";
+                requires = method == "RegisterOpWithPlayer" ? ".requires(src -> src.hasPermissionLevel(2))" : "";
+                _imports.Add("net.minecraft.command.argument.EntityArgumentType");
+                return $"CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal({cmdName}){requires}.then(CommandManager.argument({argName}, EntityArgumentType.player()).executes(ctx -> {{ ServerCommandSource {srcVar} = ctx.getSource(); ServerPlayerEntity {targetVar} = EntityArgumentType.getPlayer(ctx, {argName}); {body} return 1; }}))))";
+            }
+
+            case "RegisterWithString":
+            {
+                string argName = EmitExpression(rawArgs[1].Expression);
+                string strVar = paramNames.Length > 1 ? paramNames[1] : "value";
+                _imports.Add("com.mojang.brigadier.arguments.StringArgumentType");
+                return $"CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal({cmdName}).then(CommandManager.argument({argName}, StringArgumentType.string()).executes(ctx -> {{ ServerCommandSource {srcVar} = ctx.getSource(); String {strVar} = StringArgumentType.getString(ctx, {argName}); {body} return 1; }}))))";
+            }
+
+            case "RegisterWithInt":
+            {
+                string argName = EmitExpression(rawArgs[1].Expression);
+                string intVar = paramNames.Length > 1 ? paramNames[1] : "value";
+                _imports.Add("com.mojang.brigadier.arguments.IntegerArgumentType");
+                return $"CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal({cmdName}).then(CommandManager.argument({argName}, IntegerArgumentType.integer()).executes(ctx -> {{ ServerCommandSource {srcVar} = ctx.getSource(); int {intVar} = IntegerArgumentType.getInteger(ctx, {argName}); {body} return 1; }}))))";
+            }
+
+            case "RegisterSub":
+            {
+                // McCommand.RegisterSub("parent", "sub", "argName", (src, value) => { body })
+                string subName = EmitExpression(rawArgs[1].Expression);
+                string argName = EmitExpression(rawArgs[2].Expression);
+                string valVar = paramNames.Length > 1 ? paramNames[1] : "value";
+                _imports.Add("com.mojang.brigadier.arguments.StringArgumentType");
+                return $"CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal({cmdName}).then(CommandManager.literal({subName}).then(CommandManager.argument({argName}, StringArgumentType.string()).executes(ctx -> {{ ServerCommandSource {srcVar} = ctx.getSource(); String {valVar} = StringArgumentType.getString(ctx, {argName}); {body} return 1; }})))))";
+            }
+
+            default:
+                return $"/* TODO: McCommand.{method} — not yet supported */";
+        }
     }
 
     private string EmitObjectCreation(ObjectCreationExpressionSyntax oc)
@@ -384,7 +513,9 @@ public class JavaEmitter : CSharpSyntaxWalker
         if (ctor != null)
         {
             _imports.AddForCsType(csType);
-            return FillArgs(ctor, null, args);
+            string filled = FillArgs(ctor, null, args);
+            AddImportsFromTemplate(filled);
+            return filled;
         }
 
         string javaType = MapTypeName(csType);
@@ -472,6 +603,10 @@ public class JavaEmitter : CSharpSyntaxWalker
 
     private string EmitPostfixUnary(PostfixUnaryExpressionSyntax post)
     {
+        // C# null-forgiving operator (null!) has no Java equivalent — just emit the operand
+        if (post.IsKind(SyntaxKind.SuppressNullableWarningExpression))
+            return EmitExpression(post.Operand);
+
         string expr = EmitExpression(post.Operand);
         string op   = post.OperatorToken.Text;
         return $"{expr}{op}";
@@ -554,6 +689,10 @@ public class JavaEmitter : CSharpSyntaxWalker
         _imports.Add("net.minecraft.server.network.ServerPlayerEntity");
         _imports.Add("net.minecraft.server.MinecraftServer");
 
+        // Add ActionResult import if the event callback needs it
+        if (mapping.ReturnStatement?.Contains("ActionResult") == true)
+            _imports.Add("net.minecraft.util.ActionResult");
+
         string[] paramNames;
         BlockSyntax? body = null;
 
@@ -602,9 +741,15 @@ public class JavaEmitter : CSharpSyntaxWalker
                 string rhs = stmt[(eqIdx + 1)..].Trim();
                 string declaredName = lhs.Split(' ').Last();
 
-                // Skip pure self-assignments (e.g. "ServerPlayerEntity player = player"
-                // when player is already a typed lambda arg of the correct type)
-                if (rhs == declaredName) continue;
+                // Skip self-assignments and cast self-assignments
+                // e.g. "ServerPlayerEntity player = player" or "ServerPlayerEntity player = (ServerPlayerEntity) player"
+                // The instanceof guard before this already ensures type safety
+                string rhsStripped = rhs.Contains(')') ? rhs[(rhs.LastIndexOf(')') + 1)..].Trim() : rhs;
+                if (rhsStripped == declaredName) continue;
+
+                // Also skip if the declared variable name matches a lambda arg
+                // (to avoid re-declaring lambda parameters as local variables)
+                if (mapping.JavaArgs.Contains(declaredName) && rhs.Trim() == declaredName) continue;
 
                 _w.Line($"{innerIndent}{stmt};");
             }
@@ -619,6 +764,10 @@ public class JavaEmitter : CSharpSyntaxWalker
             _stmtIndent = prevStmt;
         }
 
+        // Emit required return statement for callbacks that return a value
+        if (mapping.ReturnStatement != null)
+            _w.Line($"{innerIndent}{mapping.ReturnStatement}");
+
         _w.Line($"{_stmtIndent}}});");
     }
 
@@ -632,6 +781,23 @@ public class JavaEmitter : CSharpSyntaxWalker
     }
 
     private string MapTypeName(string csType) => TypeMapper.Map(csType);
+
+    /// <summary>
+    /// Scans a filled template string for Java type names that appear in the WellKnown import map
+    /// and adds their imports.
+    /// </summary>
+    private void AddImportsFromTemplate(string javaCode)
+    {
+        foreach (var kvp in ImportMapper.WellKnown)
+        {
+            string typeName = kvp.Key;
+            if (javaCode.Contains(typeName))
+                _imports.Add(kvp.Value);
+        }
+
+        if (javaCode.Contains("ModPlayerData"))
+            NeedsPlayerDataHelper = true;
+    }
 
     private static string ToCamelCase(string name)
     {
@@ -662,6 +828,48 @@ public class JavaEmitter : CSharpSyntaxWalker
         ReturnStatementSyntax rs     => rs.Expression != null
             ? $"return {EmitExpression(rs.Expression)};"
             : "return;",
+        LocalDeclarationStatementSyntax lds => EmitLocalDeclInline(lds),
+        IfStatementSyntax ifs => EmitIfInline(ifs),
         _ => stmt.ToString().Trim(),
     };
+
+    private string EmitLocalDeclInline(LocalDeclarationStatementSyntax lds)
+    {
+        var parts = new List<string>();
+        foreach (var v in lds.Declaration.Variables)
+        {
+            string csType   = lds.Declaration.Type.ToString();
+            string javaType = csType == "var" ? "var" : MapTypeName(csType);
+            string name     = v.Identifier.Text;
+            _localTypes[name] = csType;
+            parts.Add(v.Initializer != null
+                ? $"{javaType} {name} = {EmitExpression(v.Initializer.Value)};"
+                : $"{javaType} {name};");
+        }
+        return string.Join(" ", parts);
+    }
+
+    private string EmitIfInline(IfStatementSyntax ifs)
+    {
+        string cond = EmitExpression(ifs.Condition);
+        var sb = new System.Text.StringBuilder();
+        sb.Append($"if ({cond}) {{");
+        if (ifs.Statement is BlockSyntax blk)
+            foreach (var s in blk.Statements)
+                sb.Append($" {EmitStatementInline(s)}");
+        else
+            sb.Append($" {EmitStatementInline(ifs.Statement)}");
+        sb.Append(" }");
+        if (ifs.Else != null)
+        {
+            sb.Append(" else {");
+            if (ifs.Else.Statement is BlockSyntax eblk)
+                foreach (var s in eblk.Statements)
+                    sb.Append($" {EmitStatementInline(s)}");
+            else
+                sb.Append($" {EmitStatementInline(ifs.Else.Statement)}");
+            sb.Append(" }");
+        }
+        return sb.ToString();
+    }
 }

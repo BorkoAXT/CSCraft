@@ -7,7 +7,7 @@
 
     <!-- NuGet package identity -->
     <PackageId>CSCraft.Sdk</PackageId>
-    <Version>1.2.0</Version>
+    <Version>1.4.1</Version>
 
     <!-- NuGet listing metadata -->
     <Title>CSCraft SDK — Write Minecraft Fabric Mods in C#</Title>
@@ -33,46 +33,19 @@ Target: Minecraft 1.21.1 · Fabric API 0.116.9+1.21.1 · Java 21</Description>
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- README included in the NuGet package -->
-    <None Include="..\README.md"
-          Pack="true"
-          PackagePath="\" />
+    <None Include="..\README.md" Pack="true" PackagePath="\" />
 
-    <!-- Stubs DLL → lib/ so consumers get IntelliSense and types -->
-    <None Include="../CSharpStubs/bin/Release/net9.0/CSharpStubs.dll"
-          Pack="true"
-          PackagePath="lib/net9.0/" />
+    <None Include="../CSharpStubs/bin/Release/net9.0/CSharpStubs.dll" Pack="true" PackagePath="lib/net9.0/" />
 
-    <!-- MSBuild integration files -->
-    <None Include="build/CSCraft.Sdk.props"
-          Pack="true"
-          PackagePath="build/" />
+    <None Include="build/CSCraft.Sdk.props" Pack="true" PackagePath="build/" />
+    <None Include="build/CSCraft.Sdk.targets" Pack="true" PackagePath="build/" />
 
-    <None Include="build/CSCraft.Sdk.targets"
-          Pack="true"
-          PackagePath="build/" />
+    <None Include="build/tasks\**\*" Pack="true" PackagePath="build/tasks/" />
 
-    <!-- All published task DLLs (BuildTask + Transpiler + Roslyn deps) -->
-    <None Include="build/tasks/*.dll"
-          Pack="true"
-          PackagePath="build/tasks/" />
-
-    <!-- Bundled Gradle wrapper (copied into FabricTemplate on first build) -->
-    <None Include="build/gradle-wrapper/gradlew"
-          Pack="true"
-          PackagePath="build/gradle-wrapper/" />
-
-    <None Include="build/gradle-wrapper/gradlew.bat"
-          Pack="true"
-          PackagePath="build/gradle-wrapper/" />
-
-    <None Include="build/gradle-wrapper/gradle/wrapper/gradle-wrapper.jar"
-          Pack="true"
-          PackagePath="build/gradle-wrapper/gradle/wrapper/" />
-
-    <None Include="build/gradle-wrapper/gradle/wrapper/gradle-wrapper.properties"
-          Pack="true"
-          PackagePath="build/gradle-wrapper/gradle/wrapper/" />
+    <None Include="build/gradle-wrapper/gradlew" Pack="true" PackagePath="build/gradle-wrapper/" />
+    <None Include="build/gradle-wrapper/gradlew.bat" Pack="true" PackagePath="build/gradle-wrapper/" />
+    <None Include="build/gradle-wrapper/gradle/wrapper/gradle-wrapper.jar" Pack="true" PackagePath="build/gradle-wrapper/gradle/wrapper/" />
+    <None Include="build/gradle-wrapper/gradle/wrapper/gradle-wrapper.properties" Pack="true" PackagePath="build/gradle-wrapper/gradle/wrapper/" />
   </ItemGroup>
 
 </Project>

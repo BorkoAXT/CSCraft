@@ -33,6 +33,8 @@ public static class MethodMapper
         ["GetMaxHealth"]    = new("{target}.getMaxHealth()"),
         ["GetFoodLevel"]    = new("{target}.getHungerManager().getFoodLevel()"),
         ["SetFoodLevel"]    = new("{target}.getHungerManager().setFoodLevel({0})"),
+        ["SetHunger"]       = new("{target}.getHungerManager().setFoodLevel({0})"),
+        ["SetSaturation"]   = new("{target}.getHungerManager().setSaturationLevel({0})"),
         ["Heal"]            = new("{target}.heal({0})"),
         ["Damage"]          = new("{target}.damage(server.getDamageSources().generic(), {0})"),
 
@@ -50,13 +52,16 @@ public static class MethodMapper
         ["ClearInventory"]  = new("{target}.getInventory().clear()"),
 
         // Effects
-        ["GiveEffect"]      = new("{target}.addStatusEffect(new StatusEffectInstance(Registries.STATUS_EFFECT.get(Identifier.of({0})), {1}, {2}))",
+        ["GiveEffect"]      = new("{target}.addStatusEffect(new StatusEffectInstance(Registries.STATUS_EFFECT.getEntry(Identifier.of({0})).get(), {1}, {2}))",
                                   Imports: ["net.minecraft.entity.effect.StatusEffectInstance", "net.minecraft.registry.Registries", "net.minecraft.util.Identifier"]),
-        ["RemoveEffect"]    = new("{target}.removeStatusEffect(Registries.STATUS_EFFECT.get(Identifier.of({0})))"),
+        ["AddEffect"]       = new("{target}.addStatusEffect(new StatusEffectInstance(Registries.STATUS_EFFECT.getEntry(Identifier.of({0})).get(), {1}, {2}))",
+                                  Imports: ["net.minecraft.entity.effect.StatusEffectInstance", "net.minecraft.registry.Registries", "net.minecraft.util.Identifier"]),
+        ["RemoveEffect"]    = new("{target}.removeStatusEffect(Registries.STATUS_EFFECT.getEntry(Identifier.of({0})).get())"),
         ["ClearEffects"]    = new("{target}.clearStatusEffects()"),
 
         // XP
         ["GiveXp"]          = new("{target}.addExperience({0})"),
+        ["AddExperience"]   = new("{target}.addExperience({0})"),
         ["GetXpLevel"]      = new("{target}.experienceLevel"),
         ["SetXpLevel"]      = new("{target}.setExperienceLevel({0})"),
 
@@ -68,6 +73,9 @@ public static class MethodMapper
         // Kick / permissions
         ["Kick"]            = new("{target}.networkHandler.disconnect(Text.literal({0}))"),
         ["IsOp"]            = new("{target}.hasPermissionLevel(2)"),
+
+        // Flight
+        ["SetFlying"]       = new("{ {target}.getAbilities().flying = {0}; {target}.getAbilities().allowFlying = {0}; {target}.sendAbilitiesUpdate(); }"),
 
         // Misc
         ["PlaySound"]       = new("{target}.playSoundToPlayer(Registries.SOUND_EVENT.get(Identifier.of({0})), SoundCategory.PLAYERS, 1.0f, 1.0f)",
@@ -126,6 +134,7 @@ public static class MethodMapper
         ["GetMaxPlayers"]       = new("{target}.getPlayerManager().getMaxPlayerCount()"),
         ["RunCommand"]          = new("{target}.getCommandManager().executeWithPrefix({target}.getCommandSource(), {0})"),
         ["GetTps"]              = new("{target}.getTickTime()"),
+        ["GetTicks"]            = new("{target}.getTicks()"),
         ["IsRunning"]           = new("{target}.isRunning()"),
         ["GetVersion"]          = new("{target}.getVersion()"),
         ["Shutdown"]            = new("{target}.stop(false)"),
@@ -197,10 +206,12 @@ public static class MethodMapper
         ["AddTag"]              = new("{target}.addCommandTag({0})"),
         ["RemoveTag"]           = new("{target}.removeScoreboardTag({0})"),
         ["SetVelocity"]         = new("{target}.setVelocity({0}, {1}, {2})"),
-        ["GetNbtString"]        = new("{target}.getCustomData().getString({0})"),
-        ["SetNbtString"]        = new("{target}.getCustomData().putString({0}, {1})"),
-        ["GetNbtInt"]           = new("{target}.getCustomData().getInt({0})"),
-        ["SetNbtInt"]           = new("{target}.getCustomData().putInt({0}, {1})"),
+        ["GetNbtString"]        = new("{ NbtCompound _eNbt = new NbtCompound(); {target}.writeNbt(_eNbt); _eNbt.getString({0}); }",
+                                      Imports: ["net.minecraft.nbt.NbtCompound"]),
+        ["SetNbtString"]        = new("/* TODO: entity.SetNbtString not supported in 1.21.1 — use command tags instead */"),
+        ["GetNbtInt"]           = new("{ NbtCompound _eNbt = new NbtCompound(); {target}.writeNbt(_eNbt); _eNbt.getInt({0}); }",
+                                      Imports: ["net.minecraft.nbt.NbtCompound"]),
+        ["SetNbtInt"]           = new("/* TODO: entity.SetNbtInt not supported in 1.21.1 — use command tags instead */"),
     };
 
     // ── Static constructors (new XYZ(...) in C# → Java factory/constructor) ──
@@ -232,18 +243,20 @@ public static class MethodMapper
     {
         ["GetBiome"]        = new("{target}.getWorld().getBiome({target}.getBlockPos()).getKey().map(k -> k.getValue().toString()).orElse(\"unknown\")"),
         ["GetDimension"]    = new("{target}.getWorld().getRegistryKey().getValue().toString()"),
-        ["GetNbtString"]    = new("{target}.getCustomData().getString({0})"),
-        ["SetNbtString"]    = new("{target}.getCustomData().putString({0}, {1})"),
-        ["GetNbtInt"]       = new("{target}.getCustomData().getInt({0})"),
-        ["SetNbtInt"]       = new("{target}.getCustomData().putInt({0}, {1})"),
-        ["HasNbt"]              = new("{target}.getCustomData().contains({0})"),
+        ["GetNbtString"]    = new("ModPlayerData.getPlayerNbt({target}).getString({0})"),
+        ["SetNbtString"]    = new("{ NbtCompound _pNbt = ModPlayerData.getPlayerNbt({target}); _pNbt.putString({0}, {1}); }",
+                                  Imports: ["net.minecraft.nbt.NbtCompound"]),
+        ["GetNbtInt"]       = new("ModPlayerData.getPlayerNbt({target}).getInt({0})"),
+        ["SetNbtInt"]       = new("{ NbtCompound _pNbt = ModPlayerData.getPlayerNbt({target}); _pNbt.putInt({0}, {1}); }",
+                                  Imports: ["net.minecraft.nbt.NbtCompound"]),
+        ["HasNbt"]          = new("ModPlayerData.getPlayerNbt({target}).contains({0})"),
         ["SetHelmet"]           = new("{target}.equipStack(net.minecraft.entity.EquipmentSlot.HEAD, {0})"),
         ["SetChestplate"]       = new("{target}.equipStack(net.minecraft.entity.EquipmentSlot.CHEST, {0})"),
         ["SetLeggings"]         = new("{target}.equipStack(net.minecraft.entity.EquipmentSlot.LEGS, {0})"),
         ["SetBoots"]            = new("{target}.equipStack(net.minecraft.entity.EquipmentSlot.FEET, {0})"),
         ["GetActiveEffects"]    = new("new java.util.ArrayList<>({target}.getStatusEffects())"),
         ["HasPermissionLevel"]  = new("{target}.hasPermissionLevel({0})"),
-        ["HasEffect"]           = new("{target}.hasStatusEffect(Registries.STATUS_EFFECT.get(Identifier.of({0})))"),
+        ["HasEffect"]           = new("{target}.hasStatusEffect(Registries.STATUS_EFFECT.getEntry(Identifier.of({0})).get())"),
         ["SendTitle"]           = new("{target}.networkHandler.sendPacket(new net.minecraft.network.packet.s2c.play.TitleS2CPacket(Text.literal({0}))); {target}.networkHandler.sendPacket(new net.minecraft.network.packet.s2c.play.SubtitleS2CPacket(Text.literal({1})))"),
         ["LookAt"]              = new("{target}.lookAt(net.minecraft.command.argument.EntityAnchorArgumentType.EntityAnchor.EYES, new net.minecraft.util.math.Vec3d({0},{1},{2}))"),
     };
@@ -391,21 +404,54 @@ public static class MethodMapper
         ["McRegistry.RegisterItemWithSettings"] = "Registry.register(Registries.ITEM, Identifier.of({0}), new Item({1}))",
         ["McRegistry.RegisterBlockItem"]    = "Registry.register(Registries.ITEM, Identifier.of({0}), new BlockItem({1}, new Item.Settings()))",
 
-        // Tool/weapon registration
-        ["McRegistry.RegisterSword"]    = "Registry.register(Registries.ITEM, Identifier.of({0}), new SwordItem(ToolMaterials.{1}, {2}, {3}f, new Item.Settings()))",
-        ["McRegistry.RegisterPickaxe"]  = "Registry.register(Registries.ITEM, Identifier.of({0}), new PickaxeItem(ToolMaterials.{1}, {2}, {3}f, new Item.Settings()))",
-        ["McRegistry.RegisterAxe"]      = "Registry.register(Registries.ITEM, Identifier.of({0}), new AxeItem(ToolMaterials.{1}, {2}f, {3}f, new Item.Settings()))",
-        ["McRegistry.RegisterShovel"]   = "Registry.register(Registries.ITEM, Identifier.of({0}), new ShovelItem(ToolMaterials.{1}, {2}f, {3}f, new Item.Settings()))",
-        ["McRegistry.RegisterHoe"]      = "Registry.register(Registries.ITEM, Identifier.of({0}), new HoeItem(ToolMaterials.{1}, {2}, {3}f, new Item.Settings()))",
+        // Tool material enum values → Java uppercase constants
+        ["McToolMaterial.Wood"]     = "WOOD",
+        ["McToolMaterial.Stone"]    = "STONE",
+        ["McToolMaterial.Iron"]     = "IRON",
+        ["McToolMaterial.Gold"]     = "GOLD",
+        ["McToolMaterial.Diamond"]  = "DIAMOND",
+        ["McToolMaterial.Netherite"] = "NETHERITE",
+
+        // Armor material enum values
+        ["McArmorMaterial.Leather"]   = "LEATHER",
+        ["McArmorMaterial.Chain"]     = "CHAIN",
+        ["McArmorMaterial.Iron"]      = "IRON",
+        ["McArmorMaterial.Gold"]      = "GOLD",
+        ["McArmorMaterial.Diamond"]   = "DIAMOND",
+        ["McArmorMaterial.Netherite"] = "NETHERITE",
+        ["McArmorMaterial.Turtle"]    = "TURTLE",
+
+        // Tool/weapon registration (full 4 args: id, material, attackDamage, attackSpeed)
+        // MC 1.21.1: ToolItem(ToolMaterial, Settings.attributeModifiers(...))
+        ["McRegistry.RegisterSword"]    = "Registry.register(Registries.ITEM, Identifier.of({0}), new SwordItem(ToolMaterials.{1}, new Item.Settings().attributeModifiers(SwordItem.createAttributeModifiers(ToolMaterials.{1}, {2}, {3}))))",
+        ["McRegistry.RegisterPickaxe"]  = "Registry.register(Registries.ITEM, Identifier.of({0}), new PickaxeItem(ToolMaterials.{1}, new Item.Settings().attributeModifiers(PickaxeItem.createAttributeModifiers(ToolMaterials.{1}, {2}, {3}))))",
+        ["McRegistry.RegisterAxe"]      = "Registry.register(Registries.ITEM, Identifier.of({0}), new AxeItem(ToolMaterials.{1}, new Item.Settings().attributeModifiers(AxeItem.createAttributeModifiers(ToolMaterials.{1}, {2}, {3}))))",
+        ["McRegistry.RegisterShovel"]   = "Registry.register(Registries.ITEM, Identifier.of({0}), new ShovelItem(ToolMaterials.{1}, new Item.Settings().attributeModifiers(ShovelItem.createAttributeModifiers(ToolMaterials.{1}, {2}, {3}))))",
+        ["McRegistry.RegisterHoe"]      = "Registry.register(Registries.ITEM, Identifier.of({0}), new HoeItem(ToolMaterials.{1}, new Item.Settings().attributeModifiers(HoeItem.createAttributeModifiers(ToolMaterials.{1}, {2}, {3}))))",
+
+        // Tool/weapon registration (2 args — id + material, use defaults)
+        ["McRegistry.RegisterSword/2"]   = "Registry.register(Registries.ITEM, Identifier.of({0}), new SwordItem(ToolMaterials.{1}, new Item.Settings().attributeModifiers(SwordItem.createAttributeModifiers(ToolMaterials.{1}, 3, -2.4f))))",
+        ["McRegistry.RegisterPickaxe/2"] = "Registry.register(Registries.ITEM, Identifier.of({0}), new PickaxeItem(ToolMaterials.{1}, new Item.Settings().attributeModifiers(PickaxeItem.createAttributeModifiers(ToolMaterials.{1}, 1, -2.8f))))",
+        ["McRegistry.RegisterAxe/2"]     = "Registry.register(Registries.ITEM, Identifier.of({0}), new AxeItem(ToolMaterials.{1}, new Item.Settings().attributeModifiers(AxeItem.createAttributeModifiers(ToolMaterials.{1}, 6.0f, -3.1f))))",
+        ["McRegistry.RegisterShovel/2"]  = "Registry.register(Registries.ITEM, Identifier.of({0}), new ShovelItem(ToolMaterials.{1}, new Item.Settings().attributeModifiers(ShovelItem.createAttributeModifiers(ToolMaterials.{1}, 1.5f, -3.0f))))",
+        ["McRegistry.RegisterHoe/2"]     = "Registry.register(Registries.ITEM, Identifier.of({0}), new HoeItem(ToolMaterials.{1}, new Item.Settings().attributeModifiers(HoeItem.createAttributeModifiers(ToolMaterials.{1}, 0, -3.0f))))",
+
+        // Tool/weapon registration (3 args — id + material + bonusDamage, use default attackSpeed)
+        ["McRegistry.RegisterSword/3"]   = "Registry.register(Registries.ITEM, Identifier.of({0}), new SwordItem(ToolMaterials.{1}, new Item.Settings().attributeModifiers(SwordItem.createAttributeModifiers(ToolMaterials.{1}, {2}, -2.4f))))",
+        ["McRegistry.RegisterPickaxe/3"] = "Registry.register(Registries.ITEM, Identifier.of({0}), new PickaxeItem(ToolMaterials.{1}, new Item.Settings().attributeModifiers(PickaxeItem.createAttributeModifiers(ToolMaterials.{1}, {2}, -2.8f))))",
+        ["McRegistry.RegisterAxe/3"]     = "Registry.register(Registries.ITEM, Identifier.of({0}), new AxeItem(ToolMaterials.{1}, new Item.Settings().attributeModifiers(AxeItem.createAttributeModifiers(ToolMaterials.{1}, {2}, -3.1f))))",
+        ["McRegistry.RegisterShovel/3"]  = "Registry.register(Registries.ITEM, Identifier.of({0}), new ShovelItem(ToolMaterials.{1}, new Item.Settings().attributeModifiers(ShovelItem.createAttributeModifiers(ToolMaterials.{1}, {2}, -3.0f))))",
+        ["McRegistry.RegisterHoe/3"]     = "Registry.register(Registries.ITEM, Identifier.of({0}), new HoeItem(ToolMaterials.{1}, new Item.Settings().attributeModifiers(HoeItem.createAttributeModifiers(ToolMaterials.{1}, {2}, -3.0f))))",
 
         // Food registration
         ["McRegistry.RegisterFood"]     = "Registry.register(Registries.ITEM, Identifier.of({0}), new Item(new Item.Settings().food(new FoodComponent.Builder().nutrition({1}).saturationModifier({2}).build())))",
 
         // Armor registration
-        ["McRegistry.RegisterHelmet"]       = "Registry.register(Registries.ITEM, Identifier.of({0}), new ArmorItem(ArmorMaterials.{1}, EquipmentSlot.HEAD, new Item.Settings()))",
-        ["McRegistry.RegisterChestplate"]   = "Registry.register(Registries.ITEM, Identifier.of({0}), new ArmorItem(ArmorMaterials.{1}, EquipmentSlot.CHEST, new Item.Settings()))",
-        ["McRegistry.RegisterLeggings"]     = "Registry.register(Registries.ITEM, Identifier.of({0}), new ArmorItem(ArmorMaterials.{1}, EquipmentSlot.LEGS, new Item.Settings()))",
-        ["McRegistry.RegisterBoots"]        = "Registry.register(Registries.ITEM, Identifier.of({0}), new ArmorItem(ArmorMaterials.{1}, EquipmentSlot.FEET, new Item.Settings()))",
+        // MC 1.21.1: ArmorItem(ArmorMaterial, ArmorItem.Type, Settings)
+        ["McRegistry.RegisterHelmet"]       = "Registry.register(Registries.ITEM, Identifier.of({0}), new ArmorItem(ArmorMaterials.{1}, ArmorItem.Type.HELMET, new Item.Settings()))",
+        ["McRegistry.RegisterChestplate"]   = "Registry.register(Registries.ITEM, Identifier.of({0}), new ArmorItem(ArmorMaterials.{1}, ArmorItem.Type.CHESTPLATE, new Item.Settings()))",
+        ["McRegistry.RegisterLeggings"]     = "Registry.register(Registries.ITEM, Identifier.of({0}), new ArmorItem(ArmorMaterials.{1}, ArmorItem.Type.LEGGINGS, new Item.Settings()))",
+        ["McRegistry.RegisterBoots"]        = "Registry.register(Registries.ITEM, Identifier.of({0}), new ArmorItem(ArmorMaterials.{1}, ArmorItem.Type.BOOTS, new Item.Settings()))",
 
         // Sound registration
         ["McRegistry.RegisterSound"]    = "Registry.register(Registries.SOUND_EVENT, Identifier.of({0}), SoundEvent.of(Identifier.of({0})))",
@@ -559,7 +605,8 @@ public static class MethodMapper
         ["McPlayer.X"]              = "{target}.getX()",
         ["McPlayer.Y"]              = "{target}.getY()",
         ["McPlayer.Z"]              = "{target}.getZ()",
-        ["McPlayer.World"]          = "(ServerWorld){target}.getWorld()",
+        ["McPlayer.World"]          = "((ServerWorld){target}.getWorld())",
+        ["McPlayer.Server"]         = "{target}.getServer()",
         ["McPlayer.Inventory"]      = "{target}.getInventory()",
         ["McPlayer.IsAlive"]        = "{target}.isAlive()",
         ["McPlayer.IsSneaking"]     = "{target}.isSneaking()",
@@ -627,15 +674,25 @@ public static class MethodMapper
         ["BlockPos.X"]              = "{target}.getX()",
         ["BlockPos.Y"]              = "{target}.getY()",
         ["BlockPos.Z"]              = "{target}.getZ()",
+        ["McBlockPos.X"]            = "{target}.getX()",
+        ["McBlockPos.Y"]            = "{target}.getY()",
+        ["McBlockPos.Z"]            = "{target}.getZ()",
 
         // McItemStack properties
         ["McItemStack.Count"]       = "{target}.getCount()",
+        ["McItemStack.Id"]          = "Registries.ITEM.getId({target}.getItem()).toString()",
         ["McItemStack.IsEmpty"]     = "{target}.isEmpty()",
         ["McItemStack.HasNbt"]      = "{target}.hasNbt()",
         // ItemStack properties (alias)
         ["ItemStack.Count"]         = "{target}.getCount()",
+        ["ItemStack.Id"]            = "Registries.ITEM.getId({target}.getItem()).toString()",
         ["ItemStack.IsEmpty"]       = "{target}.isEmpty()",
         ["ItemStack.HasNbt"]        = "{target}.hasNbt()",
+
+        // McBlockState properties
+        ["McBlockState.IsAir"]      = "{target}.isAir()",
+        ["McBlockState.Hardness"]   = "{target}.getHardness(null, BlockPos.ORIGIN)",
+        ["McBlockState.Block"]      = "Registries.BLOCK.getId({target}.getBlock()).toString()",
 
         // McNbt properties
         ["McNbt.IsEmpty"]           = "{target}.isEmpty()",
@@ -685,9 +742,19 @@ public static class MethodMapper
 
     /// <summary>
     /// Looks up a static method call by its full C# name e.g. "Console.WriteLine".
+    /// Tries arg-count-specific overload first (e.g. "McRegistry.RegisterPickaxe/2"),
+    /// then falls back to the generic entry.
     /// </summary>
-    public static string? GetStatic(string fullName)
-        => StaticMethods.TryGetValue(fullName, out var v) ? v : null;
+    public static string? GetStatic(string fullName, int argCount = -1)
+    {
+        if (argCount >= 0)
+        {
+            string key = $"{fullName}/{argCount}";
+            if (StaticMethods.TryGetValue(key, out var specific))
+                return specific;
+        }
+        return StaticMethods.TryGetValue(fullName, out var v) ? v : null;
+    }
 
     /// <summary>
     /// Looks up a constructor mapping by C# type name e.g. "BlockPos".

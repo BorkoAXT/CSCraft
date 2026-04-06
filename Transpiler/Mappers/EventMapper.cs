@@ -45,7 +45,8 @@ public static class EventMapper
             FabricImport:   "net.fabricmc.fabric.api.event.player.AttackBlockCallback",
             JavaArgs:       "(player, world, hand, pos, direction)",
             Preamble:       "if (!(player instanceof ServerPlayerEntity)) return ActionResult.PASS; ServerPlayerEntity {0} = (ServerPlayerEntity) player; BlockPos {1} = pos; MinecraftServer server = {0}.getServer();",
-            CsParamTypes:   ["McPlayer", "McBlockPos"]
+            CsParamTypes:   ["McPlayer", "McBlockPos"],
+            ReturnStatement: "return ActionResult.PASS;"
         ),
 
         ["BlockBreak"] = new(
@@ -72,6 +73,7 @@ public static class EventMapper
             FabricImport:   "net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents",
             JavaArgs:       "(world, player, pos, state, blockEntity)",
             Preamble:       "ServerPlayerEntity {0} = player; BlockPos {1} = pos; MinecraftServer server = player.getServer();",
+            ReturnStatement: "return true;",
             CsParamTypes:   ["McPlayer", "BlockPos"]
         ),
 
@@ -95,7 +97,8 @@ public static class EventMapper
             FabricImport:   "net.fabricmc.fabric.api.message.v1.ServerMessageEvents",
             JavaArgs:       "(rawMessage, sender, params)",
             Preamble:       "ServerPlayerEntity {0} = sender; String {1} = rawMessage.getContent().getString(); MinecraftServer server = sender.getServer();",
-            CsParamTypes:   ["McPlayer", "string"]
+            CsParamTypes:   ["McPlayer", "string"],
+            ReturnStatement: "return true;"
         ),
 
         ["ChatMessage"] = new(
@@ -113,7 +116,8 @@ public static class EventMapper
             FabricImport:   "net.fabricmc.fabric.api.message.v1.ServerMessageEvents",
             JavaArgs:       "(rawMessage, sender, params)",
             Preamble:       "ServerPlayerEntity {0} = sender; String {1} = rawMessage.getContent().getString(); MinecraftServer server = sender.getServer();",
-            CsParamTypes:   ["McPlayer", "string"]
+            CsParamTypes:   ["McPlayer", "string"],
+            ReturnStatement: "return true;"
         ),
 
         ["CommandMessage"] = new(
@@ -243,7 +247,8 @@ public static class EventMapper
             FabricImport:   "net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents",
             JavaArgs:       "(player, damageSource, damageAmount)",
             Preamble:       "ServerPlayerEntity {0} = player; MinecraftServer server = player.getServer();",
-            CsParamTypes:   ["McPlayer"]
+            CsParamTypes:   ["McPlayer"],
+            ReturnStatement: "return true;"
         ),
 
         ["PlayerCopyFrom"] = new(
@@ -263,7 +268,8 @@ public static class EventMapper
             FabricImport:   "net.fabricmc.fabric.api.event.player.UseItemCallback",
             JavaArgs:       "(player, world, hand)",
             Preamble:       "ServerPlayerEntity {0} = (ServerPlayerEntity) player; ItemStack {1} = player.getStackInHand(hand); MinecraftServer server = {0}.getServer();",
-            CsParamTypes:   ["McPlayer", "ItemStack"]
+            CsParamTypes:   ["McPlayer", "ItemStack"],
+            ReturnStatement: "return TypedActionResult.pass(player.getStackInHand(hand));"
         ),
 
         ["ItemPickup"] = new(
@@ -272,7 +278,8 @@ public static class EventMapper
             FabricImport:   "net.fabricmc.fabric.api.entity.event.v1.EntityPickupItemEvents",
             JavaArgs:       "(entity, itemEntity, slot)",
             Preamble:       "if (!(entity instanceof ServerPlayerEntity)) return true; ServerPlayerEntity {0} = (ServerPlayerEntity) entity; ItemStack {1} = itemEntity.getStack(); MinecraftServer server = {0}.getServer();",
-            CsParamTypes:   ["McPlayer", "McItemStack"]
+            CsParamTypes:   ["McPlayer", "McItemStack"],
+            ReturnStatement: "return true;"
         ),
 
         ["ItemAfterPickup"] = new(
@@ -292,7 +299,8 @@ public static class EventMapper
             FabricImport:   "net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents",
             JavaArgs:       "(entity, source, amount)",
             Preamble:       "if (!(entity instanceof ServerPlayerEntity)) return true; ServerPlayerEntity {0} = (ServerPlayerEntity) entity; float {1} = amount; MinecraftServer server = {0}.getServer();",
-            CsParamTypes:   ["McPlayer", "float"]
+            CsParamTypes:   ["McPlayer", "float"],
+            ReturnStatement: "return true;"
         ),
 
         ["PlayerAttack"] = new(
@@ -301,7 +309,8 @@ public static class EventMapper
             FabricImport:   "net.fabricmc.fabric.api.event.player.AttackEntityCallback",
             JavaArgs:       "(player, world, hand, entity, hitResult)",
             Preamble:       "if (!(player instanceof ServerPlayerEntity)) return ActionResult.PASS; ServerPlayerEntity {0} = (ServerPlayerEntity) player; Entity {1} = entity; MinecraftServer server = {0}.getServer();",
-            CsParamTypes:   ["McPlayer", "McEntity"]
+            CsParamTypes:   ["McPlayer", "McEntity"],
+            ReturnStatement: "return ActionResult.PASS;"
         ),
 
         ["PlayerUseEntity"] = new(
@@ -310,7 +319,8 @@ public static class EventMapper
             FabricImport:   "net.fabricmc.fabric.api.event.player.UseEntityCallback",
             JavaArgs:       "(player, world, hand, entity, hitResult)",
             Preamble:       "if (!(player instanceof ServerPlayerEntity)) return ActionResult.PASS; ServerPlayerEntity {0} = (ServerPlayerEntity) player; Entity {1} = entity; MinecraftServer server = {0}.getServer();",
-            CsParamTypes:   ["McPlayer", "McEntity"]
+            CsParamTypes:   ["McPlayer", "McEntity"],
+            ReturnStatement: "return ActionResult.PASS;"
         ),
 
         ["EntityHurt"] = new(
@@ -319,7 +329,8 @@ public static class EventMapper
             FabricImport:   "net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents",
             JavaArgs:       "(entity, source, amount)",
             Preamble:       "LivingEntity {0} = entity; float {1} = amount;",
-            CsParamTypes:   ["McEntity", "float"]
+            CsParamTypes:   ["McEntity", "float"],
+            ReturnStatement: "return true;"
         ),
 
         ["EntityAllowDeath"] = new(
@@ -328,7 +339,8 @@ public static class EventMapper
             FabricImport:   "net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents",
             JavaArgs:       "(entity, damageSource, damageAmount)",
             Preamble:       "LivingEntity {0} = entity;",
-            CsParamTypes:   ["McEntity"]
+            CsParamTypes:   ["McEntity"],
+            ReturnStatement: "return true;"
         ),
 
         ["EntityAfterHurt"] = new(
@@ -428,5 +440,6 @@ public record EventMapping(
     string FabricImport,
     string JavaArgs,
     string Preamble,
-    string[]? CsParamTypes = null   // C# types of the lambda parameters (e.g. "McPlayer", "string")
+    string[]? CsParamTypes = null,   // C# types of the lambda parameters (e.g. "McPlayer", "string")
+    string? ReturnStatement = null   // If the callback must return a value, e.g. "return true;" or "return ActionResult.PASS;"
 );

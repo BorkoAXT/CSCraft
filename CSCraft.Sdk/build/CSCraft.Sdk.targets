@@ -2,12 +2,12 @@
 
   <!-- Register MSBuild tasks from the DLLs bundled in this package -->
   <UsingTask
-    TaskName="BuildTask.TranspileMod"
-    AssemblyFile="$(MSBuildThisFileDirectory)tasks/BuildTask.dll" />
+  TaskName="BuildTask.TranspileMod"
+  AssemblyFile="$(MSBuildThisFileDirectory)tasks\BuildTask.dll" />
 
-  <UsingTask
-    TaskName="BuildTask.SetupFabricTemplate"
-    AssemblyFile="$(MSBuildThisFileDirectory)tasks/BuildTask.dll" />
+<UsingTask
+  TaskName="BuildTask.SetupFabricTemplate"
+  AssemblyFile="$(MSBuildThisFileDirectory)tasks\BuildTask.dll" />
 
   <!--
     ═══════════════════════════════════════════════════════════════════════════
@@ -112,20 +112,19 @@
 
     <!-- Windows -->
     <Exec Condition="'$(CSCraftRunGradle)' == 'true' and $([MSBuild]::IsOSPlatform('Windows')) and Exists('$(CSCraftFabricPath)\gradlew.bat')"
-          Command="set &quot;JAVA_HOME=$(CSCraftJavaHome)&quot; &amp;&amp; &quot;$(CSCraftFabricPath)\gradlew.bat&quot; build"
+          Command="set &quot;JAVA_HOME=$(CSCraftJavaHome)&quot; &amp;&amp; &quot;$(CSCraftFabricPath)\gradlew.bat&quot; remapJar"
           WorkingDirectory="$(CSCraftFabricPath)" />
 
-    <!-- Linux / macOS -->
     <Exec Condition="'$(CSCraftRunGradle)' == 'true' and !$([MSBuild]::IsOSPlatform('Windows')) and Exists('$(CSCraftFabricPath)/gradlew')"
-          Command="export JAVA_HOME=&quot;$(CSCraftJavaHome)&quot; &amp;&amp; chmod +x &quot;$(CSCraftFabricPath)/gradlew&quot; &amp;&amp; &quot;$(CSCraftFabricPath)/gradlew&quot; build"
+          Command="export JAVA_HOME=&quot;$(CSCraftJavaHome)&quot; &amp;&amp; chmod +x &quot;$(CSCraftFabricPath)/gradlew&quot; &amp;&amp; &quot;$(CSCraftFabricPath)/gradlew&quot; remapJar"
           WorkingDirectory="$(CSCraftFabricPath)" />
 
     <!-- ── Step 4: Copy JAR to project folder ─────────────────────────── -->
 
     <ItemGroup Condition="'$(CSCraftRunGradle)' == 'true'">
-      <_CSCraftJars Include="$(CSCraftFabricPath)\build\libs\*.jar"
-                    Exclude="$(CSCraftFabricPath)\build\libs\*-sources.jar;$(CSCraftFabricPath)\build\libs\*-dev.jar" />
-    </ItemGroup>
+  <_CSCraftJars Include="$(CSCraftFabricPath)\build\libs\*.jar"
+                Exclude="$(CSCraftFabricPath)\build\libs\*-sources.jar;$(CSCraftFabricPath)\build\libs\*-dev.jar;$(CSCraftFabricPath)\build\libs\*-shadow.jar" />
+</ItemGroup>
 
     <Copy SourceFiles="@(_CSCraftJars)"
           DestinationFolder="$(MSBuildProjectDirectory)"

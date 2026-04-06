@@ -23,11 +23,22 @@ public static class TranspilerRunner
                       + tracker.GetImportBlock()
                       + "\n\n";
 
+        // Generate extra helper classes if needed
+        Dictionary<string, string>? extraFiles = null;
+        if (emitter.NeedsPlayerDataHelper)
+        {
+            extraFiles = new Dictionary<string, string>
+            {
+                ["ModPlayerData.java"] = Helpers.PlayerDataHelper.Generate(packageName)
+            };
+        }
+
         return new TranspileResult(
             JavaSource:      header + writer.GetOutput(),
             Errors:          reporter.Errors.ToList(),
             Warnings:        reporter.Warnings.ToList(),
-            RequiredImports: tracker.GetImports()
+            RequiredImports: tracker.GetImports(),
+            ExtraJavaFiles:  extraFiles
         );
     }
 }
