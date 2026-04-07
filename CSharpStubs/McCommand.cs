@@ -58,6 +58,21 @@ public static class McCommand
     public static void RegisterOp(string name, string argName, Action<McCommandSource, string> handler) { }
 
     /// <summary>
+    /// Register a command with a string argument (explicit name — preferred for transpiler).
+    /// </summary>
+    public static void RegisterWithString(string name, string argName, Action<McCommandSource, string> handler) { }
+
+    /// <summary>
+    /// Register a command with an integer argument (explicit name — preferred for transpiler).
+    /// </summary>
+    public static void RegisterWithInt(string name, string argName, Action<McCommandSource, int> handler) { }
+
+    /// <summary>
+    /// Register a subcommand with an integer argument (explicit name — preferred for transpiler).
+    /// </summary>
+    public static void RegisterSubWithInt(string parent, string sub, string argName, Action<McCommandSource, int> handler) { }
+
+    /// <summary>
     /// Register a command with a float argument.
     /// </summary>
     public static void Register(string name, string argName, Action<McCommandSource, float> handler) { }

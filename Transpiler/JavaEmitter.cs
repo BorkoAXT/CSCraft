@@ -20,6 +20,10 @@ public class JavaEmitter : CSharpSyntaxWalker
     // Set to true when player NBT methods are used, so the helper class gets emitted.
     public bool NeedsPlayerDataHelper { get; private set; }
 
+    // Set to true while emitting the body of a command lambda (which returns int in Java).
+    // Bare return; statements must become return 1; inside command lambdas.
+    private bool _inCommandLambda;
+
     // Indentation state — updated as we enter/leave class and method bodies.
     // _memberIndent : indentation for class members (methods, fields)
     // _stmtIndent   : indentation for statements inside the current method/lambda
@@ -241,7 +245,8 @@ public class JavaEmitter : CSharpSyntaxWalker
     public override void VisitReturnStatement(ReturnStatementSyntax node)
     {
         if (node.Expression is null)
-            _w.Line($"{_stmtIndent}return;");
+            // Inside command lambdas the Java lambda returns int, so bare return → return 1
+            _w.Line($"{_stmtIndent}return {(_inCommandLambda ? "1" : "")};");
         else
             _w.Line($"{_stmtIndent}return {EmitExpression(node.Expression)};");
     }
@@ -443,12 +448,14 @@ public class JavaEmitter : CSharpSyntaxWalker
             // String/Int/Sub variants: second param is string or int — no special mapping needed
         }
 
-        // Emit the lambda body as inline statements
+        // Emit the lambda body as inline statements (flag active so return; → return 1;)
+        _inCommandLambda = true;
         string body = "";
         if (lambdaArg.Block != null)
             body = string.Join(" ", lambdaArg.Block.Statements.Select(s => EmitStatementInline(s)));
         else if (lambdaArg.ExpressionBody != null)
             body = EmitExpression(lambdaArg.ExpressionBody) + ";";
+        _inCommandLambda = false;
         string requires = "";
 
         switch (method)
@@ -490,12 +497,27 @@ public class JavaEmitter : CSharpSyntaxWalker
 
             case "RegisterSub":
             {
-                // McCommand.RegisterSub("parent", "sub", "argName", (src, value) => { body })
                 string subName = EmitExpression(rawArgs[1].Expression);
+                // Detect overload: 3 raw args = no-arg sub, 4 = with-string-arg sub, 4+int = with-int-arg
+                if (rawArgs.Count == 3)
+                {
+                    // McCommand.RegisterSub("parent", "sub", (src) => { body }) — no arg
+                    return $"CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal({cmdName}).then(CommandManager.literal({subName}).executes(ctx -> {{ ServerCommandSource {srcVar} = ctx.getSource(); {body} return 1; }}))))";
+                }
+                // McCommand.RegisterSub("parent", "sub", "argName", (src, val) => { body })
                 string argName = EmitExpression(rawArgs[2].Expression);
                 string valVar = paramNames.Length > 1 ? paramNames[1] : "value";
                 _imports.Add("com.mojang.brigadier.arguments.StringArgumentType");
                 return $"CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal({cmdName}).then(CommandManager.literal({subName}).then(CommandManager.argument({argName}, StringArgumentType.string()).executes(ctx -> {{ ServerCommandSource {srcVar} = ctx.getSource(); String {valVar} = StringArgumentType.getString(ctx, {argName}); {body} return 1; }})))))";
+            }
+
+            case "RegisterSubWithInt":
+            {
+                string subName2 = EmitExpression(rawArgs[1].Expression);
+                string argName2 = EmitExpression(rawArgs[2].Expression);
+                string intVar2 = paramNames.Length > 1 ? paramNames[1] : "value";
+                _imports.Add("com.mojang.brigadier.arguments.IntegerArgumentType");
+                return $"CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal({cmdName}).then(CommandManager.literal({subName2}).then(CommandManager.argument({argName2}, IntegerArgumentType.integer()).executes(ctx -> {{ ServerCommandSource {srcVar} = ctx.getSource(); int {intVar2} = IntegerArgumentType.getInteger(ctx, {argName2}); {body} return 1; }})))))";
             }
 
             default:
@@ -734,6 +756,9 @@ public class JavaEmitter : CSharpSyntaxWalker
         {
             foreach (var stmt in preamble.Split(';').Select(s => s.Trim()).Where(s => s.Length > 0))
             {
+                // Skip statements with unresolved placeholders (e.g. {1} when lambda has only 1 param)
+                if (System.Text.RegularExpressions.Regex.IsMatch(stmt, @"\{\d+\}")) continue;
+
                 var eqIdx = stmt.IndexOf('=');
                 if (eqIdx < 0) { _w.Line($"{innerIndent}{stmt};"); continue; }
 
@@ -827,7 +852,7 @@ public class JavaEmitter : CSharpSyntaxWalker
         ExpressionStatementSyntax es => EmitExpression(es.Expression) + ";",
         ReturnStatementSyntax rs     => rs.Expression != null
             ? $"return {EmitExpression(rs.Expression)};"
-            : "return;",
+            : _inCommandLambda ? "return 1;" : "return;",
         LocalDeclarationStatementSyntax lds => EmitLocalDeclInline(lds),
         IfStatementSyntax ifs => EmitIfInline(ifs),
         _ => stmt.ToString().Trim(),

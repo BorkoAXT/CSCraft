@@ -37,6 +37,7 @@ import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.scoreboard.ScoreboardCriterion;
+import net.minecraft.scoreboard.ScoreboardDisplaySlot;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.MinecraftServer;
@@ -50,7 +51,6 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.TypeFilter;
 import net.minecraft.world.GameMode;
-import net.minecraft.world.GameRules;
 import net.minecraft.world.Heightmap;
 import net.minecraft.world.World;
 
@@ -75,6 +75,7 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 
 public class ExampleMod implements ModInitializer {
@@ -98,12 +99,12 @@ public class ExampleMod implements ModInitializer {
 
     public void registerContent() {
         rubyOre = Registry.register(Registries.BLOCK, Identifier.of("examplemod:ruby_ore"), new Block(AbstractBlock.Settings.create().strength(3.0f)));
-        Block rubyBlock = Registry.register(Registries.BLOCK, Identifier.of("examplemod:ruby_block"), new Block(AbstractBlock.Settings.create().strength(AbstractBlock.Settings.create().strength(5.0f, 10.0f).requiresTool().sounds("stone"))));
+        Block rubyBlock = Registry.register(Registries.BLOCK, Identifier.of("examplemod:ruby_block"), new Block(AbstractBlock.Settings.create().strength(5.0f)));
         ruby = Registry.register(Registries.ITEM, Identifier.of("examplemod:ruby"), new Item(new Item.Settings()));
         Item rubyOreItem = Registry.register(Registries.ITEM, Identifier.of("examplemod:ruby_ore"), new BlockItem(rubyOre, new Item.Settings()));
         Item rubyBlockItem = Registry.register(Registries.ITEM, Identifier.of("examplemod:ruby_block"), new BlockItem(rubyBlock, new Item.Settings()));
         cookedMystery = Registry.register(Registries.ITEM, Identifier.of("examplemod:cooked_mystery"), new Item(new Item.Settings().food(new FoodComponent.Builder().nutrition(8).saturationModifier(0.8f).build())));
-        Item rubyArmor = Registry.register(Registries.ITEM, Identifier.of("examplemod:ruby_shard"), new Item(new Item.Settings()));
+        Item rubyShard = Registry.register(Registries.ITEM, Identifier.of("examplemod:ruby_shard"), new Item(new Item.Settings()));
         rubySword = Registry.register(Registries.ITEM, Identifier.of("examplemod:ruby_sword"), new SwordItem(ToolMaterials.DIAMOND, new Item.Settings().attributeModifiers(SwordItem.createAttributeModifiers(ToolMaterials.DIAMOND, 4, -2.4f))));
         rubyPickaxe = Registry.register(Registries.ITEM, Identifier.of("examplemod:ruby_pickaxe"), new PickaxeItem(ToolMaterials.DIAMOND, new Item.Settings().attributeModifiers(PickaxeItem.createAttributeModifiers(ToolMaterials.DIAMOND, 1, -2.8f))));
         Item rubyAxe = Registry.register(Registries.ITEM, Identifier.of("examplemod:ruby_axe"), new AxeItem(ToolMaterials.DIAMOND, new Item.Settings().attributeModifiers(AxeItem.createAttributeModifiers(ToolMaterials.DIAMOND, 6.0f, -3.1f))));
@@ -114,8 +115,6 @@ public class ExampleMod implements ModInitializer {
         Item rubyLegs = Registry.register(Registries.ITEM, Identifier.of("examplemod:ruby_leggings"), new ArmorItem(ArmorMaterials.DIAMOND, ArmorItem.Type.LEGGINGS, new Item.Settings()));
         Item rubyBoots = Registry.register(Registries.ITEM, Identifier.of("examplemod:ruby_boots"), new ArmorItem(ArmorMaterials.DIAMOND, ArmorItem.Type.BOOTS, new Item.Settings()));
         SoundEvent rubyChime = Registry.register(Registries.SOUND_EVENT, Identifier.of("examplemod:ruby_chime"), SoundEvent.of(Identifier.of("examplemod:ruby_chime")));
-        McGameRule<boolean> doubleDrops = GameRuleRegistry.register("examplemod:double_drops", GameRules.Category.MISC, GameRuleFactory.createBooleanRule(false));
-        McGameRule<int> maxRubies = GameRuleRegistry.register("examplemod:max_rubies", GameRules.Category.MISC, GameRuleFactory.createIntRule(64));
         ItemGroupEvents.modifyEntriesEvent(ItemGroups.NATURAL).register(e -> e.add(rubyOreItem));
         ItemGroupEvents.modifyEntriesEvent(ItemGroups.BUILDING_BLOCKS).register(e -> e.add(rubyBlockItem));
         ItemGroupEvents.modifyEntriesEvent(ItemGroups.INGREDIENTS).register(e -> e.add(ruby));
@@ -137,29 +136,28 @@ public class ExampleMod implements ModInitializer {
     }
 
     public void registerCommands() {
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("kit").executes(ctx -> { ServerCommandSource src = ctx.getSource(); if (src.player == null) { src.sendError(Text.literal("Players only!")); return; } src.player.giveItem("examplemod:ruby_sword", 1); src.player.giveItem("examplemod:ruby_pickaxe", 1); src.player.giveItem("examplemod:ruby_helmet", 1); src.player.giveItem("minecraft:bread", 32); src.player.giveEffect("minecraft:speed", 600, 1); src.player.giveEffect("minecraft:haste", 600, 1); src.sendFeedback(() -> Text.literal("Ruby kit granted!"), false); return 1; })));
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("kit").executes(ctx -> { ServerCommandSource src = ctx.getSource(); ServerPlayerEntity p = src.getPlayer(); if (p == null) { src.sendError(Text.literal("Players only!")); return 1; } p.getInventory().insertStack(new ItemStack(Registries.ITEM.get(Identifier.of("examplemod:ruby_sword")), 1)); p.getInventory().insertStack(new ItemStack(Registries.ITEM.get(Identifier.of("examplemod:ruby_pickaxe")), 1)); p.getInventory().insertStack(new ItemStack(Registries.ITEM.get(Identifier.of("examplemod:ruby_helmet")), 1)); p.getInventory().insertStack(new ItemStack(Registries.ITEM.get(Identifier.of("minecraft:bread")), 32)); p.addStatusEffect(new StatusEffectInstance(Registries.STATUS_EFFECT.getEntry(Identifier.of("minecraft:speed")).get(), 600, 1)); p.addStatusEffect(new StatusEffectInstance(Registries.STATUS_EFFECT.getEntry(Identifier.of("minecraft:haste")).get(), 600, 1)); src.sendFeedback(() -> Text.literal("Ruby kit granted!"), false); return 1; })));
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("heal").requires(src -> src.hasPermissionLevel(2)).then(CommandManager.argument("target", EntityArgumentType.player()).executes(ctx -> { ServerCommandSource src = ctx.getSource(); ServerPlayerEntity target = EntityArgumentType.getPlayer(ctx, "target"); target.heal(target.getMaxHealth()); target.clearStatusEffects(); target.addStatusEffect(new StatusEffectInstance(Registries.STATUS_EFFECT.getEntry(Identifier.of("minecraft:regeneration")).get(), 100, 1)); target.sendMessage(Text.literal("You were healed by an admin.")); src.sendFeedback(() -> Text.literal("Healed " + target.getName().getString() + "!"), false); return 1; }))));
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("spawn").executes(ctx -> { ServerCommandSource src = ctx.getSource(); if (src.player == null) { return; } BlockPos sp = src.player.world.spawnPos; src.player.teleport(sp.getX(), sp.getY(), sp.getZ()); src.player.playSound("minecraft:entity.enderman.teleport"); src.sendFeedback(() -> Text.literal("Teleported to spawn!"), false); return 1; })));
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("ruby").then(CommandManager.literal("give").then(CommandManager.argument("count", StringArgumentType.string()).executes(ctx -> { ServerCommandSource src = ctx.getSource(); String count = StringArgumentType.getString(ctx, "count"); if (src.player == null) { src.sendError(Text.literal("Players only!")); return; } src.player.giveItem("examplemod:ruby", count); src.sendFeedback(() -> Text.literal("Gave " + count + " rubies."), false); return 1; })))));
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("locate").executes(ctx -> { ServerCommandSource src = ctx.getSource(); if (src.player == null) { return; } String biome = src.player.getBiome(); String dim = src.player.getDimension(); src.sendFeedback(() -> Text.literal("Biome: " + biome), false); src.sendFeedback(() -> Text.literal("Dimension: " + dim), false); src.sendFeedback(() -> Text.literal("X=" + src.player.x + " Y=" + src.player.y + " Z=" + src.player.z), false); return 1; })));
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("info").executes(ctx -> { ServerCommandSource src = ctx.getSource(); if (src.player == null) { return; } ServerPlayerEntity p = src.player; p.sendMessage(Text.literal("=== Player Info ===")); p.sendMessage(Text.literal("Name: " + p.getName().getString())); p.sendMessage(Text.literal("UUID: " + p.getUuidAsString())); p.sendMessage(Text.literal("HP: " + p.getHealth() + "/" + p.getMaxHealth())); p.sendMessage(Text.literal("Food: " + p.getHungerManager().getFoodLevel())); p.sendMessage(Text.literal("XP Level: " + p.experienceLevel)); p.sendMessage(Text.literal("Ping: " + p.getPing() + "ms")); p.sendMessage(Text.literal("Sneaking: " + p.isSneaking())); p.sendMessage(Text.literal("Flying: " + p.getAbilities().flying)); p.sendMessage(Text.literal("Blocking: " + p.isBlocking)); p.sendMessage(Text.literal("Game mode: " + p.interactionManager.getGameMode().getName())); return 1; })));
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("visits").executes(ctx -> { ServerCommandSource src = ctx.getSource(); if (src.player == null) { return; } int visits = (src.player.getCustomData().contains("visits") ? src.player.getCustomData().getInt("visits") : 0); src.sendFeedback(() -> Text.literal("You have visited " + visits + " times."), false); return 1; })));
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("ruby").then(CommandManager.literal("resetvisits").then(CommandManager.argument("count", StringArgumentType.string()).executes(ctx -> { ServerCommandSource src = ctx.getSource(); String count = StringArgumentType.getString(ctx, "count"); if (src.player == null) { return; } src.player.getCustomData().putInt("visits", count); src.sendFeedback(() -> Text.literal("Visits reset to " + count + "."), false); return 1; })))));
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("settime").executes(ctx -> { ServerCommandSource src = ctx.getSource(); if (src.player == null) { return; } src.player.world.setTime(ticks); src.sendFeedback(() -> Text.literal("Time set to " + ticks + "."), false); return 1; })));
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("fill").executes(ctx -> { ServerCommandSource src = ctx.getSource(); if (src.player == null) { return; } int x = ((int)src.player.x); int y = ((int)src.player.y) - 1; int z = ((int)src.player.z); src.player.world.fillBlocks(x - 2, y, z - 2, x + 2, y, z + 2, blockId); src.sendFeedback(() -> Text.literal("Filled 5x5 with " + blockId + "!"), false); return 1; })));
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("serverinfo").executes(ctx -> { ServerCommandSource src = ctx.getSource(); MinecraftServer s = src.server; src.sendFeedback(() -> Text.literal("Version: " + s.getVersion()), false); src.sendFeedback(() -> Text.literal("Players: " + s.getPlayerManager().getCurrentPlayerCount() + "/" + s.getPlayerManager().getMaxPlayerCount()), false); src.sendFeedback(() -> Text.literal("TPS: " + s.getTickTime()), false); src.sendFeedback(() -> Text.literal("Hardcore: " + s.isHardcore), false); src.sendFeedback(() -> Text.literal("Seed: " + s.getSeed()), false); return 1; })));
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("inventory").executes(ctx -> { ServerCommandSource src = ctx.getSource(); if (src.player == null) { return; } Inventory inv = src.player.getInventory(); int rubies = java.util.stream.IntStream.range(0, inv.size()).mapToObj(inv::getStack).filter(s -> !s.isEmpty() && Registries.ITEM.getId(s.getItem()).toString().equals("examplemod:ruby")).mapToInt(net.minecraft.item.ItemStack::getCount).sum(); int diamonds = java.util.stream.IntStream.range(0, inv.size()).mapToObj(inv::getStack).filter(s -> !s.isEmpty() && Registries.ITEM.getId(s.getItem()).toString().equals("minecraft:diamond")).mapToInt(net.minecraft.item.ItemStack::getCount).sum(); boolean hasRuby = java.util.stream.IntStream.range(0, inv.size()).anyMatch(i -> !inv.getStack(i).isEmpty() && Registries.ITEM.getId(inv.getStack(i).getItem()).toString().equals("examplemod:ruby")); src.sendFeedback(() -> Text.literal("Inventory size: " + inv.size()), false); src.sendFeedback(() -> Text.literal("Rubies: " + rubies + "  Diamonds: " + diamonds), false); src.sendFeedback(() -> Text.literal("Has rubies: " + hasRuby), false); return 1; })));
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("weather").executes(ctx -> { ServerCommandSource src = ctx.getSource(); if (src.player == null) { return; } if (mode.equals("rain")) { src.player.world.setWeather(0, 6000, true, false); } else { src.player.world.setWeather(6000, 0, false, false); } src.sendFeedback(() -> Text.literal("Weather set to " + mode + "."), false); return 1; })));
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("effect").executes(ctx -> { ServerCommandSource src = ctx.getSource(); if (src.player == null) { return; } src.player.giveEffect(effectId, 1200, 0); src.sendFeedback(() -> Text.literal("Applied " + effectId + " for 60 seconds."), false); return 1; })));
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("creative").requires(src -> src.hasPermissionLevel(2)).executes(ctx -> { ServerCommandSource src = ctx.getSource(); src.Player?.SetGameMode("creative"); src.sendFeedback(() -> Text.literal("Game mode set to creative."), false); return 1; })));
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("survival").requires(src -> src.hasPermissionLevel(2)).executes(ctx -> { ServerCommandSource src = ctx.getSource(); src.Player?.SetGameMode("survival"); src.sendFeedback(() -> Text.literal("Game mode set to survival."), false); return 1; })));
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("border").executes(ctx -> { ServerCommandSource src = ctx.getSource(); if (src.player == null) { return; } src.player.world.animateBorderSize(size, 5.0); src.sendFeedback(() -> Text.literal("World border animating to " + size + "."), false); return 1; })));
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("lightning").executes(ctx -> { ServerCommandSource src = ctx.getSource(); if (src.player == null) { return; } src.player.world.spawnLightning(src.player.x, src.player.y, src.player.z); src.sendFeedback(() -> Text.literal("Lightning!"), false); return 1; })));
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("explode").executes(ctx -> { ServerCommandSource src = ctx.getSource(); if (src.player == null) { return; } src.player.world.createExplosion(src.player.x, src.player.y, src.player.z, 3.0f); return 1; })));
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("xp").executes(ctx -> { ServerCommandSource src = ctx.getSource(); if (src.player == null) { return; } src.player.giveXp(amount); src.sendFeedback(() -> Text.literal("Gave " + amount + " XP."), false); return 1; })));
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("home").then(CommandManager.literal("set").then(CommandManager.argument((src) -> { if (src.player == null) { return; } src.player.getCustomData().putInt("home_x", ((int)src.player.x)); src.player.getCustomData().putInt("home_y", ((int)src.player.y)); src.player.getCustomData().putInt("home_z", ((int)src.player.z)); src.sendFeedback(() -> Text.literal("Home set!"), false); }, StringArgumentType.string()).executes(ctx -> { ServerCommandSource src = ctx.getSource(); String value = StringArgumentType.getString(ctx, (src) -> { if (src.player == null) { return; } src.player.getCustomData().putInt("home_x", ((int)src.player.x)); src.player.getCustomData().putInt("home_y", ((int)src.player.y)); src.player.getCustomData().putInt("home_z", ((int)src.player.z)); src.sendFeedback(() -> Text.literal("Home set!"), false); }); if (src.player == null) { return; } src.player.getCustomData().putInt("home_x", ((int)src.player.x)); src.player.getCustomData().putInt("home_y", ((int)src.player.y)); src.player.getCustomData().putInt("home_z", ((int)src.player.z)); src.sendFeedback(() -> Text.literal("Home set!"), false); return 1; })))));
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("home").then(CommandManager.literal("go").then(CommandManager.argument((src) -> { if (src.player == null) { return; } if (!src.player.getCustomData().contains("home_x")) { src.sendError(Text.literal("No home set. Use /home set first.")); return; } int hx = (src.player.getCustomData().contains("home_x") ? src.player.getCustomData().getInt("home_x") : 0); int hy = (src.player.getCustomData().contains("home_y") ? src.player.getCustomData().getInt("home_y") : 64); int hz = (src.player.getCustomData().contains("home_z") ? src.player.getCustomData().getInt("home_z") : 0); src.player.teleport(hx, hy, hz); src.player.playSound("minecraft:entity.enderman.teleport"); src.sendFeedback(() -> Text.literal("Teleported home!"), false); }, StringArgumentType.string()).executes(ctx -> { ServerCommandSource src = ctx.getSource(); String value = StringArgumentType.getString(ctx, (src) -> { if (src.player == null) { return; } if (!src.player.getCustomData().contains("home_x")) { src.sendError(Text.literal("No home set. Use /home set first.")); return; } int hx = (src.player.getCustomData().contains("home_x") ? src.player.getCustomData().getInt("home_x") : 0); int hy = (src.player.getCustomData().contains("home_y") ? src.player.getCustomData().getInt("home_y") : 64); int hz = (src.player.getCustomData().contains("home_z") ? src.player.getCustomData().getInt("home_z") : 0); src.player.teleport(hx, hy, hz); src.player.playSound("minecraft:entity.enderman.teleport"); src.sendFeedback(() -> Text.literal("Teleported home!"), false); }); if (src.player == null) { return; } if (!src.player.getCustomData().contains("home_x")) { src.sendError(Text.literal("No home set. Use /home set first.")); return; } int hx = (src.player.getCustomData().contains("home_x") ? src.player.getCustomData().getInt("home_x") : 0); int hy = (src.player.getCustomData().contains("home_y") ? src.player.getCustomData().getInt("home_y") : 64); int hz = (src.player.getCustomData().contains("home_z") ? src.player.getCustomData().getInt("home_z") : 0); src.player.teleport(hx, hy, hz); src.player.playSound("minecraft:entity.enderman.teleport"); src.sendFeedback(() -> Text.literal("Teleported home!"), false); return 1; })))));
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("nbt").then(CommandManager.literal("get").then(CommandManager.argument("key", StringArgumentType.string()).executes(ctx -> { ServerCommandSource src = ctx.getSource(); String key = StringArgumentType.getString(ctx, "key"); if (src.player == null) { return; } String val = src.player.getNbtString(key); src.sendFeedback(() -> Text.literal(key + " = " + val), false); return 1; })))));
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("spawn").executes(ctx -> { ServerCommandSource src = ctx.getSource(); ServerPlayerEntity p = src.getPlayer(); if (p == null) { return 1; } ServerWorld w = ((ServerWorld)p.getWorld()); BlockPos sp = w.getSpawnPos(); p.teleport((ServerWorld)server.getWorld(World.OVERWORLD), sp.getX(), sp.getY(), sp.getZ(), 0f, 0f); p.playSoundToPlayer(Registries.SOUND_EVENT.get(Identifier.of("minecraft:entity.enderman.teleport")), SoundCategory.PLAYERS, 1.0f, 1.0f); src.sendFeedback(() -> Text.literal("Teleported to spawn!"), false); return 1; })));
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("ruby").then(CommandManager.literal("give").then(CommandManager.argument("count", IntegerArgumentType.integer()).executes(ctx -> { ServerCommandSource src = ctx.getSource(); int count = IntegerArgumentType.getInteger(ctx, "count"); ServerPlayerEntity p = src.getPlayer(); if (p == null) { src.sendError(Text.literal("Players only!")); return 1; } p.getInventory().insertStack(new ItemStack(Registries.ITEM.get(Identifier.of("examplemod:ruby")), count)); src.sendFeedback(() -> Text.literal("Gave " + count + " rubies."), false); return 1; })))));
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("locate").executes(ctx -> { ServerCommandSource src = ctx.getSource(); ServerPlayerEntity p = src.getPlayer(); if (p == null) { return 1; } String biome = p.getWorld().getBiome(p.getBlockPos()).getKey().map(k -> k.getValue().toString()).orElse("unknown"); String dim = p.getWorld().getRegistryKey().getValue().toString(); src.sendFeedback(() -> Text.literal("Biome: " + biome), false); src.sendFeedback(() -> Text.literal("Dimension: " + dim), false); src.sendFeedback(() -> Text.literal("X=" + p.getX() + " Y=" + p.getY() + " Z=" + p.getZ()), false); return 1; })));
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("info").executes(ctx -> { ServerCommandSource src = ctx.getSource(); ServerPlayerEntity p = src.getPlayer(); if (p == null) { return 1; } p.sendMessage(Text.literal("=== Player Info ===")); p.sendMessage(Text.literal("Name: " + p.getName().getString())); p.sendMessage(Text.literal("UUID: " + p.getUuidAsString())); p.sendMessage(Text.literal("HP: " + p.getHealth() + "/" + p.getMaxHealth())); p.sendMessage(Text.literal("Food: " + p.getHungerManager().getFoodLevel())); p.sendMessage(Text.literal("XP Level: " + p.experienceLevel)); p.sendMessage(Text.literal("Ping: " + p.networkHandler.getLatency() + "ms")); p.sendMessage(Text.literal("Sneaking: " + p.isSneaking())); p.sendMessage(Text.literal("Flying: " + p.getAbilities().flying)); p.sendMessage(Text.literal("Blocking: " + p.isBlocking())); p.sendMessage(Text.literal("Game mode: " + p.interactionManager.getGameMode().getName())); return 1; })));
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("visits").executes(ctx -> { ServerCommandSource src = ctx.getSource(); ServerPlayerEntity p = src.getPlayer(); if (p == null) { return 1; } int visits = (p.getCustomData().contains("visits") ? p.getCustomData().getInt("visits") : 0); src.sendFeedback(() -> Text.literal("You have visited " + visits + " times."), false); return 1; })));
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("settime").then(CommandManager.argument("ticks", IntegerArgumentType.integer()).executes(ctx -> { ServerCommandSource src = ctx.getSource(); int ticks = IntegerArgumentType.getInteger(ctx, "ticks"); ServerPlayerEntity p = src.getPlayer(); if (p == null) { return 1; } ServerWorld w = ((ServerWorld)p.getWorld()); w.setTimeOfDay(ticks); src.sendFeedback(() -> Text.literal("Time set to " + ticks + "."), false); return 1; }))));
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("fill").then(CommandManager.argument("blockId", StringArgumentType.string()).executes(ctx -> { ServerCommandSource src = ctx.getSource(); String blockId = StringArgumentType.getString(ctx, "blockId"); ServerPlayerEntity p = src.getPlayer(); if (p == null) { return 1; } ServerWorld w = ((ServerWorld)p.getWorld()); int x = ((int)p.getX()); int y = ((int)p.getY()) - 1; int z = ((int)p.getZ()); BlockPos.stream(new BlockPos(x - 2,y,z - 2), new BlockPos(x + 2,y,z + 2)).forEach(p -> w.setBlockState(p, Registries.BLOCK.get(Identifier.of(blockId)).getDefaultState())); src.sendFeedback(() -> Text.literal("Filled 5x5 with " + blockId + "!"), false); return 1; }))));
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("serverinfo").executes(ctx -> { ServerCommandSource src = ctx.getSource(); MinecraftServer s = src.getServer(); src.sendFeedback(() -> Text.literal("Version: " + s.getVersion()), false); src.sendFeedback(() -> Text.literal("Players: " + s.getPlayerManager().getCurrentPlayerCount() + "/" + s.getPlayerManager().getMaxPlayerCount()), false); src.sendFeedback(() -> Text.literal("TPS: " + s.getTickTime()), false); src.sendFeedback(() -> Text.literal("Hardcore: " + s.isHardcore()), false); src.sendFeedback(() -> Text.literal("Seed: " + s.getOverworld().getSeed()), false); return 1; })));
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("inventory").executes(ctx -> { ServerCommandSource src = ctx.getSource(); ServerPlayerEntity p = src.getPlayer(); if (p == null) { return 1; } Inventory inv = p.getInventory(); int rubies = java.util.stream.IntStream.range(0, inv.size()).mapToObj(inv::getStack).filter(s -> !s.isEmpty() && Registries.ITEM.getId(s.getItem()).toString().equals("examplemod:ruby")).mapToInt(net.minecraft.item.ItemStack::getCount).sum(); int diamonds = java.util.stream.IntStream.range(0, inv.size()).mapToObj(inv::getStack).filter(s -> !s.isEmpty() && Registries.ITEM.getId(s.getItem()).toString().equals("minecraft:diamond")).mapToInt(net.minecraft.item.ItemStack::getCount).sum(); boolean hasRuby = java.util.stream.IntStream.range(0, inv.size()).anyMatch(i -> !inv.getStack(i).isEmpty() && Registries.ITEM.getId(inv.getStack(i).getItem()).toString().equals("examplemod:ruby")); src.sendFeedback(() -> Text.literal("Inventory size: " + inv.size()), false); src.sendFeedback(() -> Text.literal("Rubies: " + rubies + "  Diamonds: " + diamonds), false); src.sendFeedback(() -> Text.literal("Has rubies: " + hasRuby), false); return 1; })));
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("weather").then(CommandManager.argument("mode", StringArgumentType.string()).executes(ctx -> { ServerCommandSource src = ctx.getSource(); String mode = StringArgumentType.getString(ctx, "mode"); ServerPlayerEntity p = src.getPlayer(); if (p == null) { return 1; } ServerWorld w = ((ServerWorld)p.getWorld()); if (mode.equals("rain")) { w.setWeather(0, 6000, true, false); } else { w.setWeather(6000, 0, false, false); } src.sendFeedback(() -> Text.literal("Weather set to " + mode + "."), false); return 1; }))));
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("effect").then(CommandManager.argument("effectId", StringArgumentType.string()).executes(ctx -> { ServerCommandSource src = ctx.getSource(); String effectId = StringArgumentType.getString(ctx, "effectId"); ServerPlayerEntity p = src.getPlayer(); if (p == null) { return 1; } p.addStatusEffect(new StatusEffectInstance(Registries.STATUS_EFFECT.getEntry(Identifier.of(effectId)).get(), 1200, 0)); src.sendFeedback(() -> Text.literal("Applied " + effectId + " for 60 seconds."), false); return 1; }))));
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("creative").requires(src -> src.hasPermissionLevel(2)).executes(ctx -> { ServerCommandSource src = ctx.getSource(); ServerPlayerEntity p = src.getPlayer(); if (p != null) { p.changeGameMode(GameMode.byName("creative")); } src.sendFeedback(() -> Text.literal("Game mode set to creative."), false); return 1; })));
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("survival").requires(src -> src.hasPermissionLevel(2)).executes(ctx -> { ServerCommandSource src = ctx.getSource(); ServerPlayerEntity p = src.getPlayer(); if (p != null) { p.changeGameMode(GameMode.byName("survival")); } src.sendFeedback(() -> Text.literal("Game mode set to survival."), false); return 1; })));
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("border").then(CommandManager.argument("size", IntegerArgumentType.integer()).executes(ctx -> { ServerCommandSource src = ctx.getSource(); int size = IntegerArgumentType.getInteger(ctx, "size"); ServerPlayerEntity p = src.getPlayer(); if (p == null) { return 1; } ServerWorld w = ((ServerWorld)p.getWorld()); w.getWorldBorder().interpolateSize(w.getWorldBorder().getSize(), size, (long)(5.0 * 1000L)); src.sendFeedback(() -> Text.literal("World border animating to " + size + "."), false); return 1; }))));
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("lightning").executes(ctx -> { ServerCommandSource src = ctx.getSource(); ServerPlayerEntity p = src.getPlayer(); if (p == null) { return 1; } ServerWorld w = ((ServerWorld)p.getWorld()); { var _bolt = net.minecraft.entity.EntityType.LIGHTNING_BOLT.create(w); if (_bolt != null) { _bolt.setPosition(p.getX(),p.getY(),p.getZ()); w.spawnEntity(_bolt); } }; src.sendFeedback(() -> Text.literal("Lightning!"), false); return 1; })));
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("explode").executes(ctx -> { ServerCommandSource src = ctx.getSource(); ServerPlayerEntity p = src.getPlayer(); if (p == null) { return 1; } ServerWorld w = ((ServerWorld)p.getWorld()); w.createExplosion(null, p.getX(), p.getY(), p.getZ(), 3.0f, World.ExplosionSourceType.NONE); return 1; })));
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("xp").then(CommandManager.argument("amount", IntegerArgumentType.integer()).executes(ctx -> { ServerCommandSource src = ctx.getSource(); int amount = IntegerArgumentType.getInteger(ctx, "amount"); ServerPlayerEntity p = src.getPlayer(); if (p == null) { return 1; } p.addExperience(amount); src.sendFeedback(() -> Text.literal("Gave " + amount + " XP."), false); return 1; }))));
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("homeset").executes(ctx -> { ServerCommandSource src = ctx.getSource(); ServerPlayerEntity p = src.getPlayer(); if (p == null) { return 1; } p.getCustomData().putInt("home_x", ((int)p.getX())); p.getCustomData().putInt("home_y", ((int)p.getY())); p.getCustomData().putInt("home_z", ((int)p.getZ())); src.sendFeedback(() -> Text.literal("Home set!"), false); return 1; })));
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("homego").executes(ctx -> { ServerCommandSource src = ctx.getSource(); ServerPlayerEntity p = src.getPlayer(); if (p == null) { return 1; } if (!p.getCustomData().contains("home_x")) { src.sendError(Text.literal("No home set. Use /homeset first.")); return 1; } int hx = (p.getCustomData().contains("home_x") ? p.getCustomData().getInt("home_x") : 0); int hy = (p.getCustomData().contains("home_y") ? p.getCustomData().getInt("home_y") : 64); int hz = (p.getCustomData().contains("home_z") ? p.getCustomData().getInt("home_z") : 0); p.teleport((ServerWorld)server.getWorld(World.OVERWORLD), hx, hy, hz, 0f, 0f); p.playSoundToPlayer(Registries.SOUND_EVENT.get(Identifier.of("minecraft:entity.enderman.teleport")), SoundCategory.PLAYERS, 1.0f, 1.0f); src.sendFeedback(() -> Text.literal("Teleported home!"), false); return 1; })));
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("nbt").then(CommandManager.literal("get").then(CommandManager.argument("key", StringArgumentType.string()).executes(ctx -> { ServerCommandSource src = ctx.getSource(); String key = StringArgumentType.getString(ctx, "key"); ServerPlayerEntity p = src.getPlayer(); if (p == null) { return 1; } String val = ModPlayerData.getPlayerNbt(p).getString(key); src.sendFeedback(() -> Text.literal(key + " = " + val), false); return 1; })))));
     }
 
     public void registerEvents() {
@@ -167,12 +165,13 @@ public class ExampleMod implements ModInitializer {
         eventBar.setVisible(true);
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             ServerPlayerEntity player = handler.player;
+            MinecraftServer srv = player.getServer();
             int visits = ModPlayerData.getPlayerNbt(player).getInt("visits");
             visits++;
             { NbtCompound _pNbt = ModPlayerData.getPlayerNbt(player); _pNbt.putInt("visits", visits); };
             player.networkHandler.sendPacket(new net.minecraft.network.packet.s2c.play.TitleS2CPacket(Text.literal("Welcome!"))); player.networkHandler.sendPacket(new net.minecraft.network.packet.s2c.play.SubtitleS2CPacket(Text.literal("Hello, " + player.getName().getString())));
             player.sendMessage(Text.literal("Welcome to the server! Visit #" + visits + "."));
-            player.sendMessage(Text.literal("Server has " + player.getServer().playerCount + " player(s) online."), true);
+            player.sendMessage(Text.literal("Server has " + srv.getPlayerManager().getCurrentPlayerCount() + " player(s) online."), true);
             if (visits == 1) {
                 player.getInventory().insertStack(new ItemStack(Registries.ITEM.get(Identifier.of("minecraft:bread")), 16));
                 player.getInventory().insertStack(new ItemStack(Registries.ITEM.get(Identifier.of("minecraft:wooden_sword")), 1));
@@ -181,18 +180,18 @@ public class ExampleMod implements ModInitializer {
             eventBar.addPlayer(player);
             eventBar.setName(Text.literal(player.getName().getString() + " joined!"));
             eventBar.setPercent(1.0f);
-            { var _sb = player.getServer().getScoreboard(); if (_sb.getNullableObjective("kills") == null) _sb.addObjective("kills", ScoreboardCriterion.DUMMY, Text.literal("Kills"), ScoreboardCriterion.RenderType.INTEGER, false, null); };
-            player.getServer().getScoreboard().setObjectiveSlot(ScoreboardDisplaySlot.SIDEBAR, player.getServer().getScoreboard().getNullableObjective("kills"));
+            { var _sb = srv.getScoreboard(); if (_sb.getNullableObjective("kills") == null) _sb.addObjective("kills", ScoreboardCriterion.DUMMY, Text.literal("Kills"), ScoreboardCriterion.RenderType.INTEGER, false, null); };
+            srv.getScoreboard().setObjectiveSlot(ScoreboardDisplaySlot.SIDEBAR, srv.getScoreboard().getNullableObjective("kills"));
             if (!player.getCustomData().contains("kills_init")) {
-                player.getServer().getScoreboard().getOrCreateScore(player, player.getServer().getScoreboard().getNullableObjective("kills")).setScore(0);
-                player.getCustomData().putInt("kills_init", true);
+                srv.getScoreboard().getOrCreateScore(player, srv.getScoreboard().getNullableObjective("kills")).setScore(0);
+                player.getCustomData().putInt("kills_init", 1);
             } else {
                 int savedKills = (player.getCustomData().contains("kills") ? player.getCustomData().getInt("kills") : 0);
-                player.getServer().getScoreboard().getOrCreateScore(player, player.getServer().getScoreboard().getNullableObjective("kills")).setScore(savedKills);
+                srv.getScoreboard().getOrCreateScore(player, srv.getScoreboard().getNullableObjective("kills")).setScore(savedKills);
             }
-            { if (player.getServer().getScoreboard().getTeam("players") == null) player.getServer().getScoreboard().addTeam("players"); };
-            { var _t3 = player.getServer().getScoreboard().getTeam("players"); if (_t3 != null) _t3.setColor(net.minecraft.util.Formatting.byName("green")); };
-            player.getServer().getScoreboard().addPlayerToTeam(player.getEntityName(), player.getServer().getScoreboard().getTeam("players"));
+            { if (srv.getScoreboard().getTeam("players") == null) srv.getScoreboard().addTeam("players"); };
+            { var _t3 = srv.getScoreboard().getTeam("players"); if (_t3 != null) _t3.setColor(net.minecraft.util.Formatting.byName("green")); };
+            srv.getScoreboard().addPlayerToTeam(player.getEntityName(), srv.getScoreboard().getTeam("players"));
             Inventory inv = player.getInventory();
             int rubyCount = java.util.stream.IntStream.range(0, inv.size()).mapToObj(inv::getStack).filter(s -> !s.isEmpty() && Registries.ITEM.getId(s.getItem()).toString().equals("examplemod:ruby")).mapToInt(net.minecraft.item.ItemStack::getCount).sum();
             if (rubyCount > 0) {
@@ -201,21 +200,24 @@ public class ExampleMod implements ModInitializer {
         });
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
             ServerPlayerEntity player = handler.player;
+            MinecraftServer srv = player.getServer();
             eventBar.removePlayer(player);
-            int kills = player.getServer().getScoreboard().getOrCreateScore(player, player.getServer().getScoreboard().getNullableObjective("kills")).getScore();
+            int kills = srv.getScoreboard().getOrCreateScore(player, srv.getScoreboard().getNullableObjective("kills")).getScore();
             player.getCustomData().putInt("kills", kills);
-            player.getServer().broadcast(player.getName().getString() + " left. Kills this session: " + kills + ".");
+            srv.getPlayerManager().broadcast(Text.literal(player.getName().getString() + " left. Kills this session: " + kills + "."), false);
         });
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, damageSource) -> {
             if (!(entity instanceof ServerPlayerEntity)) return;
             ServerPlayerEntity player = (ServerPlayerEntity) entity;
-            ((ServerWorld)player.getWorld()).spawnLightning(player.getX(), player.getY(), player.getZ());
-            ((ServerWorld)player.getWorld()).spawnParticle(McParticles.hugeExplosion, player.getX(), player.getY() + 1, player.getZ(), 3);
-            player.getServer().broadcast(player.getName().getString() + " has fallen!");
-            double currentSize = ((ServerWorld)player.getWorld()).getBorderSize();
+            ServerWorld world = ((ServerWorld)player.getWorld());
+            MinecraftServer srv = player.getServer();
+            { var _bolt = net.minecraft.entity.EntityType.LIGHTNING_BOLT.create(world); if (_bolt != null) { _bolt.setPosition(player.getX(),player.getY(),player.getZ()); world.spawnEntity(_bolt); } };
+            world.spawnParticles(Registries.PARTICLE_TYPE.get(Identifier.of("minecraft:explosion_emitter")), player.getX(), player.getY() + 1, player.getZ(), 3, 0, 0, 0, 0);
+            srv.getPlayerManager().broadcast(Text.literal(player.getName().getString() + " has fallen!"), false);
+            double currentSize = world.getWorldBorder().getSize();
             if (currentSize > 200) {
-                ((ServerWorld)player.getWorld()).animateBorderSize(currentSize - 10, 5.0);
-                player.getServer().broadcast("World border shrinking to " + (currentSize - 10) + "!");
+                world.getWorldBorder().interpolateSize(world.getWorldBorder().getSize(), currentSize - 10, (long)(5.0 * 1000L));
+                srv.getPlayerManager().broadcast(Text.literal("World border shrinking to " + (currentSize - 10) + "!"), false);
             }
         });
         ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) -> {
@@ -226,30 +228,33 @@ public class ExampleMod implements ModInitializer {
         });
         PlayerBlockBreakEvents.AFTER.register((world, player, pos, state, blockEntity) -> {
             MinecraftServer server = player.getServer();
-            String block = ((ServerWorld)player.getWorld()).getBlock(pos.getX(), pos.getY(), pos.getZ());
+            ServerWorld world = ((ServerWorld)player.getWorld());
+            MinecraftServer srv = player.getServer();
+            String block = Registries.BLOCK.getId(world.getBlockState(new BlockPos(pos.getX(),pos.getY(),pos.getZ())).getBlock()).toString();
             if (block.equals("examplemod:ruby_ore")) {
                 player.getInventory().insertStack(new ItemStack(Registries.ITEM.get(Identifier.of("examplemod:ruby")), 2));
-                ((ServerWorld)player.getWorld()).spawnParticle(McParticles.glow, pos.getX(), pos.getY() + 1, pos.getZ(), 20);
-                ((ServerWorld)player.getWorld()).spawnParticle(McParticles.crit, pos.getX(), pos.getY() + 1, pos.getZ(), 10);
-                ((ServerWorld)player.getWorld()).playSound("examplemod:ruby_chime", pos.getX(), pos.getY(), pos.getZ());
+                world.spawnParticles(Registries.PARTICLE_TYPE.get(Identifier.of("minecraft:glow")), pos.getX(), pos.getY() + 1, pos.getZ(), 20, 0, 0, 0, 0);
+                world.spawnParticles(Registries.PARTICLE_TYPE.get(Identifier.of("minecraft:crit")), pos.getX(), pos.getY() + 1, pos.getZ(), 10, 0, 0, 0, 0);
+                world.playSound(null, new BlockPos((int)pos.getX(), (int)pos.getY(), (int)pos.getZ()), Registries.SOUND_EVENT.get(Identifier.of("examplemod:ruby_chime")), SoundCategory.BLOCKS, 1.0f, 1.0f);
                 player.sendMessage(Text.literal("Found rubies!"), true);
-                int score = player.getServer().getScoreboard().getOrCreateScore(player, player.getServer().getScoreboard().getNullableObjective("kills")).getScore();
-                player.getServer().getScoreboard().getOrCreateScore(player, player.getServer().getScoreboard().getNullableObjective("kills")).setScore(score + 1);
+                int score = srv.getScoreboard().getOrCreateScore(player, srv.getScoreboard().getNullableObjective("kills")).getScore();
+                srv.getScoreboard().getOrCreateScore(player, srv.getScoreboard().getNullableObjective("kills")).setScore(score + 1);
                 player.getCustomData().putInt("kills", score + 1);
             }
             if (block.equals("minecraft:diamond_ore") || block.equals("minecraft:deepslate_diamond_ore")) {
-                ((ServerWorld)player.getWorld()).spawnParticle(McParticles.enchantTable, pos.getX(), pos.getY() + 1, pos.getZ(), 30);
+                world.spawnParticles(Registries.PARTICLE_TYPE.get(Identifier.of("minecraft:enchant")), pos.getX(), pos.getY() + 1, pos.getZ(), 30, 0, 0, 0, 0);
                 player.sendMessage(Text.literal("Diamonds!"), true);
             }
         });
         UseBlockCallback.EVENT.register((player, world, hand, hitResult) -> {
             MinecraftServer server = player.getServer();
-            BlockEntity be = ((ServerWorld)player.getWorld()).getBlockEntity(pos.getX(), pos.getY(), pos.getZ());
-            if (be != null && be.isChest) {
-                Inventory chest = be.getInventory();
-                if (chest != null && chest.contains("examplemod:ruby")) {
+            ServerWorld world = ((ServerWorld)player.getWorld());
+            BlockEntity be = world.getBlockEntity(new BlockPos(pos.getX(),pos.getY(),pos.getZ()));
+            if (be != null && be instanceof net.minecraft.block.entity.ChestBlockEntity) {
+                Inventory chest = be instanceof net.minecraft.inventory.Inventory _inv ? _inv : null;
+                if (chest != null && java.util.stream.IntStream.range(0, chest.size()).anyMatch(i -> !chest.getStack(i).isEmpty() && Registries.ITEM.getId(chest.getStack(i).getItem()).toString().equals("examplemod:ruby"))) {
                     player.sendMessage(Text.literal("This chest contains rubies!"));
-                    ((ServerWorld)player.getWorld()).spawnParticle(McParticles.happyVillager, pos.getX(), pos.getY() + 1, pos.getZ(), 10);
+                    world.spawnParticles(Registries.PARTICLE_TYPE.get(Identifier.of("minecraft:happy_villager")), pos.getX(), pos.getY() + 1, pos.getZ(), 10, 0, 0, 0, 0);
                 }
             }
         });
@@ -285,7 +290,7 @@ public class ExampleMod implements ModInitializer {
                 player.sendMessage(Text.literal("Time: " + world.getTime()));
                 player.sendMessage(Text.literal("Day: " + world.isDay() + " | Raining: " + world.isRaining()));
                 player.sendMessage(Text.literal("Difficulty: " + world.getDifficulty().getName()));
-                player.sendMessage(Text.literal("Dimension: " + world.dimension));
+                player.sendMessage(Text.literal("Dimension: " + world.getRegistryKey().getValue().toString()));
                 int topY = world.getTopY(Heightmap.Type.WORLD_SURFACE, ((int)player.getX()), ((int)player.getZ()));
                 player.sendMessage(Text.literal("Top Y at position: " + topY));
             }
@@ -305,21 +310,22 @@ public class ExampleMod implements ModInitializer {
             }
             if (message.equals("!border")) {
                 ServerWorld world = ((ServerWorld)player.getWorld());
-                player.sendMessage(Text.literal("Border size: " + world.getBorderSize()));
-                player.sendMessage(Text.literal("Center: " + world.getBorderCenterX() + ", " + world.getBorderCenterZ()));
+                player.sendMessage(Text.literal("Border size: " + world.getWorldBorder().getSize()));
+                player.sendMessage(Text.literal("Center: " + world.getWorldBorder().getCenterX() + ", " + world.getWorldBorder().getCenterZ()));
                 player.sendMessage(Text.literal("In border: " + world.getWorldBorder().contains(new BlockPos(((int)player.getX()),((int)player.getY()),((int)player.getZ())))));
             }
             if (message.equals("!particles")) {
                 ServerWorld world = ((ServerWorld)player.getWorld());
-                world.spawnParticles(Registries.PARTICLE_TYPE.get(Identifier.of(McParticles.heart)), player.getX(), player.getY() + 2, player.getZ(), 15, 0, 0, 0, 0);
-                world.spawnParticles(Registries.PARTICLE_TYPE.get(Identifier.of(McParticles.totem)), player.getX(), player.getY() + 1, player.getZ(), 20, 0, 0, 0, 0);
-                world.spawnParticles(Registries.PARTICLE_TYPE.get(Identifier.of(McParticles.note)), player.getX(), player.getY() + 3, player.getZ(), 10, 0, 0, 0, 0);
-                world.spawnParticles(Registries.PARTICLE_TYPE.get(Identifier.of(McParticles.cherry)), player.getX() + 1, player.getY() + 2, player.getZ(), 30, 0, 0, 0, 0);
+                world.spawnParticles(Registries.PARTICLE_TYPE.get(Identifier.of("minecraft:heart")), player.getX(), player.getY() + 2, player.getZ(), 15, 0, 0, 0, 0);
+                world.spawnParticles(Registries.PARTICLE_TYPE.get(Identifier.of("minecraft:totem_of_undying")), player.getX(), player.getY() + 1, player.getZ(), 20, 0, 0, 0, 0);
+                world.spawnParticles(Registries.PARTICLE_TYPE.get(Identifier.of("minecraft:note")), player.getX(), player.getY() + 3, player.getZ(), 10, 0, 0, 0, 0);
+                world.spawnParticles(Registries.PARTICLE_TYPE.get(Identifier.of("minecraft:cherry_leaves")), player.getX() + 1, player.getY() + 2, player.getZ(), 30, 0, 0, 0, 0);
                 player.sendMessage(Text.literal("Particles!"), true);
             }
             if (message.equals("!sound")) {
                 player.playSoundToPlayer(Registries.SOUND_EVENT.get(Identifier.of("minecraft:entity.experience_orb.pickup")), SoundCategory.PLAYERS, 1.0f, 1.0f);
-                ((ServerWorld)player.getWorld()).playSound("minecraft:block.bell.use", player.getX(), player.getY(), player.getZ());
+                ServerWorld world = ((ServerWorld)player.getWorld());
+                world.playSound(null, new BlockPos((int)player.getX(), (int)player.getY(), (int)player.getZ()), Registries.SOUND_EVENT.get(Identifier.of("minecraft:block.bell.use")), SoundCategory.BLOCKS, 1.0f, 1.0f);
             }
             if (message.equals("!enchant")) {
                 ItemStack sword = player.getMainHandStack();
@@ -370,8 +376,9 @@ public class ExampleMod implements ModInitializer {
         });
         ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {
             if (entity.getType().isIn(net.minecraft.registry.tag.EntityTypeTags.UNDEAD)) {
+                ServerWorld world = entity.getWorld();
                 entity.setOnFireFor(3);
-                entity.getWorld().spawnParticle(McParticles.flame, entity.getX(), entity.getY() + 1, entity.getZ(), 10);
+                world.spawnParticles(Registries.PARTICLE_TYPE.get(Identifier.of("minecraft:flame")), entity.getX(), entity.getY() + 1, entity.getZ(), 10, 0, 0, 0, 0);
             }
             return true;
         });
@@ -381,8 +388,9 @@ public class ExampleMod implements ModInitializer {
             MinecraftServer server = player.getServer();
             ItemStack main = player.getMainHandStack();
             if (main.isIn(net.minecraft.registry.tag.ItemTags.SWORDS)) {
-                target.getWorld().spawnParticle(McParticles.crit, target.getX(), target.getY() + 1, target.getZ(), 15);
-                target.getWorld().spawnParticle(McParticles.magicCrit, target.getX(), target.getY() + 1, target.getZ(), 10);
+                ServerWorld world = target.getWorld();
+                world.spawnParticles(Registries.PARTICLE_TYPE.get(Identifier.of("minecraft:crit")), target.getX(), target.getY() + 1, target.getZ(), 15, 0, 0, 0, 0);
+                world.spawnParticles(Registries.PARTICLE_TYPE.get(Identifier.of("minecraft:enchanted_hit")), target.getX(), target.getY() + 1, target.getZ(), 10, 0, 0, 0, 0);
                 player.sendMessage(Text.literal("Hit " + target.getName().getString() + "!"), true);
             }
             return ActionResult.PASS;
@@ -392,7 +400,7 @@ public class ExampleMod implements ModInitializer {
             MinecraftServer server = player.getServer();
             player.sendMessage(Text.literal("Entity: " + EntityType.getId(entity.getType()).toString()));
             player.sendMessage(Text.literal("Health: " + (entity instanceof LivingEntity ? ((LivingEntity)entity).getHealth() : 0f) + "/" + (entity instanceof LivingEntity ? ((LivingEntity)entity).getMaxHealth() : 0f)));
-            player.sendMessage(Text.literal("Baby: " + entity.isBaby()));
+            player.sendMessage(Text.literal("Baby: " + (entity instanceof net.minecraft.entity.passive.PassiveEntity _pe2b && _pe2b.isBaby())));
             if (entity instanceof net.minecraft.entity.player.PlayerEntity) {
                 player.sendMessage(Text.literal("(This is a player)"));
             }
@@ -405,7 +413,8 @@ public class ExampleMod implements ModInitializer {
             MinecraftServer server = player.getServer();
             if (!stack.isEmpty() && Registries.ITEM.getId(stack.getItem()).toString().equals("examplemod:ruby")) {
                 player.sendMessage(Text.literal("Picked up a ruby!"), true);
-                ((ServerWorld)player.getWorld()).spawnParticle(McParticles.glow, player.getX(), player.getY() + 1, player.getZ(), 5);
+                ServerWorld world = ((ServerWorld)player.getWorld());
+                world.spawnParticles(Registries.PARTICLE_TYPE.get(Identifier.of("minecraft:glow")), player.getX(), player.getY() + 1, player.getZ(), 5, 0, 0, 0, 0);
             }
             return true;
         });
@@ -441,18 +450,19 @@ public class ExampleMod implements ModInitializer {
             DamageSource {1} = damageSource;
             if (EntityType.getId(entity.getType()).toString().equals("minecraft:ender_dragon")) {
                 ServerWorld world = entity.getWorld();
-                world.spawnParticles(Registries.PARTICLE_TYPE.get(Identifier.of(McParticles.dragon)), entity.getX(), entity.getY() + 5, entity.getZ(), 50, 0, 0, 0, 0);
-                world.spawnParticles(Registries.PARTICLE_TYPE.get(Identifier.of(McParticles.end)), entity.getX(), entity.getY() + 5, entity.getZ(), 100, 0, 0, 0, 0);
-                world.server.broadcast("The Ender Dragon has been defeated!");
+                MinecraftServer srv = world.getServer();
+                world.spawnParticles(Registries.PARTICLE_TYPE.get(Identifier.of("minecraft:dragon_breath")), entity.getX(), entity.getY() + 5, entity.getZ(), 50, 0, 0, 0, 0);
+                world.spawnParticles(Registries.PARTICLE_TYPE.get(Identifier.of("minecraft:end_rod")), entity.getX(), entity.getY() + 5, entity.getZ(), 100, 0, 0, 0, 0);
+                srv.getPlayerManager().broadcast(Text.literal("The Ender Dragon has been defeated!"), false);
             }
         });
         ServerChunkEvents.CHUNK_LOAD.register((world, chunk) -> {
         });
         ServerWorldEvents.LOAD.register((server, world) -> {
-            LOGGER.info("World loaded: " + world.dimension);
+            LOGGER.info("World loaded: " + world.getRegistryKey().getValue().toString());
         });
         ServerWorldEvents.UNLOAD.register((server, world) -> {
-            LOGGER.info("World unloaded: " + world.dimension);
+            LOGGER.info("World unloaded: " + world.getRegistryKey().getValue().toString());
         });
         /* TODO: register mob loot for "minecraft:zombie": add "examplemod:ruby" with chance 0.05f in data/modid/loot_table/entities/ */;
         /* TODO: register mob loot for "minecraft:creeper": add "examplemod:ruby" with chance 0.1f in data/modid/loot_table/entities/ */;

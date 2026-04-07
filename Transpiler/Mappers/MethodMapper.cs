@@ -101,6 +101,29 @@ public static class MethodMapper
         ["GetNearbyEntities"]   = new("{target}.getEntitiesByType(TypeFilter.instanceOf(Entity.class), new net.minecraft.util.math.Box({0}-{3},{1}-{3},{2}-{3},{0}+{3},{1}+{3},{2}+{3}), e -> true)"),
         ["GetNearbyPlayers"]    = new("{target}.getPlayers()"),
 
+        // Lightning
+        ["SpawnLightning"]  = new("{ var _bolt = net.minecraft.entity.EntityType.LIGHTNING_BOLT.create({target}); if (_bolt != null) { _bolt.setPosition({0},{1},{2}); {target}.spawnEntity(_bolt); } }"),
+
+        // Border
+        ["GetBorderSize"]       = new("{target}.getWorldBorder().getSize()"),
+        ["SetBorderSize"]       = new("{target}.getWorldBorder().setSize({0})"),
+        ["AnimateBorderSize"]   = new("{target}.getWorldBorder().interpolateSize({target}.getWorldBorder().getSize(), {0}, (long)({1} * 1000L))"),
+        ["GetBorderCenterX"]    = new("{target}.getWorldBorder().getCenterX()"),
+        ["GetBorderCenterZ"]    = new("{target}.getWorldBorder().getCenterZ()"),
+        ["SetBorderCenter"]     = new("{target}.getWorldBorder().setCenter({0}, {1})"),
+        ["SetBorderWarningDistance"] = new("{target}.getWorldBorder().setWarningBlocks({0})"),
+
+        // Block entities
+        ["GetBlockEntity"]  = new("{target}.getBlockEntity(new BlockPos({0},{1},{2}))",
+                                   Imports: ["net.minecraft.util.math.BlockPos"]),
+
+        // Item drops
+        ["DropItem"]        = new("{target}.spawnEntity(new net.minecraft.entity.ItemEntity({target}, {1}, {2}, {3}, new ItemStack(Registries.ITEM.get(Identifier.of({0})), {4})))"),
+
+        // Checks
+        ["IsAir"]           = new("{target}.getBlockState(new BlockPos({0},{1},{2})).isAir()"),
+        ["IsChunkLoaded"]   = new("{target}.isChunkLoaded(new BlockPos({0}, 64, {1}))"),
+
         // World info
         ["GetTime"]         = new("{target}.getTime()"),
         ["SetTime"]         = new("{target}.setTimeOfDay({0})"),
@@ -140,6 +163,10 @@ public static class MethodMapper
         ["Shutdown"]            = new("{target}.stop(false)"),
         ["GetPlayerByUuid"]     = new("{target}.getPlayerManager().getPlayer(java.util.UUID.fromString({0}))"),
         ["GetAllWorlds"]        = new("java.util.stream.StreamSupport.stream({target}.getWorlds().spliterator(), false).toList()"),
+        ["GetSeed"]             = new("{target}.getOverworld().getSeed()"),
+        ["GetDefaultGameMode"]  = new("{target}.getDefaultGameMode().getName()"),
+        ["SetDefaultGameMode"]  = new("{target}.setDefaultGameMode(net.minecraft.world.GameMode.byName({0}))"),
+        ["IsHardcore"]          = new("{target}.isHardcore()"),
     };
 
     // ── BlockPos ─────────────────────────────────────────────────────────────
@@ -212,6 +239,14 @@ public static class MethodMapper
         ["GetNbtInt"]           = new("{ NbtCompound _eNbt = new NbtCompound(); {target}.writeNbt(_eNbt); _eNbt.getInt({0}); }",
                                       Imports: ["net.minecraft.nbt.NbtCompound"]),
         ["SetNbtInt"]           = new("/* TODO: entity.SetNbtInt not supported in 1.21.1 — use command tags instead */"),
+
+        // Age / baby
+        ["IsBaby"]  = new("({target} instanceof net.minecraft.entity.passive.PassiveEntity _pe2b && _pe2b.isBaby())"),
+        ["GetAge"]  = new("({target} instanceof net.minecraft.entity.passive.PassiveEntity _pea ? _pea.getBreedingAge() : 0)"),
+        ["SetAge"]  = new("if ({target} instanceof net.minecraft.entity.passive.PassiveEntity _pes) _pes.setBreedingAge({0})"),
+        ["SetBaby"] = new("if ({target} instanceof net.minecraft.entity.passive.PassiveEntity _peb) _peb.setBreedingAge({0} ? -24000 : 0)"),
+        ["HasNoGravity"] = new("{target}.hasNoGravity()"),
+        ["SetNoGravity"] = new("{target}.setNoGravity({0})"),
     };
 
     // ── Static constructors (new XYZ(...) in C# → Java factory/constructor) ──
@@ -259,6 +294,11 @@ public static class MethodMapper
         ["HasEffect"]           = new("{target}.hasStatusEffect(Registries.STATUS_EFFECT.getEntry(Identifier.of({0})).get())"),
         ["SendTitle"]           = new("{target}.networkHandler.sendPacket(new net.minecraft.network.packet.s2c.play.TitleS2CPacket(Text.literal({0}))); {target}.networkHandler.sendPacket(new net.minecraft.network.packet.s2c.play.SubtitleS2CPacket(Text.literal({1})))"),
         ["LookAt"]              = new("{target}.lookAt(net.minecraft.command.argument.EntityAnchorArgumentType.EntityAnchor.EYES, new net.minecraft.util.math.Vec3d({0},{1},{2}))"),
+        ["GetPing"]             = new("{target}.networkHandler.getLatency()"),
+        ["GetIp"]               = new("{target}.networkHandler.getConnectionAddress().toString()"),
+        ["Kick"]                = new("{target}.networkHandler.disconnect(Text.literal({0}))",
+                                     Imports: ["net.minecraft.text.Text"]),
+        ["GetEnderChest"]       = new("{target}.getEnderChestInventory()"),
     };
 
     // ── McWorld extended methods ──────────────────────────────────────────────
@@ -660,8 +700,9 @@ public static class MethodMapper
         ["McScoreboard.SetFriendlyFire"] = "{ var _t4 = {0}.getScoreboard().getTeam({1}); if (_t4 != null) _t4.setFriendlyFireAllowed({2}); }",
 
         // ── McScheduler static ────────────────────────────────────────────────
-        ["McScheduler.RunLater"]     = "{ int _delay = {1}; {0}.execute(() -> { try { Thread.sleep(_delay * 50L); } catch (Exception _e) {} }); }",
-        ["McScheduler.RunAsync"]     = "java.util.concurrent.CompletableFuture.runAsync(() -> {1})",
+        ["McScheduler.RunLater"]      = "{ int _delay = {1}; {0}.execute(() -> { try { Thread.sleep(_delay * 50L); } catch (Exception _e) {} }); }",
+        ["McScheduler.RunAsync"]      = "java.util.concurrent.CompletableFuture.runAsync(() -> {1})",
+        ["McScheduler.RunRepeating"]  = "/* McScheduler.RunRepeating({0}, {1}) — use ServerTickEvents for repeating tasks */",
 
         // ── McInventory static ────────────────────────────────────────────────
         ["McInventory.FromPlayer"]   = "{0}.getInventory()",
@@ -704,6 +745,15 @@ public static class MethodMapper
         ["McPlayer.Chestplate"]     = "{target}.getEquippedStack(net.minecraft.entity.EquipmentSlot.CHEST)",
         ["McPlayer.Leggings"]       = "{target}.getEquippedStack(net.minecraft.entity.EquipmentSlot.LEGS)",
         ["McPlayer.Boots"]          = "{target}.getEquippedStack(net.minecraft.entity.EquipmentSlot.FEET)",
+        ["McPlayer.IsBlocking"]     = "{target}.isBlocking()",
+        ["McPlayer.IsUsingItem"]    = "{target}.isUsingItem()",
+        ["McPlayer.IsSleeping"]     = "{target}.isSleeping()",
+        ["McPlayer.IsSpectator"]    = "{target}.isSpectator()",
+
+        // McCommandSource properties
+        ["McCommandSource.Player"]  = "{target}.getPlayer()",
+        ["McCommandSource.Server"]  = "{target}.getServer()",
+        ["McCommandSource.Name"]    = "{target}.getName()",
 
         // McWorld properties
         ["McWorld.Time"]            = "{target}.getTime()",
@@ -713,6 +763,8 @@ public static class MethodMapper
         ["McWorld.IsThundering"]    = "{target}.isThundering()",
         ["McWorld.Difficulty"]      = "{target}.getDifficulty().getName()",
         ["McWorld.SpawnPos"]        = "{target}.getSpawnPos()",
+        ["McWorld.Dimension"]       = "{target}.getRegistryKey().getValue().toString()",
+        ["McWorld.Server"]          = "{target}.getServer()",
 
         // McServer properties
         ["McServer.OnlinePlayers"]  = "{target}.getPlayerManager().getPlayerList()",
@@ -722,6 +774,11 @@ public static class MethodMapper
         ["McServer.Version"]        = "{target}.getVersion()",
         ["McServer.IsRunning"]      = "{target}.isRunning()",
         ["McServer.Motd"]           = "{target}.getServerMotd()",
+        ["McServer.IsHardcore"]     = "{target}.isHardcore()",
+        ["McServer.Overworld"]      = "(ServerWorld){target}.getWorld(World.OVERWORLD)",
+        ["McServer.Nether"]         = "(ServerWorld){target}.getWorld(World.NETHER)",
+        ["McServer.End"]            = "(ServerWorld){target}.getWorld(World.END)",
+        ["McServer.IsWhitelistEnabled"] = "{target}.getPlayerManager().isWhitelistEnabled()",
 
         // McEntity properties
         ["McEntity.Name"]           = "{target}.getName().getString()",

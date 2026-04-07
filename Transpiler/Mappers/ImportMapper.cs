@@ -198,6 +198,7 @@ public static class ImportMapper
         ["MapColor"]                = "net.minecraft.block.MapColor",
         ["BlockSoundGroup"]         = "net.minecraft.sound.BlockSoundGroup",
         ["ScoreboardCriterion"]     = "net.minecraft.scoreboard.ScoreboardCriterion",
+        ["ScoreboardDisplaySlot"]   = "net.minecraft.scoreboard.ScoreboardDisplaySlot",
 
         // Attributes (extended)
         ["ClampedEntityAttribute"]  = "net.minecraft.entity.attribute.ClampedEntityAttribute",
