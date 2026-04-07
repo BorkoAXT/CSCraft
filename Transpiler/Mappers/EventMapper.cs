@@ -54,7 +54,7 @@ public static class EventMapper
             FabricEvent:    "AFTER",
             FabricImport:   "net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents",
             JavaArgs:       "(world, player, pos, state, blockEntity)",
-            Preamble:       "ServerPlayerEntity {0} = player; BlockPos {1} = pos; MinecraftServer server = player.getServer();",
+            Preamble:       "if (!(player instanceof ServerPlayerEntity)) return; ServerPlayerEntity {0} = (ServerPlayerEntity) player; BlockPos {1} = pos; MinecraftServer server = {0}.getServer();",
             CsParamTypes:   ["McPlayer", "McBlockPos"]
         ),
 
@@ -82,8 +82,9 @@ public static class EventMapper
             FabricEvent:    "EVENT",
             FabricImport:   "net.fabricmc.fabric.api.event.player.UseBlockCallback",
             JavaArgs:       "(player, world, hand, hitResult)",
-            Preamble:       "ServerPlayerEntity {0} = (ServerPlayerEntity) player; MinecraftServer server = {0}.getServer();",
-            CsParamTypes:   ["McPlayer"]
+            Preamble:       "if (!(player instanceof ServerPlayerEntity)) return ActionResult.PASS; ServerPlayerEntity {0} = (ServerPlayerEntity) player; BlockPos {1} = hitResult.getBlockPos(); MinecraftServer server = {0}.getServer();",
+            ReturnStatement: "return ActionResult.PASS;",
+            CsParamTypes:   ["McPlayer", "McBlockPos"]
         ),
 
         // ── Chat ──────────────────────────────────────────────────────────────
@@ -272,24 +273,7 @@ public static class EventMapper
             ReturnStatement: "return TypedActionResult.pass(player.getStackInHand(hand));"
         ),
 
-        ["ItemPickup"] = new(
-            FabricClass:    "EntityPickupItemEvents",
-            FabricEvent:    "ALLOW_ENTITY_PICKUP",
-            FabricImport:   "net.fabricmc.fabric.api.entity.event.v1.EntityPickupItemEvents",
-            JavaArgs:       "(entity, itemEntity, slot)",
-            Preamble:       "if (!(entity instanceof ServerPlayerEntity)) return true; ServerPlayerEntity {0} = (ServerPlayerEntity) entity; ItemStack {1} = itemEntity.getStack(); MinecraftServer server = {0}.getServer();",
-            CsParamTypes:   ["McPlayer", "McItemStack"],
-            ReturnStatement: "return true;"
-        ),
-
-        ["ItemAfterPickup"] = new(
-            FabricClass:    "EntityPickupItemEvents",
-            FabricEvent:    "AFTER_PICKUP",
-            FabricImport:   "net.fabricmc.fabric.api.entity.event.v1.EntityPickupItemEvents",
-            JavaArgs:       "(entity, itemEntity, stack)",
-            Preamble:       "if (!(entity instanceof ServerPlayerEntity)) return; ServerPlayerEntity {0} = (ServerPlayerEntity) entity; ItemStack {1} = stack; MinecraftServer server = {0}.getServer();",
-            CsParamTypes:   ["McPlayer", "McItemStack"]
-        ),
+        // NOTE: EntityPickupItemEvents was removed in Fabric API for MC 1.21.1 — use ServerPlayConnectionEvents or mixin instead
 
         // ── Player combat ─────────────────────────────────────────────────────
 

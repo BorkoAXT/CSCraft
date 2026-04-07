@@ -443,16 +443,16 @@ public class ExampleMod : IMod
         // ── Block break ───────────────────────────────────────────────────────
         Events.BlockBreak += (player, pos) =>
         {
-            McWorld world = player.World;
-            McServer srv  = player.Server;
-            string block  = world.GetBlock(pos.X, pos.Y, pos.Z);
+            McWorld bw   = player.World;
+            McServer srv = player.Server;
+            string block = bw.GetBlock(pos.X, pos.Y, pos.Z);
 
             if (block == "examplemod:ruby_ore")
             {
                 player.GiveItem("examplemod:ruby", 2);
-                world.SpawnParticle("minecraft:glow", pos.X, pos.Y + 1, pos.Z, 20);
-                world.SpawnParticle("minecraft:crit",  pos.X, pos.Y + 1, pos.Z, 10);
-                world.PlaySound("examplemod:ruby_chime", pos.X, pos.Y, pos.Z);
+                bw.SpawnParticle("minecraft:glow", pos.X, pos.Y + 1, pos.Z, 20);
+                bw.SpawnParticle("minecraft:crit",  pos.X, pos.Y + 1, pos.Z, 10);
+                bw.PlaySound("examplemod:ruby_chime", pos.X, pos.Y, pos.Z);
                 player.SendActionBar("Found rubies!");
 
                 int score = McScoreboard.GetScore(srv, player, "kills");
@@ -462,7 +462,7 @@ public class ExampleMod : IMod
 
             if (block == "minecraft:diamond_ore" || block == "minecraft:deepslate_diamond_ore")
             {
-                world.SpawnParticle("minecraft:enchant", pos.X, pos.Y + 1, pos.Z, 30);
+                bw.SpawnParticle("minecraft:enchant", pos.X, pos.Y + 1, pos.Z, 30);
                 player.SendActionBar("Diamonds!");
             }
         };
@@ -470,15 +470,15 @@ public class ExampleMod : IMod
         // ── Block interact ────────────────────────────────────────────────────
         Events.BlockInteract += (player, pos) =>
         {
-            McWorld world = player.World;
-            McBlockEntity be = world.GetBlockEntity(pos.X, pos.Y, pos.Z);
+            McWorld bw = player.World;
+            McBlockEntity be = bw.GetBlockEntity(pos.X, pos.Y, pos.Z);
             if (be != null && be.IsChest)
             {
                 McInventory chest = be.GetInventory();
                 if (chest != null && chest.Contains("examplemod:ruby"))
                 {
                     player.SendMessage("This chest contains rubies!");
-                    world.SpawnParticle("minecraft:happy_villager", pos.X, pos.Y + 1, pos.Z, 10);
+                    bw.SpawnParticle("minecraft:happy_villager", pos.X, pos.Y + 1, pos.Z, 10);
                 }
             }
         };
@@ -624,12 +624,11 @@ public class ExampleMod : IMod
 
             if (message == "!entities")
             {
-                McWorld world = player.World;
-                List<McEntity> nearby = world.GetNearbyEntities(player.X, player.Y, player.Z, 16.0);
-                player.SendMessage("Nearby entities (16r): " + nearby.Count);
+                McWorld ew = player.World;
+                List<McEntity> nearby = ew.GetNearbyEntities(player.X, player.Y, player.Z, 16.0);
                 foreach (McEntity e in nearby)
                 {
-                    player.SendMessage("  " + e.TypeId + " — alive: " + e.IsAlive);
+                    player.SendMessage("  " + e.TypeId);
                 }
             }
         };
@@ -651,9 +650,9 @@ public class ExampleMod : IMod
             McItemStack main = player.MainHandItem;
             if (McTag.IsSword(main))
             {
-                McWorld world = target.World;
-                world.SpawnParticle("minecraft:crit",          target.X, target.Y + 1, target.Z, 15);
-                world.SpawnParticle("minecraft:enchanted_hit",  target.X, target.Y + 1, target.Z, 10);
+                McWorld tw = target.World;
+                tw.SpawnParticle("minecraft:crit",          target.X, target.Y + 1, target.Z, 15);
+                tw.SpawnParticle("minecraft:enchanted_hit",  target.X, target.Y + 1, target.Z, 10);
                 player.SendActionBar("Hit " + target.Name + "!");
             }
         };
@@ -666,17 +665,6 @@ public class ExampleMod : IMod
             player.SendMessage("Baby: " + entity.IsBaby());
             if (entity.IsPlayer)
                 player.SendMessage("(This is a player)");
-        };
-
-        // ── Item pickup ───────────────────────────────────────────────────────
-        Events.ItemPickup += (player, stack) =>
-        {
-            if (!stack.IsEmpty && stack.GetItem() == "examplemod:ruby")
-            {
-                player.SendActionBar("Picked up a ruby!");
-                McWorld world = player.World;
-                world.SpawnParticle("minecraft:glow", player.X, player.Y + 1, player.Z, 5);
-            }
         };
 
         // ── Server start ──────────────────────────────────────────────────────

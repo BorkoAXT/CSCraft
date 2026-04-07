@@ -1,6 +1,6 @@
 # CSCraft
 
-CSCraft lets you write Minecraft Fabric mods in C# instead of Java. You write mod logic in C#, and CSCraft transpiles it into a working Fabric mod `.jar` — no Gradle, no Java knowledge, and no manual setup required.
+**v1.4.2** — CSCraft lets you write Minecraft Fabric mods in C# instead of Java. You write mod logic in C#, and CSCraft transpiles it into a working Fabric mod `.jar` — no Gradle, no Java knowledge, and no manual setup required.
 
 One command: `dotnet build` does everything.
 
@@ -122,14 +122,45 @@ They are automatically copied to the Fabric resource pack on build.
 ### Commands
 Register custom commands with arguments, selectors, and permissions:
 ```csharp
-McCommand.RegisterWithPlayer("heal", "target", (src, target) => {
+McCommand.Register("heal", (src) => {
+    McPlayer p = src.Player;
+    if (p == null) return;
+    p.Heal(p.MaxHealth);
+    src.SendMessage("Healed!");
+});
+
+McCommand.RegisterWithInt("settime", "ticks", (src, ticks) => {
+    McPlayer p = src.Player;
+    if (p == null) return;
+    McWorld w = p.World;
+    w.SetTime(ticks);
+});
+
+McCommand.RegisterOpWithPlayer("heal", "target", (src, target) => {
     target.Heal(target.MaxHealth);
-    src.SendMessage($"Healed {target.Name}");
+    src.SendMessage("Healed " + target.Name);
 });
 ```
 
+> **Transpiler rule:** Always extract `McPlayer p = src.Player;` before calling player methods. The transpiler does not resolve property chains automatically.
+
+### Persistent Player Data
+Store and retrieve per-player data that persists across sessions:
+```csharp
+PlayerData.Set(player, "visits", 1);
+int visits = PlayerData.GetInt(player, "visits", 0);
+bool hasHome = PlayerData.Has(player, "home_x");
+```
+
 ### Scheduler
-Run delayed or repeating tasks on the main server thread or asynchronously.
+Run delayed tasks on the main server thread:
+```csharp
+McScheduler.RunLater(server, 200, (s) => {
+    s.Broadcast("Server has been running for 10 seconds!");
+});
+```
+
+> **Note:** `McScheduler.RunRepeating` is not yet supported. Use `Events.ServerTick` with a tick counter instead.
 
 ---
 
@@ -171,10 +202,33 @@ You can manually override settings in your `.csproj`:
 - **JDK Not Found:** Install JDK 21. If it's still not found, set `<CSCraftJavaHome>` in your `.csproj`.
 - **Wrong Java Version:** Ensure you are using JDK 21 (required for Minecraft 1.20.6+).
 - **Resources Not Generated:** Ensure `McRegistry` and `McRecipe` calls use compile-time string literals.
-- **Build Error:** If your on Visual Studio 2022, make sure you are using the CLI dotnet build instead of the built-in button as the button doesn't work for now.
+- **Build Error on Visual Studio 2022:** Use the CLI `dotnet build` instead of the built-in button.
 - **Force Rebuild:** If changes aren't reflecting, run `dotnet build --no-incremental`.
-- **Fabric Json Error:** If your getting an entrypoint error, make sure your `[ModInfo]` attribute is on the class that implements `IMod`.
-- **Other errors:" If you have any build errors or you don't see the jar file, make sure to remove the obj, bin and FabricTemplate folders and do a dotnet clean. If the error isn't here, send a message via email or discord at BorkoAXT#5390
+- **Fabric JSON Error:** If you're getting an entrypoint error, make sure your `[ModInfo]` attribute is on the class that implements `IMod`.
+- **CSCRAFT002 warnings:** These warn when a method or property chain couldn't be resolved. Always extract variables to a typed local before chaining — e.g. `McPlayer p = src.Player; p.Heal(...)` instead of `src.Player.Heal(...)`.
+- **Other errors:** Remove the `obj/`, `bin/`, and `FabricTemplate/` folders, run `dotnet clean`, then rebuild. If the error persists, open an issue or contact BorkoAXT#5390 on Discord.
+
+## ⚠️ Transpiler Rules
+
+The C# → Java transpiler has a few requirements to produce valid Java:
+
+1. **No property chains.** Always extract to a typed local variable:
+   ```csharp
+   // ✅ Correct
+   McPlayer p = src.Player;
+   p.Heal(10);
+
+   // ❌ Wrong — transpiler can't resolve the chain
+   src.Player.Heal(10);
+   ```
+
+2. **No nullable types on local variables.** Use `McPlayer p` not `McPlayer? p`.
+
+3. **No null-conditional operators.** Use `if (p != null) p.Heal(...)` not `p?.Heal(...)`.
+
+4. **Extract world variables when inside BlockBreak/PlayerAttack events** — those event lambdas already have a `world` parameter. Name your local variable differently (e.g. `bw`, `tw`).
+
+5. **Recipes:** `McRecipe.RegisterShaped` keys must be single `char` literals (e.g. `'X'`), not strings.
 
 ---
 

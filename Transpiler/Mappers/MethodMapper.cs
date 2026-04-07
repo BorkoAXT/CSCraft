@@ -36,11 +36,11 @@ public static class MethodMapper
         ["SetHunger"]       = new("{target}.getHungerManager().setFoodLevel({0})"),
         ["SetSaturation"]   = new("{target}.getHungerManager().setSaturationLevel({0})"),
         ["Heal"]            = new("{target}.heal({0})"),
-        ["Damage"]          = new("{target}.damage(server.getDamageSources().generic(), {0})"),
+        ["Damage"]          = new("{target}.damage({target}.getServerWorld().getDamageSources().generic(), {0})"),
 
         // Movement & position
-        ["Teleport"]        = new("{target}.teleport((ServerWorld)server.getWorld(World.OVERWORLD), {0}, {1}, {2}, 0f, 0f)",
-                                  Imports: ["net.minecraft.server.world.ServerWorld", "net.minecraft.world.World"]),
+        ["Teleport"]        = new("{target}.teleport(((ServerWorld){target}.getWorld()), {0}, {1}, {2}, 0f, 0f)",
+                                  Imports: ["net.minecraft.server.world.ServerWorld"]),
         ["GetX"]            = new("{target}.getX()"),
         ["GetY"]            = new("{target}.getY()"),
         ["GetZ"]            = new("{target}.getZ()"),
@@ -135,7 +135,7 @@ public static class MethodMapper
         ["CreateExplosion"] = new("{target}.createExplosion(null, {0}, {1}, {2}, {3}, World.ExplosionSourceType.NONE)"),
 
         // Fill & random
-        ["FillBlocks"]      = new("BlockPos.stream(new BlockPos({0},{1},{2}), new BlockPos({3},{4},{5})).forEach(p -> {target}.setBlockState(p, Registries.BLOCK.get(Identifier.of({6})).getDefaultState()))",
+        ["FillBlocks"]      = new("BlockPos.stream(new BlockPos({0},{1},{2}), new BlockPos({3},{4},{5})).forEach(_bp -> {target}.setBlockState(_bp, Registries.BLOCK.get(Identifier.of({6})).getDefaultState()))",
                                    Imports: ["net.minecraft.util.math.BlockPos", "net.minecraft.registry.Registries", "net.minecraft.util.Identifier"]),
         ["GetRandomInt"]    = new("{target}.getRandom().nextBetween({0}, {1})"),
 
@@ -156,7 +156,7 @@ public static class MethodMapper
         ["GetPlayerCount"]      = new("{target}.getPlayerManager().getCurrentPlayerCount()"),
         ["GetMaxPlayers"]       = new("{target}.getPlayerManager().getMaxPlayerCount()"),
         ["RunCommand"]          = new("{target}.getCommandManager().executeWithPrefix({target}.getCommandSource(), {0})"),
-        ["GetTps"]              = new("{target}.getTickTime()"),
+        ["GetTps"]              = new("{target}.getAverageTickTime()"),
         ["GetTicks"]            = new("{target}.getTicks()"),
         ["IsRunning"]           = new("{target}.isRunning()"),
         ["GetVersion"]          = new("{target}.getVersion()"),
@@ -203,7 +203,7 @@ public static class MethodMapper
                                    Imports: ["net.minecraft.text.Text"]),
         ["GetDamage"]       = new("{target}.getDamage()"),
         ["SetDamage"]       = new("{target}.setDamage({0})"),
-        ["AddEnchantment"]  = new("{ var _enchKey = net.minecraft.registry.RegistryKey.of(net.minecraft.registry.RegistryKeys.ENCHANTMENT, Identifier.of({0})); Registries.ENCHANTMENT.getEntry(_enchKey).ifPresent(e -> {target}.addEnchantment(e, {1})); }",
+        ["AddEnchantment"]  = new("/* AddEnchantment({0},{1}) — enchantments require dynamic registry in 1.21.1; access via server.getRegistryManager() */",
                                    Imports: ["net.minecraft.registry.RegistryKey", "net.minecraft.registry.RegistryKeys", "net.minecraft.util.Identifier"]),
         ["GetNbtString"]    = new("{target}.contains(net.minecraft.component.DataComponentTypes.CUSTOM_DATA) ? {target}.get(net.minecraft.component.DataComponentTypes.CUSTOM_DATA).getNbt().getString({0}) : \"\""),
         ["SetNbtString"]    = new("{ var _nbtS = {target}.contains(net.minecraft.component.DataComponentTypes.CUSTOM_DATA) ? {target}.get(net.minecraft.component.DataComponentTypes.CUSTOM_DATA).getNbt().copy() : new NbtCompound(); _nbtS.putString({0}, {1}); {target}.set(net.minecraft.component.DataComponentTypes.CUSTOM_DATA, net.minecraft.component.type.NbtComponent.of(_nbtS)); }",
@@ -312,7 +312,7 @@ public static class MethodMapper
         ["IsInBorder"]      = new("{target}.getWorldBorder().contains(new BlockPos({0},{1},{2}))"),
         ["PlaySound"]       = new("{target}.playSound(null, new BlockPos((int){1}, (int){2}, (int){3}), Registries.SOUND_EVENT.get(Identifier.of({0})), SoundCategory.BLOCKS, 1.0f, 1.0f)",
                                   Imports: ["net.minecraft.sound.SoundCategory", "net.minecraft.registry.Registries", "net.minecraft.util.Identifier"]),
-        ["SpawnParticle"]   = new("{target}.spawnParticles(Registries.PARTICLE_TYPE.get(Identifier.of({0})), {1}, {2}, {3}, {4}, 0, 0, 0, 0)",
+        ["SpawnParticle"]   = new("{target}.spawnParticles((net.minecraft.particle.ParticleEffect)Registries.PARTICLE_TYPE.get(Identifier.of({0})), {1}, {2}, {3}, {4}, 0, 0, 0, 0)",
                                   Imports: ["net.minecraft.registry.Registries", "net.minecraft.util.Identifier"]),
     };
 
@@ -510,8 +510,9 @@ public static class MethodMapper
         ["McRegistry.RegisterIntRule"]      = "GameRuleRegistry.register({0}, GameRules.Category.MISC, GameRuleFactory.createIntRule({1}))",
 
         // Enchantment helpers
-        ["McEnchantment.GetLevel"]      = "EnchantmentHelper.getLevel(Registries.ENCHANTMENT.get(Identifier.of({1})), {0})",
-        ["McEnchantment.HasEnchantment"]= "EnchantmentHelper.getLevel(Registries.ENCHANTMENT.get(Identifier.of({1})), {0}) > 0",
+        // NOTE: Registries.ENCHANTMENT removed in MC 1.21.1 — use server.getRegistryManager().get(RegistryKeys.ENCHANTMENT)
+        ["McEnchantment.GetLevel"]      = "/* McEnchantment.GetLevel — requires dynamic registry in 1.21.1 */",
+        ["McEnchantment.HasEnchantment"]= "false /* McEnchantment.HasEnchantment — requires dynamic registry in 1.21.1 */",
 
         // Block settings factory
         ["McBlockSettings.Create"]      = "AbstractBlock.Settings.create()",
@@ -632,16 +633,16 @@ public static class MethodMapper
 
         // ── PlayerData ────────────────────────────────────────────────────────
         // Overloads handled by suffix: Set(player, key, int) etc.
-        ["PlayerData.Set"]          = "{0}.getCustomData().putInt({1}, {2})",       // int fallback
-        ["PlayerData.GetInt"]       = "({0}.getCustomData().contains({1}) ? {0}.getCustomData().getInt({1}) : {2})",
-        ["PlayerData.GetLong"]      = "({0}.getCustomData().contains({1}) ? {0}.getCustomData().getLong({1}) : {2})",
-        ["PlayerData.GetFloat"]     = "({0}.getCustomData().contains({1}) ? {0}.getCustomData().getFloat({1}) : {2})",
-        ["PlayerData.GetDouble"]    = "({0}.getCustomData().contains({1}) ? {0}.getCustomData().getDouble({1}) : {2})",
-        ["PlayerData.GetBool"]      = "({0}.getCustomData().contains({1}) ? {0}.getCustomData().getBoolean({1}) : {2})",
-        ["PlayerData.GetString"]    = "({0}.getCustomData().contains({1}) ? {0}.getCustomData().getString({1}) : {2})",
-        ["PlayerData.GetBlockPos"]  = "new net.minecraft.util.math.BlockPos({0}.getCustomData().getInt({1} + \"_x\"), {0}.getCustomData().getInt({1} + \"_y\"), {0}.getCustomData().getInt({1} + \"_z\"))",
-        ["PlayerData.Has"]          = "{0}.getCustomData().contains({1})",
-        ["PlayerData.Remove"]       = "{0}.getCustomData().remove({1})",
+        ["PlayerData.Set"]          = "if ({0} instanceof ServerPlayerEntity _spd) { NbtCompound _pdN = ModPlayerData.getPlayerNbt(_spd); _pdN.putInt({1}, {2}); }",
+        ["PlayerData.GetInt"]       = "({0} instanceof ServerPlayerEntity _spgi ? (ModPlayerData.getPlayerNbt(_spgi).contains({1}) ? ModPlayerData.getPlayerNbt(_spgi).getInt({1}) : {2}) : {2})",
+        ["PlayerData.GetLong"]      = "({0} instanceof ServerPlayerEntity _spgl ? (ModPlayerData.getPlayerNbt(_spgl).contains({1}) ? ModPlayerData.getPlayerNbt(_spgl).getLong({1}) : {2}) : {2})",
+        ["PlayerData.GetFloat"]     = "({0} instanceof ServerPlayerEntity _spgf ? (ModPlayerData.getPlayerNbt(_spgf).contains({1}) ? ModPlayerData.getPlayerNbt(_spgf).getFloat({1}) : {2}) : {2})",
+        ["PlayerData.GetDouble"]    = "({0} instanceof ServerPlayerEntity _spgd ? (ModPlayerData.getPlayerNbt(_spgd).contains({1}) ? ModPlayerData.getPlayerNbt(_spgd).getDouble({1}) : {2}) : {2})",
+        ["PlayerData.GetBool"]      = "({0} instanceof ServerPlayerEntity _spgb ? (ModPlayerData.getPlayerNbt(_spgb).contains({1}) ? ModPlayerData.getPlayerNbt(_spgb).getBoolean({1}) : {2}) : {2})",
+        ["PlayerData.GetString"]    = "({0} instanceof ServerPlayerEntity _spgs ? (ModPlayerData.getPlayerNbt(_spgs).contains({1}) ? ModPlayerData.getPlayerNbt(_spgs).getString({1}) : {2}) : {2})",
+        ["PlayerData.GetBlockPos"]  = "({0} instanceof ServerPlayerEntity _spgp ? new net.minecraft.util.math.BlockPos(ModPlayerData.getPlayerNbt(_spgp).getInt({1} + \"_x\"), ModPlayerData.getPlayerNbt(_spgp).getInt({1} + \"_y\"), ModPlayerData.getPlayerNbt(_spgp).getInt({1} + \"_z\")) : BlockPos.ORIGIN)",
+        ["PlayerData.Has"]          = "({0} instanceof ServerPlayerEntity _sph ? ModPlayerData.getPlayerNbt(_sph).contains({1}) : false)",
+        ["PlayerData.Remove"]       = "if ({0} instanceof ServerPlayerEntity _spr) { ModPlayerData.getPlayerNbt(_spr).remove({1}); }",
 
         // ── WorldData ─────────────────────────────────────────────────────────
         ["WorldData.GetInt"]        = "/* WorldData.GetInt — use WorldData-generated PersistentState */",
@@ -691,7 +692,7 @@ public static class MethodMapper
         ["McScoreboard.ResetScore"]      = "{0}.getScoreboard().resetPlayerScore({1}.getEntityName(), {0}.getScoreboard().getNullableObjective({2}))",
         ["McScoreboard.CreateTeam"]      = "{ if ({0}.getScoreboard().getTeam({1}) == null) {0}.getScoreboard().addTeam({1}); }",
         ["McScoreboard.RemoveTeam"]      = "if ({0}.getScoreboard().getTeam({1}) != null) {0}.getScoreboard().removeTeam({0}.getScoreboard().getTeam({1}))",
-        ["McScoreboard.AddPlayerToTeam"] = "{0}.getScoreboard().addPlayerToTeam({1}.getEntityName(), {0}.getScoreboard().getTeam({2}))",
+        ["McScoreboard.AddPlayerToTeam"] = "{ net.minecraft.scoreboard.Team _at2 = {0}.getScoreboard().getTeam({2}); if (_at2 != null && !_at2.getPlayerList().contains({1}.getName().getString())) _at2.getPlayerList().add({1}.getName().getString()); }",
         ["McScoreboard.RemovePlayerFromTeam"] = "{0}.getScoreboard().removePlayerFromTeam({1}.getEntityName(), {0}.getScoreboard().getPlayerTeam({1}.getEntityName()))",
         ["McScoreboard.GetPlayerTeam"]   = "({0}.getScoreboard().getPlayerTeam({1}.getEntityName()) != null ? {0}.getScoreboard().getPlayerTeam({1}.getEntityName()).getName() : null)",
         ["McScoreboard.SetTeamPrefix"]   = "{ var _t = {0}.getScoreboard().getTeam({1}); if (_t != null) _t.setPrefix(Text.literal({2})); }",
@@ -770,7 +771,7 @@ public static class MethodMapper
         ["McServer.OnlinePlayers"]  = "{target}.getPlayerManager().getPlayerList()",
         ["McServer.PlayerCount"]    = "{target}.getPlayerManager().getCurrentPlayerCount()",
         ["McServer.MaxPlayers"]     = "{target}.getPlayerManager().getMaxPlayerCount()",
-        ["McServer.Tps"]            = "{target}.getTickTime()",
+        ["McServer.Tps"]            = "{target}.getAverageTickTime()",
         ["McServer.Version"]        = "{target}.getVersion()",
         ["McServer.IsRunning"]      = "{target}.isRunning()",
         ["McServer.Motd"]           = "{target}.getServerMotd()",
@@ -787,7 +788,7 @@ public static class MethodMapper
         ["McEntity.Y"]              = "{target}.getY()",
         ["McEntity.Z"]              = "{target}.getZ()",
         ["McEntity.BlockPos"]       = "{target}.getBlockPos()",
-        ["McEntity.World"]          = "{target}.getWorld()",
+        ["McEntity.World"]          = "((ServerWorld){target}.getWorld())",
         ["McEntity.IsAlive"]        = "{target}.isAlive()",
         ["McEntity.IsOnGround"]     = "{target}.isOnGround()",
         ["McEntity.IsOnFire"]       = "{target}.isOnFire()",

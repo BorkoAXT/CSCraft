@@ -137,7 +137,7 @@ public static class ImportMapper
         ["ServerEntityEvents"]          = "net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents",
         ["ServerLivingEntityEvents"]    = "net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents",
         ["ServerChunkEvents"]           = "net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents",
-        ["EntityPickupItemEvents"]      = "net.fabricmc.fabric.api.entity.event.v1.EntityPickupItemEvents",
+        // EntityPickupItemEvents removed in Fabric API 1.21.1
         ["ServerPlayerEvents"]          = "net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents",
         ["CommandRegistrationCallback"] = "net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback",
         ["CommandManager"]              = "net.fabricmc.fabric.api.command.v2.CommandManager",

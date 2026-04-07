@@ -278,10 +278,17 @@ public class JavaEmitter : CSharpSyntaxWalker
         string expr     = EmitExpression(node.Expression);
         _w.Line($"{_stmtIndent}for ({javaType} {varName} : {expr}) {{");
 
+        string csType = node.Type.ToString();
+        bool hadType = _localTypes.TryGetValue(varName, out var prevType);
+        _localTypes[varName] = csType;
+
         string outer = _stmtIndent;
         _stmtIndent = outer + "    ";
         Visit(node.Statement);
         _stmtIndent = outer;
+
+        if (hadType) _localTypes[varName] = prevType!;
+        else _localTypes.Remove(varName);
 
         _w.Line($"{outer}}}");
     }
