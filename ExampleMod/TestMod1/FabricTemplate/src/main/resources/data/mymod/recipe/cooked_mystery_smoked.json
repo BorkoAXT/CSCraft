@@ -1,0 +1,7 @@
+{
+  "type": "minecraft:smoking",
+  "ingredient": { "item": "minecraft:rotten_flesh" },
+  "result": { "id": "examplemod:cooked_mystery" },
+  "experience": 0.1,
+  "cookingtime": 100
+}

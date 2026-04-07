@@ -1,0 +1,16 @@
+{
+  "block.examplemod.ruby_block": "Ruby Block",
+  "block.examplemod.ruby_ore": "Ruby Ore",
+  "item.examplemod.cooked_mystery": "Cooked Mystery",
+  "item.examplemod.ruby": "Ruby",
+  "item.examplemod.ruby_axe": "Ruby Axe",
+  "item.examplemod.ruby_boots": "Ruby Boots",
+  "item.examplemod.ruby_chestplate": "Ruby Chestplate",
+  "item.examplemod.ruby_helmet": "Ruby Helmet",
+  "item.examplemod.ruby_hoe": "Ruby Hoe",
+  "item.examplemod.ruby_leggings": "Ruby Leggings",
+  "item.examplemod.ruby_pickaxe": "Ruby Pickaxe",
+  "item.examplemod.ruby_shard": "Ruby Shard",
+  "item.examplemod.ruby_shovel": "Ruby Shovel",
+  "item.examplemod.ruby_sword": "Ruby Sword"
+}

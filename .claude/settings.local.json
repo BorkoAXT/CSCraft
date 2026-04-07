@@ -16,7 +16,14 @@
       "Bash(set \"JAVA_HOME=C:\\\\Program Files\\\\Eclipse Adoptium\\\\jdk-21.0.10.7-hotspot\")",
       "Bash(./gradlew.bat compileJava)",
       "Read(//home/borkoaxt/Downloads/**)",
-      "Bash(python3 -c ':*)"
+      "Bash(python3 -c ':*)",
+      "Read(//run/host/usr/bin/**)",
+      "Read(//usr/bin/**)",
+      "Bash(/run/host/usr/bin/dotnet --version)",
+      "Bash(flatpak-spawn --host dotnet --version)",
+      "Bash(flatpak-spawn --host dotnet build Transpiler/Transpiler.csproj -c Release --nologo)",
+      "Bash(flatpak-spawn --host dotnet build BuildTask/BuildTask.csproj -c Release --nologo)",
+      "Bash(flatpak-spawn --host dotnet pack CSCraft.Sdk/CSCraft.Sdk.csproj -o nupkg --nologo)"
     ]
   }
 }

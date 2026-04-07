@@ -1,0 +1,6 @@
+{
+  "type": "minecraft:stonecutting",
+  "ingredient": { "item": "examplemod:ruby_block" },
+  "result": "examplemod:ruby_slab",
+  "count": 2
+}

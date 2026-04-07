@@ -70,6 +70,7 @@ if (fabricPath == null)
     return 0;
 }
 
+
 Console.WriteLine("\nRunning Gradle build...");
 
 string gradlew = Path.Combine(fabricPath, OperatingSystem.IsWindows() ? "gradlew.bat" : "gradlew");
