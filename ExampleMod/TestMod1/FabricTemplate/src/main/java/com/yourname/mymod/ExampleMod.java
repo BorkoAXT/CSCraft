@@ -306,10 +306,10 @@ public class ExampleMod implements ModInitializer {
                 player.sendMessage(Text.literal("Inventory slots: " + inv.size()));
             }
             if (message.equals("!armor")) {
-                player.sendMessage(Text.literal("Helmet: " + player.getEquippedStack(net.minecraft.entity.EquipmentSlot.HEAD).getItem()));
-                player.sendMessage(Text.literal("Chest: " + player.getEquippedStack(net.minecraft.entity.EquipmentSlot.CHEST).getItem()));
-                player.sendMessage(Text.literal("Legs: " + player.getEquippedStack(net.minecraft.entity.EquipmentSlot.LEGS).getItem()));
-                player.sendMessage(Text.literal("Boots: " + player.getEquippedStack(net.minecraft.entity.EquipmentSlot.FEET).getItem()));
+                player.sendMessage(Text.literal("Helmet: " + Registries.ITEM.getId(player.getEquippedStack(net.minecraft.entity.EquipmentSlot.HEAD).getItem()).toString()));
+                player.sendMessage(Text.literal("Chest: " + Registries.ITEM.getId(player.getEquippedStack(net.minecraft.entity.EquipmentSlot.CHEST).getItem()).toString()));
+                player.sendMessage(Text.literal("Legs: " + Registries.ITEM.getId(player.getEquippedStack(net.minecraft.entity.EquipmentSlot.LEGS).getItem()).toString()));
+                player.sendMessage(Text.literal("Boots: " + Registries.ITEM.getId(player.getEquippedStack(net.minecraft.entity.EquipmentSlot.FEET).getItem()).toString()));
             }
             if (message.equals("!border")) {
                 ServerWorld world = ((ServerWorld)player.getWorld());
@@ -333,8 +333,8 @@ public class ExampleMod implements ModInitializer {
             if (message.equals("!enchant")) {
                 ItemStack sword = player.getMainHandStack();
                 if (!sword.isEmpty()) {
-                    /* AddEnchantment("minecraft:sharpness",5) — enchantments require dynamic registry in 1.21.1; access via server.getRegistryManager() */;
-                    /* AddEnchantment("minecraft:unbreaking",3) — enchantments require dynamic registry in 1.21.1; access via server.getRegistryManager() */;
+                    { var _aeReg = server.getRegistryManager().get(net.minecraft.registry.RegistryKeys.ENCHANTMENT); var _aeKey = net.minecraft.registry.RegistryKey.of(net.minecraft.registry.RegistryKeys.ENCHANTMENT, net.minecraft.util.Identifier.of("minecraft:sharpness")); _aeReg.getEntry(_aeKey).ifPresent(_aeEnch -> sword.addEnchantment(_aeEnch, 5)); };
+                    { var _aeReg = server.getRegistryManager().get(net.minecraft.registry.RegistryKeys.ENCHANTMENT); var _aeKey = net.minecraft.registry.RegistryKey.of(net.minecraft.registry.RegistryKeys.ENCHANTMENT, net.minecraft.util.Identifier.of("minecraft:unbreaking")); _aeReg.getEntry(_aeKey).ifPresent(_aeEnch -> sword.addEnchantment(_aeEnch, 3)); };
                     player.sendMessage(Text.literal("Enchanted your held item!"));
                 } else {
                     player.sendMessage(Text.literal("Hold an item to enchant."));
@@ -412,8 +412,8 @@ public class ExampleMod implements ModInitializer {
             LOGGER.info("ExampleMod initialized!");
             { var _sb = server.getScoreboard(); if (_sb.getNullableObjective("kills") == null) _sb.addObjective("kills", ScoreboardCriterion.DUMMY, Text.literal("Kills"), ScoreboardCriterion.RenderType.INTEGER, false, null); };
             server.getScoreboard().setObjectiveSlot(ScoreboardDisplaySlot.SIDEBAR, server.getScoreboard().getNullableObjective("kills"));
-            { int _delay = 200; server.execute(() -> { try { Thread.sleep(_delay * 50L); } catch (Exception _e) {} }); };
-            /* McScheduler.RunRepeating(server, 6000) — use ServerTickEvents for repeating tasks */;
+            { final int[] _rltick = new int[1]; ServerTickEvents.END_SERVER_TICK.register(_rlserv -> { if (++_rltick[0] == 200) { MinecraftServer s = _rlserv; s.getPlayerManager().broadcast(Text.literal("ExampleMod is ready! Type !effects, /kit, or /info."), false); } }); };
+            { final int[] _rrtick = new int[1]; final boolean[] _rrcancelled = new boolean[1]; ServerTickEvents.END_SERVER_TICK.register(_rrserv -> { if (_rrcancelled[0]) return; if (++_rrtick[0] >= 6000) { _rrtick[0] = 0; MinecraftServer s = _rrserv; Runnable cancel = () -> _rrcancelled[0] = true; if (s.getPlayerManager().getCurrentPlayerCount() > 0) { s.getPlayerManager().broadcast(Text.literal("Reminder: Type /kit for a free ruby kit!"), false); } } }); };
         });
         ServerLifecycleEvents.SERVER_STOPPING.register((server) -> {
             LOGGER.info("ExampleMod shutting down.");

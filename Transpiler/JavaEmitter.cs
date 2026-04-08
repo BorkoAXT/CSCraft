@@ -319,6 +319,8 @@ public class JavaEmitter : CSharpSyntaxWalker
         IsPatternExpressionSyntax isp           => EmitIsPattern(isp),
         LambdaExpressionSyntax lam              => EmitLambda(lam),
         ThrowExpressionSyntax thr               => $"throw {EmitExpression(thr.Expression)}",
+        ArrayCreationExpressionSyntax arr       => EmitArrayCreation(arr),
+        ImplicitArrayCreationExpressionSyntax iarr => EmitImplicitArrayCreation(iarr),
         _ => UnknownExpr(expr),
     };
 
@@ -370,6 +372,10 @@ public class JavaEmitter : CSharpSyntaxWalker
         string fullExpr = inv.Expression.ToString();
         if (fullExpr.StartsWith("McCommand."))
             return EmitCommandRegistration(inv);
+
+        // Special handling for McScheduler.RunLater / RunRepeating
+        if (fullExpr is "McScheduler.RunLater" or "McScheduler.RunRepeating")
+            return EmitSchedulerCall(inv, fullExpr);
 
         var args = inv.ArgumentList.Arguments.Select(a => EmitExpression(a.Expression)).ToArray();
 
@@ -532,6 +538,49 @@ public class JavaEmitter : CSharpSyntaxWalker
         }
     }
 
+    private string EmitSchedulerCall(InvocationExpressionSyntax inv, string method)
+    {
+        var rawArgs = inv.ArgumentList.Arguments;
+        if (rawArgs.Count < 3)
+            return $"/* {method}: expected 3 arguments */";
+
+        string ticksArg = EmitExpression(rawArgs[1].Expression);
+
+        var lambdaArg = rawArgs[2].Expression as LambdaExpressionSyntax;
+        if (lambdaArg == null)
+            return $"/* {method}: third argument must be a lambda */";
+
+        string[] paramNames = lambdaArg switch
+        {
+            SimpleLambdaExpressionSyntax sl => new[] { sl.Parameter.Identifier.Text },
+            ParenthesizedLambdaExpressionSyntax pl =>
+                pl.ParameterList.Parameters.Select(p => p.Identifier.Text).ToArray(),
+            _ => new[] { "s" },
+        };
+
+        string sVar = paramNames.Length > 0 ? paramNames[0] : "s";
+        _localTypes[sVar] = "McServer";
+
+        string body = "";
+        if (lambdaArg.Block != null)
+            body = string.Join(" ", lambdaArg.Block.Statements.Select(s => EmitStatementInline(s)));
+        else if (lambdaArg.ExpressionBody != null)
+            body = EmitExpression(lambdaArg.ExpressionBody) + ";";
+
+        _imports.Add("net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents");
+        _imports.Add("net.minecraft.server.MinecraftServer");
+
+        if (method == "McScheduler.RunLater")
+        {
+            return $"{{ final int[] _rltick = new int[1]; ServerTickEvents.END_SERVER_TICK.register(_rlserv -> {{ if (++_rltick[0] == {ticksArg}) {{ MinecraftServer {sVar} = _rlserv; {body} }} }}); }}";
+        }
+        else // RunRepeating
+        {
+            string cancelVar = paramNames.Length > 1 ? paramNames[1] : "_cancel";
+            return $"{{ final int[] _rrtick = new int[1]; final boolean[] _rrcancelled = new boolean[1]; ServerTickEvents.END_SERVER_TICK.register(_rrserv -> {{ if (_rrcancelled[0]) return; if (++_rrtick[0] >= {ticksArg}) {{ _rrtick[0] = 0; MinecraftServer {sVar} = _rrserv; Runnable {cancelVar} = () -> _rrcancelled[0] = true; {body} }} }}); }}";
+        }
+    }
+
     private string EmitObjectCreation(ObjectCreationExpressionSyntax oc)
     {
         string csType = oc.Type.ToString();
@@ -550,6 +599,26 @@ public class JavaEmitter : CSharpSyntaxWalker
         string javaType = MapTypeName(csType);
         _imports.AddForCsType(csType);
         return $"new {javaType}({string.Join(", ", args)})";
+    }
+
+    private string EmitArrayCreation(ArrayCreationExpressionSyntax arr)
+    {
+        string elemType = MapTypeName(arr.Type.ElementType.ToString());
+        if (arr.Initializer != null)
+        {
+            var elems = arr.Initializer.Expressions.Select(e => EmitExpression(e));
+            return $"new {elemType}{{{string.Join(", ", elems)}}}";
+        }
+        // new T[N] without initializer
+        var rankSizes = arr.Type.RankSpecifiers.SelectMany(r => r.Sizes).Select(s => EmitExpression(s));
+        return $"new {elemType}[{string.Join(", ", rankSizes)}]";
+    }
+
+    private string EmitImplicitArrayCreation(ImplicitArrayCreationExpressionSyntax iarr)
+    {
+        // new[] { ... } — emit as Object[] since we don't know the element type
+        var elems = iarr.Initializer.Expressions.Select(e => EmitExpression(e));
+        return $"new Object[]{{{string.Join(", ", elems)}}}";
     }
 
     private string EmitAssignment(AssignmentExpressionSyntax asgn)
@@ -809,6 +878,13 @@ public class JavaEmitter : CSharpSyntaxWalker
     {
         if (expr is IdentifierNameSyntax id && _localTypes.TryGetValue(id.Identifier.Text, out var t))
             return t;
+        if (expr is MemberAccessExpressionSyntax propMae)
+        {
+            string ownerType = ResolveType(propMae.Expression);
+            string propName  = propMae.Name.Identifier.Text;
+            string? retType  = MethodMapper.GetPropertyReturnType(ownerType, propName);
+            if (retType != null) return retType;
+        }
         return expr.ToString();
     }
 

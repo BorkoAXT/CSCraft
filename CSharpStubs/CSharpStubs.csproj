@@ -3,10 +3,10 @@
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
+    <Nullable>disable</Nullable>
     <!-- These stubs are never compiled into a real mod — only used for IDE support -->
     <!-- Suppress CS0414: events are assigned null! as placeholders and never raised here -->
-    <NoWarn>CS0414</NoWarn>
+    <NoWarn>CS0414;CS8632</NoWarn>
   </PropertyGroup>
 
 </Project>

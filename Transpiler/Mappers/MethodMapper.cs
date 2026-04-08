@@ -203,7 +203,7 @@ public static class MethodMapper
                                    Imports: ["net.minecraft.text.Text"]),
         ["GetDamage"]       = new("{target}.getDamage()"),
         ["SetDamage"]       = new("{target}.setDamage({0})"),
-        ["AddEnchantment"]  = new("/* AddEnchantment({0},{1}) — enchantments require dynamic registry in 1.21.1; access via server.getRegistryManager() */",
+        ["AddEnchantment"]  = new("{ var _aeReg = server.getRegistryManager().get(net.minecraft.registry.RegistryKeys.ENCHANTMENT); var _aeKey = net.minecraft.registry.RegistryKey.of(net.minecraft.registry.RegistryKeys.ENCHANTMENT, net.minecraft.util.Identifier.of({0})); _aeReg.getEntry(_aeKey).ifPresent(_aeEnch -> {target}.addEnchantment(_aeEnch, {1})); }",
                                    Imports: ["net.minecraft.registry.RegistryKey", "net.minecraft.registry.RegistryKeys", "net.minecraft.util.Identifier"]),
         ["GetNbtString"]    = new("{target}.contains(net.minecraft.component.DataComponentTypes.CUSTOM_DATA) ? {target}.get(net.minecraft.component.DataComponentTypes.CUSTOM_DATA).getNbt().getString({0}) : \"\""),
         ["SetNbtString"]    = new("{ var _nbtS = {target}.contains(net.minecraft.component.DataComponentTypes.CUSTOM_DATA) ? {target}.get(net.minecraft.component.DataComponentTypes.CUSTOM_DATA).getNbt().copy() : new NbtCompound(); _nbtS.putString({0}, {1}); {target}.set(net.minecraft.component.DataComponentTypes.CUSTOM_DATA, net.minecraft.component.type.NbtComponent.of(_nbtS)); }",
@@ -407,6 +407,17 @@ public static class MethodMapper
         ["GetSignLine"]     = new("{target} instanceof net.minecraft.block.entity.SignBlockEntity _sbe ? _sbe.getFrontText().getMessage({0}, false).getString() : \"\""),
     };
 
+    // ── McGameRule<T> ─────────────────────────────────────────────────────────
+
+    private static readonly Dictionary<string, MethodMapping> GameRuleMethods = new()
+    {
+        // GetValue(server) — returns the raw BooleanRule or IntRule object
+        // For bool: call .get() on BooleanRule; for int: call .getValue() on IntRule
+        // The emitted code lets Java infer via var — user should assign to var or specific type
+        ["GetValue"] = new("{1}.getGameRules().get({target})"),
+        ["SetValue"] = new("{1}.getGameRules().get({target}).set({2}, {1})"),
+    };
+
     // ── Static method calls (Math.X, Console.X, McRegistry.X, etc.) ──────────
 
     public static readonly Dictionary<string, string> StaticMethods = new()
@@ -509,10 +520,9 @@ public static class MethodMapper
         ["McRegistry.RegisterBoolRule"]     = "GameRuleRegistry.register({0}, GameRules.Category.MISC, GameRuleFactory.createBooleanRule({1}))",
         ["McRegistry.RegisterIntRule"]      = "GameRuleRegistry.register({0}, GameRules.Category.MISC, GameRuleFactory.createIntRule({1}))",
 
-        // Enchantment helpers
-        // NOTE: Registries.ENCHANTMENT removed in MC 1.21.1 — use server.getRegistryManager().get(RegistryKeys.ENCHANTMENT)
-        ["McEnchantment.GetLevel"]      = "/* McEnchantment.GetLevel — requires dynamic registry in 1.21.1 */",
-        ["McEnchantment.HasEnchantment"]= "false /* McEnchantment.HasEnchantment — requires dynamic registry in 1.21.1 */",
+        // Enchantment helpers (MC 1.21.1 — uses dynamic registry via server.getRegistryManager())
+        ["McEnchantment.GetLevel"]      = "server.getRegistryManager().get(net.minecraft.registry.RegistryKeys.ENCHANTMENT).getEntry(net.minecraft.registry.RegistryKey.of(net.minecraft.registry.RegistryKeys.ENCHANTMENT, net.minecraft.util.Identifier.of({1}))).map(_glEnch -> net.minecraft.enchantment.EnchantmentHelper.getLevel(_glEnch, {0})).orElse(0)",
+        ["McEnchantment.HasEnchantment"]= "server.getRegistryManager().get(net.minecraft.registry.RegistryKeys.ENCHANTMENT).getEntry(net.minecraft.registry.RegistryKey.of(net.minecraft.registry.RegistryKeys.ENCHANTMENT, net.minecraft.util.Identifier.of({1}))).map(_heEnch -> net.minecraft.enchantment.EnchantmentHelper.getLevel(_heEnch, {0}) > 0).orElse(false)",
 
         // Block settings factory
         ["McBlockSettings.Create"]      = "AbstractBlock.Settings.create()",
@@ -700,6 +710,45 @@ public static class MethodMapper
         ["McScoreboard.SetTeamColor"]    = "{ var _t3 = {0}.getScoreboard().getTeam({1}); if (_t3 != null) _t3.setColor(net.minecraft.util.Formatting.byName({2})); }",
         ["McScoreboard.SetFriendlyFire"] = "{ var _t4 = {0}.getScoreboard().getTeam({1}); if (_t4 != null) _t4.setFriendlyFireAllowed({2}); }",
 
+        // ── McParticles constants ─────────────────────────────────────────────
+        // C# const strings — emit as Java string literals so SpawnParticle gets proper "minecraft:xxx"
+        ["McParticles.Flame"]         = "\"minecraft:flame\"",
+        ["McParticles.Smoke"]         = "\"minecraft:smoke\"",
+        ["McParticles.LargeSmoke"]    = "\"minecraft:large_smoke\"",
+        ["McParticles.Explosion"]     = "\"minecraft:explosion\"",
+        ["McParticles.HugeExplosion"] = "\"minecraft:explosion_emitter\"",
+        ["McParticles.Heart"]         = "\"minecraft:heart\"",
+        ["McParticles.AngryVillager"] = "\"minecraft:angry_villager\"",
+        ["McParticles.HappyVillager"] = "\"minecraft:happy_villager\"",
+        ["McParticles.Crit"]          = "\"minecraft:crit\"",
+        ["McParticles.MagicCrit"]     = "\"minecraft:enchanted_hit\"",
+        ["McParticles.Splash"]        = "\"minecraft:splash\"",
+        ["McParticles.Portal"]        = "\"minecraft:portal\"",
+        ["McParticles.EnchantTable"]  = "\"minecraft:enchant\"",
+        ["McParticles.Witch"]         = "\"minecraft:witch\"",
+        ["McParticles.Slime"]         = "\"minecraft:item_slime\"",
+        ["McParticles.Snow"]          = "\"minecraft:snowflake\"",
+        ["McParticles.Lava"]          = "\"minecraft:lava\"",
+        ["McParticles.End"]           = "\"minecraft:end_rod\"",
+        ["McParticles.Dragon"]        = "\"minecraft:dragon_breath\"",
+        ["McParticles.Bubble"]        = "\"minecraft:bubble\"",
+        ["McParticles.Squid"]         = "\"minecraft:squid_ink\"",
+        ["McParticles.Nautilus"]      = "\"minecraft:nautilus\"",
+        ["McParticles.Note"]          = "\"minecraft:note\"",
+        ["McParticles.XP"]            = "\"minecraft:experience_orb\"",
+        ["McParticles.Campfire"]      = "\"minecraft:campfire_cosy_smoke\"",
+        ["McParticles.Dust"]          = "\"minecraft:dust\"",
+        ["McParticles.Falling"]       = "\"minecraft:falling_dust\"",
+        ["McParticles.Totem"]         = "\"minecraft:totem_of_undying\"",
+        ["McParticles.Warped"]        = "\"minecraft:warped_spore\"",
+        ["McParticles.Crimson"]       = "\"minecraft:crimson_spore\"",
+        ["McParticles.Glow"]          = "\"minecraft:glow\"",
+        ["McParticles.Wax"]           = "\"minecraft:wax_on\"",
+        ["McParticles.Electric"]      = "\"minecraft:electric_spark\"",
+        ["McParticles.Scrape"]        = "\"minecraft:scrape\"",
+        ["McParticles.Sonic"]         = "\"minecraft:sonic_boom\"",
+        ["McParticles.Cherry"]        = "\"minecraft:cherry_leaves\"",
+
         // ── McScheduler static ────────────────────────────────────────────────
         ["McScheduler.RunLater"]      = "{ int _delay = {1}; {0}.execute(() -> { try { Thread.sleep(_delay * 50L); } catch (Exception _e) {} }); }",
         ["McScheduler.RunAsync"]      = "java.util.concurrent.CompletableFuture.runAsync(() -> {1})",
@@ -855,6 +904,34 @@ public static class MethodMapper
         ["McBlockEntity.IsHopper"]  = "{target} instanceof net.minecraft.block.entity.HopperBlockEntity",
     };
 
+    // ── Property return-type table ────────────────────────────────────────────
+    // Allows the emitter to resolve method calls on property expressions like player.Helmet.GetItem()
+
+    private static readonly Dictionary<string, string> PropertyReturnTypes = new()
+    {
+        ["McPlayer.MainHandItem"]   = "McItemStack",
+        ["McPlayer.OffHandItem"]    = "McItemStack",
+        ["McPlayer.Helmet"]         = "McItemStack",
+        ["McPlayer.Chestplate"]     = "McItemStack",
+        ["McPlayer.Leggings"]       = "McItemStack",
+        ["McPlayer.Boots"]          = "McItemStack",
+        ["McEntity.MainHandItem"]   = "McItemStack",
+        ["McPlayer.World"]          = "McWorld",
+        ["McEntity.World"]          = "McWorld",
+        ["McCommandSource.Player"]  = "McPlayer",
+        ["McCommandSource.Server"]  = "McServer",
+    };
+
+    /// <summary>
+    /// Returns the C# return type of a property access, or null if unknown.
+    /// Used so the emitter can resolve method calls on the result of property accesses.
+    /// </summary>
+    public static string? GetPropertyReturnType(string csTypeName, string propertyName)
+    {
+        string key = $"{csTypeName}.{propertyName}";
+        return PropertyReturnTypes.TryGetValue(key, out var t) ? t : null;
+    }
+
     // ── Public lookup API ─────────────────────────────────────────────────────
 
     /// <summary>
@@ -923,6 +1000,7 @@ public static class MethodMapper
         "McBossBar" or "ServerBossBar"                     => BossBarMethods,
         "McInventory" or "Inventory"                       => InventoryMethods,
         "McBlockEntity" or "BlockEntity"                   => BlockEntityMethods,
+        _ when csType.StartsWith("McGameRule")             => GameRuleMethods,
         _ => null
     };
 
