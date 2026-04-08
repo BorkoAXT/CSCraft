@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>JavaDetranspiler</AssemblyName>
+    <RootNamespace>CSCraft.Detranspiler</RootNamespace>
+
+    <!-- NuGet dotnet tool package -->
+    <PackageId>CSCraft.Detranspiler</PackageId>
+    <Version>1.0.0</Version>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>cscraft-decompile</ToolCommandName>
+    <PackageOutputPath>../nupkg</PackageOutputPath>
+
+    <Title>CSCraft Detranspiler — Convert Java Fabric Mods to C#</Title>
+    <Description>Command-line tool that converts Minecraft Fabric mod Java source files into C# using the CSCraft SDK API. Run 'cscraft-decompile MyMod.java' to get a first-draft C# mod file.</Description>
+    <Authors>CSCraft</Authors>
+    <PackageTags>minecraft;fabric;mod;transpiler;cscraft;java;csharp;decompile</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+  </PropertyGroup>
+
+</Project>
