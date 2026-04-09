@@ -448,6 +448,9 @@ public static class MethodMapper
 
         // Block registration
         ["McRegistry.RegisterBlock"]    = "Registry.register(Registries.BLOCK, Identifier.of({0}), new Block(AbstractBlock.Settings.create().strength({1})))",
+        // RegisterBlock(id, hardness, tool, level) — tool/level handled by block tags; we just add requiresTool()
+        ["McRegistry.RegisterBlock/3"]  = "Registry.register(Registries.BLOCK, Identifier.of({0}), new Block(AbstractBlock.Settings.create().strength({1}).requiresTool()))",
+        ["McRegistry.RegisterBlock/4"]  = "Registry.register(Registries.BLOCK, Identifier.of({0}), new Block(AbstractBlock.Settings.create().strength({1}).requiresTool()))",
         ["McRegistry.RegisterBlockWithSettings"] = "Registry.register(Registries.BLOCK, Identifier.of({0}), new Block({1}))",
 
         // Item registration
@@ -909,6 +912,7 @@ public static class MethodMapper
 
     private static readonly Dictionary<string, string> PropertyReturnTypes = new()
     {
+        // McItemStack sources
         ["McPlayer.MainHandItem"]   = "McItemStack",
         ["McPlayer.OffHandItem"]    = "McItemStack",
         ["McPlayer.Helmet"]         = "McItemStack",
@@ -916,10 +920,20 @@ public static class MethodMapper
         ["McPlayer.Leggings"]       = "McItemStack",
         ["McPlayer.Boots"]          = "McItemStack",
         ["McEntity.MainHandItem"]   = "McItemStack",
+        // McWorld sources
         ["McPlayer.World"]          = "McWorld",
         ["McEntity.World"]          = "McWorld",
-        ["McCommandSource.Player"]  = "McPlayer",
+        ["McServer.Overworld"]      = "McWorld",
+        ["McServer.Nether"]         = "McWorld",
+        ["McServer.End"]            = "McWorld",
+        // McServer sources
+        ["McPlayer.Server"]         = "McServer",
+        ["McWorld.Server"]          = "McServer",
         ["McCommandSource.Server"]  = "McServer",
+        // McPlayer sources
+        ["McCommandSource.Player"]  = "McPlayer",
+        // McInventory sources
+        ["McPlayer.Inventory"]      = "McInventory",
     };
 
     /// <summary>

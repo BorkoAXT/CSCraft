@@ -53,12 +53,19 @@ public static class RecipeGenerator
                 string? json = method switch
                 {
                     "RegisterShaped"      => BuildShaped(args, warnings, line),
+                    "AddShaped"           => BuildAddShaped(args, warnings, line),
                     "RegisterShapeless"   => BuildShapeless(args, warnings, line),
-                    "RegisterSmelting"    => BuildCooking("minecraft:smelting", args, warnings, line),
-                    "RegisterBlasting"    => BuildCooking("minecraft:blasting", args, warnings, line),
-                    "RegisterSmoking"     => BuildCooking("minecraft:smoking", args, warnings, line),
-                    "RegisterCampfire"    => BuildCooking("minecraft:campfire_cooking", args, warnings, line),
+                    "AddShapeless"        => BuildAddShapeless(args, warnings, line),
+                    "RegisterSmelting"    => BuildCooking("minecraft:smelting", args, warnings, line, ticksNotSeconds: false),
+                    "AddSmelting"         => BuildCooking("minecraft:smelting", args, warnings, line, ticksNotSeconds: true),
+                    "RegisterBlasting"    => BuildCooking("minecraft:blasting", args, warnings, line, ticksNotSeconds: false),
+                    "AddBlasting"         => BuildCooking("minecraft:blasting", args, warnings, line, ticksNotSeconds: true),
+                    "RegisterSmoking"     => BuildCooking("minecraft:smoking", args, warnings, line, ticksNotSeconds: false),
+                    "AddSmoking"          => BuildCooking("minecraft:smoking", args, warnings, line, ticksNotSeconds: true),
+                    "RegisterCampfire"    => BuildCooking("minecraft:campfire_cooking", args, warnings, line, ticksNotSeconds: false),
+                    "AddCampfire"         => BuildCooking("minecraft:campfire_cooking", args, warnings, line, ticksNotSeconds: true),
                     "RegisterStonecutting"=> BuildStonecutting(args, warnings, line),
+                    "AddStonecutting"     => BuildStonecutting(args, warnings, line),
                     _                    => null,
                 };
 
@@ -150,6 +157,70 @@ public static class RecipeGenerator
         return sb.ToString();
     }
 
+    // ── AddShaped (flat variadic API) ─────────────────────────────────────────
+
+    // AddShaped(string id, string resultId, int count, params object[] rest)
+    // rest = [row1, row2?, row3?, 'K', "item:id", ...]
+    private static string? BuildAddShaped(
+        SeparatedSyntaxList<ArgumentSyntax> args,
+        List<string> warnings,
+        int line)
+    {
+        if (args.Count < 4)
+            throw new RecipeArgException("expected at least 4 arguments: id, resultId, count, rows...");
+
+        string resultId = RequireString(args[1].Expression, "resultId");
+        int count       = RequireInt(args[2].Expression, "count");
+
+        // rest args (index 3+): strings = pattern rows, then alternating char+string = key pairs
+        var pattern  = new List<string>();
+        var keyMap   = new Dictionary<char, string>();
+        int i = 3;
+        // Collect pattern rows (strings first)
+        while (i < args.Count)
+        {
+            var rowStr = TryGetString(args[i].Expression);
+            if (rowStr != null) { pattern.Add(rowStr); i++; }
+            else break;
+        }
+        // Collect key pairs
+        while (i + 1 < args.Count)
+        {
+            var keyExpr = args[i].Expression as LiteralExpressionSyntax;
+            if (keyExpr == null || !keyExpr.IsKind(SyntaxKind.CharacterLiteralExpression))
+                break;
+            char k = keyExpr.Token.ValueText[0];
+            string v = RequireString(args[i + 1].Expression, $"key value for '{k}'");
+            keyMap[k] = v;
+            i += 2;
+        }
+        if (pattern.Count == 0)
+            throw new RecipeArgException("no pattern rows found — provide at least one string row");
+
+        var sb = new StringBuilder();
+        sb.AppendLine("{");
+        sb.AppendLine("  \"type\": \"minecraft:crafting_shaped\",");
+        sb.AppendLine("  \"pattern\": [");
+        for (int r = 0; r < pattern.Count; r++)
+            sb.AppendLine($"    \"{EscapeJson(pattern[r])}\"{(r < pattern.Count - 1 ? "," : "")}");
+        sb.AppendLine("  ],");
+        sb.AppendLine("  \"key\": {");
+        int ki = 0;
+        foreach (var kvp in keyMap)
+        {
+            string comma = ki < keyMap.Count - 1 ? "," : "";
+            sb.AppendLine($"    \"{kvp.Key}\": {{ \"item\": \"{EscapeJson(kvp.Value)}\" }}{comma}");
+            ki++;
+        }
+        sb.AppendLine("  },");
+        sb.AppendLine("  \"result\": {");
+        sb.AppendLine($"    \"id\": \"{EscapeJson(resultId)}\",");
+        sb.AppendLine($"    \"count\": {count}");
+        sb.AppendLine("  }");
+        sb.Append("}");
+        return sb.ToString();
+    }
+
     // ── Shapeless ─────────────────────────────────────────────────────────────
 
     // RegisterShapeless(string id, string[] ingredients, string resultId, int count = 1)
@@ -183,14 +254,48 @@ public static class RecipeGenerator
         return sb.ToString();
     }
 
+    // ── AddShapeless (flat variadic API) ─────────────────────────────────────
+
+    // AddShapeless(string id, string resultId, int count, params string[] ingredients)
+    private static string? BuildAddShapeless(
+        SeparatedSyntaxList<ArgumentSyntax> args,
+        List<string> warnings,
+        int line)
+    {
+        if (args.Count < 4)
+            throw new RecipeArgException("expected at least 4 arguments: id, resultId, count, ingredient...");
+
+        string resultId          = RequireString(args[1].Expression, "resultId");
+        int    count             = RequireInt(args[2].Expression, "count");
+        var    ingredients       = new List<string>();
+        for (int i = 3; i < args.Count; i++)
+            ingredients.Add(RequireString(args[i].Expression, $"ingredient[{i - 3}]"));
+
+        var sb = new StringBuilder();
+        sb.AppendLine("{");
+        sb.AppendLine("  \"type\": \"minecraft:crafting_shapeless\",");
+        sb.AppendLine("  \"ingredients\": [");
+        for (int r = 0; r < ingredients.Count; r++)
+            sb.AppendLine($"    {{ \"item\": \"{EscapeJson(ingredients[r])}\" }}{(r < ingredients.Count - 1 ? "," : "")}");
+        sb.AppendLine("  ],");
+        sb.AppendLine("  \"result\": {");
+        sb.AppendLine($"    \"id\": \"{EscapeJson(resultId)}\",");
+        sb.AppendLine($"    \"count\": {count}");
+        sb.AppendLine("  }");
+        sb.Append("}");
+        return sb.ToString();
+    }
+
     // ── Cooking (smelting / blasting / smoking / campfire) ────────────────────
 
     // RegisterSmelting(string id, string inputId, string resultId, float experience = 0.1f, int cookTimeSeconds = 10)
+    // AddSmelting(string id, string inputId, string resultId, float experience = 0.1f, int cookTimeTicks = 200)
     private static string? BuildCooking(
         string type,
         SeparatedSyntaxList<ArgumentSyntax> args,
         List<string> warnings,
-        int line)
+        int line,
+        bool ticksNotSeconds = false)
     {
         if (args.Count < 3)
             throw new RecipeArgException("expected at least 3 arguments: id, inputId, resultId");
@@ -198,8 +303,8 @@ public static class RecipeGenerator
         string inputId    = RequireString(args[1].Expression, "inputId");
         string resultId   = RequireString(args[2].Expression, "resultId");
         float  experience = args.Count >= 4 ? RequireFloat(args[3].Expression, "experience") : 0.1f;
-        int    seconds    = args.Count >= 5 ? RequireInt(args[4].Expression, "cookTimeSeconds") : DefaultCookTime(type);
-        int    ticks      = seconds * 20;
+        int    rawTime    = args.Count >= 5 ? RequireInt(args[4].Expression, ticksNotSeconds ? "cookTimeTicks" : "cookTimeSeconds") : (ticksNotSeconds ? DefaultCookTimeTicks(type) : DefaultCookTimeTicks(type) / 20);
+        int    ticks      = ticksNotSeconds ? rawTime : rawTime * 20;
 
         var sb = new StringBuilder();
         sb.AppendLine("{");
@@ -213,13 +318,13 @@ public static class RecipeGenerator
         return sb.ToString();
     }
 
-    private static int DefaultCookTime(string type) => type switch
+    private static int DefaultCookTimeTicks(string type) => type switch
     {
-        "minecraft:smelting"        => 10,
-        "minecraft:blasting"        => 5,
-        "minecraft:smoking"         => 5,
-        "minecraft:campfire_cooking"=> 30,
-        _                           => 10,
+        "minecraft:smelting"        => 200,
+        "minecraft:blasting"        => 100,
+        "minecraft:smoking"         => 100,
+        "minecraft:campfire_cooking"=> 600,
+        _                           => 200,
     };
 
     // ── Stonecutting ──────────────────────────────────────────────────────────

@@ -299,6 +299,135 @@ public class JavaEmitter : CSharpSyntaxWalker
             Visit(stmt);
     }
 
+    // ── Loops / switch / try ──────────────────────────────────────────────────
+
+    public override void VisitWhileStatement(WhileStatementSyntax node)
+    {
+        string cond = EmitExpression(node.Condition);
+        _w.Line($"{_stmtIndent}while ({cond}) {{");
+        string outer = _stmtIndent;
+        _stmtIndent = outer + "    ";
+        Visit(node.Statement);
+        _stmtIndent = outer;
+        _w.Line($"{outer}}}");
+    }
+
+    public override void VisitDoStatement(DoStatementSyntax node)
+    {
+        _w.Line($"{_stmtIndent}do {{");
+        string outer = _stmtIndent;
+        _stmtIndent = outer + "    ";
+        Visit(node.Statement);
+        _stmtIndent = outer;
+        string cond = EmitExpression(node.Condition);
+        _w.Line($"{outer}}} while ({cond});");
+    }
+
+    public override void VisitForStatement(ForStatementSyntax node)
+    {
+        string init = "";
+        if (node.Declaration != null)
+        {
+            string csType = node.Declaration.Type.ToString();
+            string javaType = csType == "var" ? "var" : MapTypeName(csType);
+            var vars = node.Declaration.Variables.Select(v =>
+            {
+                _localTypes[v.Identifier.Text] = csType;
+                return v.Initializer != null
+                    ? $"{v.Identifier.Text} = {EmitExpression(v.Initializer.Value)}"
+                    : v.Identifier.Text;
+            });
+            init = $"{javaType} {string.Join(", ", vars)}";
+        }
+        else if (node.Initializers.Count > 0)
+            init = string.Join(", ", node.Initializers.Select(i => EmitExpression(i)));
+
+        string cond  = node.Condition != null ? EmitExpression(node.Condition) : "";
+        string incrs = string.Join(", ", node.Incrementors.Select(i => EmitExpression(i)));
+
+        _w.Line($"{_stmtIndent}for ({init}; {cond}; {incrs}) {{");
+        string outer2 = _stmtIndent;
+        _stmtIndent = outer2 + "    ";
+        Visit(node.Statement);
+        _stmtIndent = outer2;
+        _w.Line($"{outer2}}}");
+    }
+
+    public override void VisitBreakStatement(BreakStatementSyntax node)
+        => _w.Line($"{_stmtIndent}break;");
+
+    public override void VisitContinueStatement(ContinueStatementSyntax node)
+        => _w.Line($"{_stmtIndent}continue;");
+
+    public override void VisitThrowStatement(ThrowStatementSyntax node)
+    {
+        string expr = node.Expression != null ? $" {EmitExpression(node.Expression)}" : "";
+        _w.Line($"{_stmtIndent}throw{expr};");
+    }
+
+    public override void VisitSwitchStatement(SwitchStatementSyntax node)
+    {
+        string expr = EmitExpression(node.Expression);
+        _w.Line($"{_stmtIndent}switch ({expr}) {{");
+        string outer = _stmtIndent;
+
+        foreach (var section in node.Sections)
+        {
+            foreach (var label in section.Labels)
+            {
+                if (label is CaseSwitchLabelSyntax caseLabel)
+                    _w.Line($"{outer}    case {EmitExpression(caseLabel.Value)}:");
+                else if (label is DefaultSwitchLabelSyntax)
+                    _w.Line($"{outer}    default:");
+            }
+            _stmtIndent = outer + "        ";
+            foreach (var stmt in section.Statements)
+                Visit(stmt);
+        }
+
+        _stmtIndent = outer;
+        _w.Line($"{outer}}}");
+    }
+
+    public override void VisitTryStatement(TryStatementSyntax node)
+    {
+        _w.Line($"{_stmtIndent}try {{");
+        string outer = _stmtIndent;
+        _stmtIndent = outer + "    ";
+        Visit(node.Block);
+        _stmtIndent = outer;
+
+        foreach (var c in node.Catches)
+        {
+            string param = "Exception _ex";
+            if (c.Declaration != null)
+            {
+                string exType = MapTypeName(c.Declaration.Type.ToString());
+                string exVar  = c.Declaration.Identifier.Text;
+                if (!string.IsNullOrEmpty(exVar) && exVar != "_")
+                {
+                    _localTypes[exVar] = c.Declaration.Type.ToString();
+                    param = $"{exType} {exVar}";
+                }
+                else param = exType;
+            }
+            _w.Line($"{outer}}} catch ({param}) {{");
+            _stmtIndent = outer + "    ";
+            Visit(c.Block);
+            _stmtIndent = outer;
+        }
+
+        if (node.Finally != null)
+        {
+            _w.Line($"{outer}}} finally {{");
+            _stmtIndent = outer + "    ";
+            Visit(node.Finally.Block);
+            _stmtIndent = outer;
+        }
+
+        _w.Line($"{outer}}}");
+    }
+
     // ── Expression emitter ────────────────────────────────────────────────────
 
     private string EmitExpression(ExpressionSyntax expr) => expr switch
@@ -319,8 +448,11 @@ public class JavaEmitter : CSharpSyntaxWalker
         IsPatternExpressionSyntax isp           => EmitIsPattern(isp),
         LambdaExpressionSyntax lam              => EmitLambda(lam),
         ThrowExpressionSyntax thr               => $"throw {EmitExpression(thr.Expression)}",
-        ArrayCreationExpressionSyntax arr       => EmitArrayCreation(arr),
-        ImplicitArrayCreationExpressionSyntax iarr => EmitImplicitArrayCreation(iarr),
+        ArrayCreationExpressionSyntax arr           => EmitArrayCreation(arr),
+        ImplicitArrayCreationExpressionSyntax iarr  => EmitImplicitArrayCreation(iarr),
+        ElementAccessExpressionSyntax ea            => EmitElementAccess(ea),
+        ConditionalAccessExpressionSyntax ca        => EmitConditionalAccess(ca),
+        SwitchExpressionSyntax sw                   => EmitSwitchExpression(sw),
         _ => UnknownExpr(expr),
     };
 
@@ -376,6 +508,10 @@ public class JavaEmitter : CSharpSyntaxWalker
         // Special handling for McScheduler.RunLater / RunRepeating
         if (fullExpr is "McScheduler.RunLater" or "McScheduler.RunRepeating")
             return EmitSchedulerCall(inv, fullExpr);
+
+        // Special handling for McRegistry.AddToCreativeTab — variadic items
+        if (fullExpr == "McRegistry.AddToCreativeTab")
+            return EmitAddToCreativeTab(inv);
 
         var args = inv.ArgumentList.Arguments.Select(a => EmitExpression(a.Expression)).ToArray();
 
@@ -533,6 +669,30 @@ public class JavaEmitter : CSharpSyntaxWalker
                 return $"CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal({cmdName}).then(CommandManager.literal({subName2}).then(CommandManager.argument({argName2}, IntegerArgumentType.integer()).executes(ctx -> {{ ServerCommandSource {srcVar} = ctx.getSource(); int {intVar2} = IntegerArgumentType.getInteger(ctx, {argName2}); {body} return 1; }})))))";
             }
 
+            case "RegisterWithFloat":
+            {
+                string argName = EmitExpression(rawArgs[1].Expression);
+                string floatVar = paramNames.Length > 1 ? paramNames[1] : "value";
+                _imports.Add("com.mojang.brigadier.arguments.FloatArgumentType");
+                return $"CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal({cmdName}).then(CommandManager.argument({argName}, FloatArgumentType.floatArg()).executes(ctx -> {{ ServerCommandSource {srcVar} = ctx.getSource(); float {floatVar} = FloatArgumentType.getFloat(ctx, {argName}); {body} return 1; }}))))";
+            }
+
+            case "RegisterWithDouble":
+            {
+                string argName = EmitExpression(rawArgs[1].Expression);
+                string dblVar = paramNames.Length > 1 ? paramNames[1] : "value";
+                _imports.Add("com.mojang.brigadier.arguments.DoubleArgumentType");
+                return $"CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal({cmdName}).then(CommandManager.argument({argName}, DoubleArgumentType.doubleArg()).executes(ctx -> {{ ServerCommandSource {srcVar} = ctx.getSource(); double {dblVar} = DoubleArgumentType.getDouble(ctx, {argName}); {body} return 1; }}))))";
+            }
+
+            case "RegisterWithBool":
+            {
+                string argName = EmitExpression(rawArgs[1].Expression);
+                string boolVar = paramNames.Length > 1 ? paramNames[1] : "value";
+                _imports.Add("com.mojang.brigadier.arguments.BoolArgumentType");
+                return $"CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal({cmdName}).then(CommandManager.argument({argName}, BoolArgumentType.bool()).executes(ctx -> {{ ServerCommandSource {srcVar} = ctx.getSource(); boolean {boolVar} = BoolArgumentType.getBool(ctx, {argName}); {body} return 1; }}))))";
+            }
+
             default:
                 return $"/* TODO: McCommand.{method} — not yet supported */";
         }
@@ -581,6 +741,49 @@ public class JavaEmitter : CSharpSyntaxWalker
         }
     }
 
+    private string EmitAddToCreativeTab(InvocationExpressionSyntax inv)
+    {
+        var rawArgs = inv.ArgumentList.Arguments;
+        if (rawArgs.Count < 2)
+            return "/* McRegistry.AddToCreativeTab: expected tab id + at least one item */";
+
+        string tabId = EmitExpression(rawArgs[0].Expression);
+        var items = rawArgs.Skip(1).Select(a => EmitExpression(a.Expression)).ToList();
+
+        _imports.Add("net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents");
+        _imports.Add("net.minecraft.item.ItemGroups");
+        _imports.Add("net.minecraft.registry.RegistryKey");
+        _imports.Add("net.minecraft.registry.RegistryKeys");
+        _imports.Add("net.minecraft.util.Identifier");
+
+        string groupExpr = GetItemGroupExpr(tabId);
+        string adds = string.Join(" ", items.Select(item => $"e.add({item});"));
+        return $"ItemGroupEvents.modifyEntriesEvent({groupExpr}).register(e -> {{ {adds} }})";
+    }
+
+    private static string GetItemGroupExpr(string tabIdExpr)
+    {
+        // tabIdExpr is a Java string literal like "minecraft:combat" — strip surrounding quotes
+        string inner = tabIdExpr.Length >= 2 && tabIdExpr[0] == '"' ? tabIdExpr[1..^1] : tabIdExpr;
+        return inner switch
+        {
+            "minecraft:building_blocks"     => "ItemGroups.BUILDING_BLOCKS",
+            "minecraft:natural"             => "ItemGroups.NATURAL",
+            "minecraft:functional"          => "ItemGroups.FUNCTIONAL",
+            "minecraft:redstone"            => "ItemGroups.REDSTONE",
+            "minecraft:hotbar"              => "ItemGroups.HOTBAR",
+            "minecraft:search"              => "ItemGroups.SEARCH",
+            "minecraft:tools_and_utilities" => "ItemGroups.TOOLS",
+            "minecraft:tools"               => "ItemGroups.TOOLS",
+            "minecraft:combat"              => "ItemGroups.COMBAT",
+            "minecraft:food_and_drink"      => "ItemGroups.FOOD_AND_DRINK",
+            "minecraft:ingredients"         => "ItemGroups.INGREDIENTS",
+            "minecraft:spawn_eggs"          => "ItemGroups.SPAWN_EGGS",
+            "minecraft:operator"            => "ItemGroups.OPERATOR",
+            _ => $"RegistryKey.of(RegistryKeys.ITEM_GROUP, Identifier.of({tabIdExpr}))",
+        };
+    }
+
     private string EmitObjectCreation(ObjectCreationExpressionSyntax oc)
     {
         string csType = oc.Type.ToString();
@@ -620,6 +823,60 @@ public class JavaEmitter : CSharpSyntaxWalker
         var elems = iarr.Initializer.Expressions.Select(e => EmitExpression(e));
         return $"new Object[]{{{string.Join(", ", elems)}}}";
     }
+
+    private string EmitElementAccess(ElementAccessExpressionSyntax ea)
+    {
+        string target = EmitExpression(ea.Expression);
+        var args = ea.ArgumentList.Arguments.Select(a => EmitExpression(a.Expression));
+        return $"{target}[{string.Join(", ", args)}]";
+    }
+
+    private string EmitConditionalAccess(ConditionalAccessExpressionSyntax ca)
+    {
+        string obj = EmitExpression(ca.Expression);
+        string access = EmitWhenNotNull(obj, ca.WhenNotNull);
+        return $"({obj} != null ? {access} : null)";
+    }
+
+    private string EmitWhenNotNull(string objExpr, ExpressionSyntax whenNotNull) => whenNotNull switch
+    {
+        MemberBindingExpressionSyntax mbe =>
+            $"{objExpr}.{ToCamelCase(mbe.Name.Identifier.Text)}",
+        InvocationExpressionSyntax inv when inv.Expression is MemberBindingExpressionSyntax mbInv =>
+            $"{objExpr}.{ToCamelCase(mbInv.Name.Identifier.Text)}({string.Join(", ", inv.ArgumentList.Arguments.Select(a => EmitExpression(a.Expression)))})",
+        _ => $"{objExpr}.{whenNotNull}",
+    };
+
+    private string EmitSwitchExpression(SwitchExpressionSyntax sw)
+    {
+        string input = EmitExpression(sw.GoverningExpression);
+        var arms = sw.Arms.ToList();
+        // Build nested ternary from right to left; last discard arm becomes the default
+        string result = "null /* switch expression — no default */";
+        for (int i = arms.Count - 1; i >= 0; i--)
+        {
+            var arm = arms[i];
+            string body = EmitExpression(arm.Expression);
+            if (arm.Pattern is DiscardPatternSyntax || arm.Pattern is ConstantPatternSyntax cp2 && cp2.Expression.ToString() == "_")
+            {
+                result = body;
+            }
+            else
+            {
+                string armCond = EmitSwitchArmPattern(input, arm.Pattern);
+                result = $"({armCond} ? {body} : {result})";
+            }
+        }
+        return result;
+    }
+
+    private string EmitSwitchArmPattern(string input, PatternSyntax pattern) => pattern switch
+    {
+        ConstantPatternSyntax cp => $"{input} == {EmitExpression(cp.Expression)}",
+        DeclarationPatternSyntax dp when dp.Designation is SingleVariableDesignationSyntax sv =>
+            $"{input} instanceof {MapTypeName(dp.Type.ToString())} {sv.Identifier.Text}",
+        _ => $"true /* pattern {pattern.Kind()} */",
+    };
 
     private string EmitAssignment(AssignmentExpressionSyntax asgn)
     {
@@ -932,12 +1189,23 @@ public class JavaEmitter : CSharpSyntaxWalker
 
     private string EmitStatementInline(StatementSyntax stmt) => stmt switch
     {
-        ExpressionStatementSyntax es => EmitExpression(es.Expression) + ";",
-        ReturnStatementSyntax rs     => rs.Expression != null
+        ExpressionStatementSyntax es        => EmitExpression(es.Expression) + ";",
+        ReturnStatementSyntax rs            => rs.Expression != null
             ? $"return {EmitExpression(rs.Expression)};"
             : _inCommandLambda ? "return 1;" : "return;",
         LocalDeclarationStatementSyntax lds => EmitLocalDeclInline(lds),
-        IfStatementSyntax ifs => EmitIfInline(ifs),
+        IfStatementSyntax ifs               => EmitIfInline(ifs),
+        BlockSyntax blk                     => string.Join(" ", blk.Statements.Select(s => EmitStatementInline(s))),
+        BreakStatementSyntax                => "break;",
+        ContinueStatementSyntax             => "continue;",
+        ThrowStatementSyntax thr            => thr.Expression != null
+            ? $"throw {EmitExpression(thr.Expression)};"
+            : "throw;",
+        WhileStatementSyntax ws             => EmitWhileInline(ws),
+        ForStatementSyntax fs               => EmitForInline(fs),
+        DoStatementSyntax ds                => EmitDoInline(ds),
+        TryStatementSyntax tryS             => EmitTryInline(tryS),
+        SwitchStatementSyntax switchS       => EmitSwitchInline(switchS),
         _ => stmt.ToString().Trim(),
     };
 
@@ -978,6 +1246,94 @@ public class JavaEmitter : CSharpSyntaxWalker
                 sb.Append($" {EmitStatementInline(ifs.Else.Statement)}");
             sb.Append(" }");
         }
+        return sb.ToString();
+    }
+
+    private string EmitWhileInline(WhileStatementSyntax ws)
+    {
+        string cond = EmitExpression(ws.Condition);
+        string body = ws.Statement is BlockSyntax blk
+            ? string.Join(" ", blk.Statements.Select(s => EmitStatementInline(s)))
+            : EmitStatementInline(ws.Statement);
+        return $"while ({cond}) {{ {body} }}";
+    }
+
+    private string EmitForInline(ForStatementSyntax fs)
+    {
+        string init = "";
+        if (fs.Declaration != null)
+        {
+            string csType = fs.Declaration.Type.ToString();
+            string javaType = csType == "var" ? "var" : MapTypeName(csType);
+            var vars = fs.Declaration.Variables.Select(v =>
+            {
+                _localTypes[v.Identifier.Text] = csType;
+                return v.Initializer != null
+                    ? $"{v.Identifier.Text} = {EmitExpression(v.Initializer.Value)}"
+                    : v.Identifier.Text;
+            });
+            init = $"{javaType} {string.Join(", ", vars)}";
+        }
+        string cond = fs.Condition != null ? EmitExpression(fs.Condition) : "";
+        string incrs = string.Join(", ", fs.Incrementors.Select(i => EmitExpression(i)));
+        string body = fs.Statement is BlockSyntax blk2
+            ? string.Join(" ", blk2.Statements.Select(s => EmitStatementInline(s)))
+            : EmitStatementInline(fs.Statement);
+        return $"for ({init}; {cond}; {incrs}) {{ {body} }}";
+    }
+
+    private string EmitDoInline(DoStatementSyntax ds)
+    {
+        string body = ds.Statement is BlockSyntax blk
+            ? string.Join(" ", blk.Statements.Select(s => EmitStatementInline(s)))
+            : EmitStatementInline(ds.Statement);
+        string cond = EmitExpression(ds.Condition);
+        return $"do {{ {body} }} while ({cond});";
+    }
+
+    private string EmitTryInline(TryStatementSyntax ts)
+    {
+        string body = string.Join(" ", ts.Block.Statements.Select(s => EmitStatementInline(s)));
+        var sb = new System.Text.StringBuilder();
+        sb.Append($"try {{ {body} }}");
+        foreach (var c in ts.Catches)
+        {
+            string param = "Exception _ex";
+            if (c.Declaration != null)
+            {
+                string exType = MapTypeName(c.Declaration.Type.ToString());
+                string exVar  = c.Declaration.Identifier.Text;
+                param = !string.IsNullOrEmpty(exVar) && exVar != "_" ? $"{exType} {exVar}" : exType;
+            }
+            string catchBody = string.Join(" ", c.Block.Statements.Select(s => EmitStatementInline(s)));
+            sb.Append($" catch ({param}) {{ {catchBody} }}");
+        }
+        if (ts.Finally != null)
+        {
+            string finallyBody = string.Join(" ", ts.Finally.Block.Statements.Select(s => EmitStatementInline(s)));
+            sb.Append($" finally {{ {finallyBody} }}");
+        }
+        return sb.ToString();
+    }
+
+    private string EmitSwitchInline(SwitchStatementSyntax ss)
+    {
+        string expr = EmitExpression(ss.Expression);
+        var sb = new System.Text.StringBuilder();
+        sb.Append($"switch ({expr}) {{");
+        foreach (var section in ss.Sections)
+        {
+            foreach (var label in section.Labels)
+            {
+                if (label is CaseSwitchLabelSyntax cl)
+                    sb.Append($" case {EmitExpression(cl.Value)}:");
+                else if (label is DefaultSwitchLabelSyntax)
+                    sb.Append(" default:");
+            }
+            foreach (var stmt in section.Statements)
+                sb.Append($" {EmitStatementInline(stmt)}");
+        }
+        sb.Append(" }");
         return sb.ToString();
     }
 }
