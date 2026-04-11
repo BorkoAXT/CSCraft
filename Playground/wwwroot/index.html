@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CSCraft Playground</title>
+    <link rel="stylesheet" href="css/app.css" />
+    <!-- Monaco editor loader -->
+    <script>var require = { paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' } };</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
+    <!-- LZString for shareable URLs -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
+</head>
+<body>
+
+<!-- ── Navigation bar ──────────────────────────────────────────────────────── -->
+<nav id="nav">
+    <div class="nav-left">
+        <span class="brand"><span>CS</span>Craft</span>
+        <span class="nav-divider">|</span>
+        <span class="nav-label">Playground</span>
+    </div>
+    <div class="nav-center">
+        <label for="examples-select" class="nav-label">Examples</label>
+        <select id="examples-select" title="Load an example">
+            <option value="">— pick an example —</option>
+            <option value="hello">Hello World</option>
+            <option value="item">Custom Item</option>
+            <option value="block">Custom Block</option>
+            <option value="events">Event Handling</option>
+            <option value="commands">Commands</option>
+            <option value="config">Config File</option>
+            <option value="nbt">Player NBT (1.21.2+)</option>
+        </select>
+        <label for="package-input" class="nav-label" style="margin-left:12px">Package</label>
+        <input id="package-input" type="text" value="com.example.mymod" spellcheck="false" title="Java package name" />
+    </div>
+    <div class="nav-right">
+        <button id="btn-run"    class="btn-primary" title="Transpile (Ctrl+Enter)">&#9654; Run</button>
+        <button id="btn-share"  class="btn-secondary" title="Copy shareable URL">&#128279; Share</button>
+        <button id="btn-copy"   class="btn-secondary" title="Copy Java output">&#128203; Copy Java</button>
+        <a id="btn-docs" class="btn-link" href="https://github.com/BorkoAXT/CSCraft#readme" target="_blank" rel="noopener">Docs</a>
+    </div>
+</nav>
+
+<!-- ── Editor panes ────────────────────────────────────────────────────────── -->
+<div id="editors-container">
+
+    <div class="pane" id="pane-cs">
+        <div class="pane-header">
+            <span class="pane-lang">C#</span>
+            <span class="pane-hint">Write your mod code here</span>
+        </div>
+        <div id="editor-cs" class="editor-mount"></div>
+    </div>
+
+    <div class="pane-divider" id="divider" title="Drag to resize"></div>
+
+    <div class="pane" id="pane-java">
+        <div class="pane-header">
+            <span class="pane-lang">Java</span>
+            <span id="transpile-status" class="pane-hint">Press Run to transpile</span>
+        </div>
+        <div id="editor-java" class="editor-mount"></div>
+    </div>
+
+</div>
+
+<!-- ── Diagnostics panel ───────────────────────────────────────────────────── -->
+<div id="panel-bottom">
+    <div class="panel-header">
+        <span id="panel-tab-diag"  class="panel-tab active" data-tab="diag">Output</span>
+        <span id="panel-tab-about" class="panel-tab"        data-tab="about">About</span>
+        <button id="panel-clear" class="panel-btn" title="Clear output">&#10005;</button>
+    </div>
+    <div id="panel-diag" class="panel-body">
+        <div id="console-output" class="console-output">
+            <span class="msg-info">CSCraft Playground ready. Press <kbd>Ctrl+Enter</kbd> to run.</span>
+        </div>
+    </div>
+    <div id="panel-about" class="panel-body" style="display:none">
+        <p>
+            <strong>CSCraft</strong> transpiles C# mod code to Java (Fabric API) so you can write
+            Minecraft mods without learning Java.<br />
+            This playground runs entirely in your browser using WebAssembly — no server involved.
+        </p>
+        <p>
+            Source on <a href="https://github.com/BorkoAXT/CSCraft" target="_blank" rel="noopener">GitHub</a>.
+        </p>
+    </div>
+</div>
+
+<!-- ── Toast notification ─────────────────────────────────────────────────── -->
+<div id="toast"></div>
+
+<!-- ── Blazor WASM runtime ────────────────────────────────────────────────── -->
+<script src="_framework/blazor.webassembly.js" autostart="false"></script>
+
+<!-- ── App scripts ────────────────────────────────────────────────────────── -->
+<script src="js/intellisense.js"></script>
+<script src="js/playground.js"></script>
+
+</body>
+</html>

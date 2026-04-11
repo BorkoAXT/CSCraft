@@ -1,0 +1,66 @@
+name: Deploy Playground
+
+on:
+  push:
+    branches: [origin-interpreter]
+    paths:
+      - 'Playground/**'
+      - 'Transpiler/**'
+      - 'CSharpStubs/**'
+      - 'scripts/generate-manifest.js'
+      - '.github/workflows/playground.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── Checkout ────────────────────────────────────────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── Node (manifest generator) ────────────────────────────────────────────
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Generate API manifest
+        run: node scripts/generate-manifest.js
+
+      # ── .NET 8 (Blazor WASM) ─────────────────────────────────────────────────
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Restore
+        run: dotnet restore Playground/Playground.csproj
+
+      - name: Publish Blazor WASM
+        run: |
+          dotnet publish Playground/Playground.csproj \
+            -c Release \
+            --no-restore \
+            --property:StaticWebAssetBasePath=playground \
+            -o out/playground-publish
+
+      # The published static files are at out/playground-publish/wwwroot
+      # We deploy that directory into /playground/ on the gh-pages branch.
+      - name: Prepare deploy directory
+        run: |
+          # Blazor publish puts the site under wwwroot
+          mv out/playground-publish/wwwroot out/site
+
+      # ── Deploy to gh-pages ────────────────────────────────────────────────────
+      - name: Deploy to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: gh-pages
+          folder: out/site
+          target-folder: playground
+          clean: false   # don't wipe other directories on gh-pages (e.g. /docs)
