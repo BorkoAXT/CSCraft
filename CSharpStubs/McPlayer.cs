@@ -75,6 +75,10 @@ public class McPlayer
     [JavaMethod("{target}.getAbilities().flying")]
     public bool IsFlying { get; }
 
+    /// <summary>Set flying state and sync to client.</summary>
+    [JavaMethod("{ {target}.getAbilities().flying = {0}; {target}.sendAbilitiesUpdate(); }")]
+    public void SetFlying(bool flying) { }
+
     [JavaMethod("{target}.interactionManager.getGameMode().getName()")]
     public string GameMode { get; } = null!;
 
@@ -279,27 +283,68 @@ public class McPlayer
     [JavaMethod("{target}.getWorld().getRegistryKey().getValue().toString()")]
     public string GetDimension() => null!;
 
-    // ── NBT / persistent data ─────────────────────────────────────────────────
+    // ── NBT / persistent data (requires Minecraft 1.21.2+) ───────────────────
 
-    /// <summary>Get a string value stored in the player's NBT data.</summary>
+    /// <summary>Get a string value stored in the player's custom NBT data. Requires MC 1.21.2+.</summary>
+    [SinceVersion("1.21.2")]
     [JavaMethod("{target}.getCustomData().getString({0})")]
     public string GetNbtString(string key) => null!;
 
-    /// <summary>Set a string value in the player's NBT data.</summary>
+    /// <summary>Set a string value in the player's custom NBT data. Requires MC 1.21.2+.</summary>
+    [SinceVersion("1.21.2")]
     [JavaMethod("{target}.getCustomData().putString({0}, {1})")]
     public void SetNbtString(string key, string value) { }
 
-    /// <summary>Get an integer value stored in the player's NBT data.</summary>
+    /// <summary>Get an integer value stored in the player's custom NBT data. Requires MC 1.21.2+.</summary>
+    [SinceVersion("1.21.2")]
     [JavaMethod("{target}.getCustomData().getInt({0})")]
     public int GetNbtInt(string key) => 0;
 
-    /// <summary>Set an integer value in the player's NBT data.</summary>
+    /// <summary>Set an integer value in the player's custom NBT data. Requires MC 1.21.2+.</summary>
+    [SinceVersion("1.21.2")]
     [JavaMethod("{target}.getCustomData().putInt({0}, {1})")]
     public void SetNbtInt(string key, int value) { }
 
-    /// <summary>Check whether a key exists in the player's NBT data.</summary>
+    /// <summary>Get a float value from the player's custom NBT data. Requires MC 1.21.2+.</summary>
+    [SinceVersion("1.21.2")]
+    [JavaMethod("{target}.getCustomData().getFloat({0})")]
+    public float GetNbtFloat(string key) => 0f;
+
+    /// <summary>Set a float value in the player's custom NBT data. Requires MC 1.21.2+.</summary>
+    [SinceVersion("1.21.2")]
+    [JavaMethod("{target}.getCustomData().putFloat({0}, {1})")]
+    public void SetNbtFloat(string key, float value) { }
+
+    /// <summary>Get a boolean from the player's custom NBT data. Requires MC 1.21.2+.</summary>
+    [SinceVersion("1.21.2")]
+    [JavaMethod("{target}.getCustomData().getBoolean({0})")]
+    public bool GetNbtBool(string key) => false;
+
+    /// <summary>Set a boolean in the player's custom NBT data. Requires MC 1.21.2+.</summary>
+    [SinceVersion("1.21.2")]
+    [JavaMethod("{target}.getCustomData().putBoolean({0}, {1})")]
+    public void SetNbtBool(string key, bool value) { }
+
+    /// <summary>Check whether a key exists in the player's custom NBT data. Requires MC 1.21.2+.</summary>
+    [SinceVersion("1.21.2")]
     [JavaMethod("{target}.getCustomData().contains({0})")]
     public bool HasNbt(string key) => false;
+
+    // ── Respawn & death ───────────────────────────────────────────────────────
+
+    /// <summary>Force the player to respawn immediately (simulate death + respawn).</summary>
+    [JavaMethod("{target}.getServer().getPlayerManager().respawnPlayer({target}, false)")]
+    public void Respawn() { }
+
+    /// <summary>Kill the player (sets health to 0, triggers death event).</summary>
+    [JavaMethod("{target}.kill()")]
+    public void Kill() { }
+
+    // ── Display name ──────────────────────────────────────────────────────────
+
+    /// <summary>Get the player's display name (may differ from Name if a plugin changed it).</summary>
+    [JavaMethod("{target}.getDisplayName().getString()")]
+    public string DisplayName { get; } = null!;
 
     // ── Server reference ──────────────────────────────────────────────────────
 

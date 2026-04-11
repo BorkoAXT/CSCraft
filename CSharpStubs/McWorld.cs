@@ -64,14 +64,36 @@ public class McWorld
     [JavaMethod("{target}.getEntitiesByType(TypeFilter.instanceOf(Entity.class), new Box({0}-{3},{1}-{3},{2}-{3},{0}+{3},{1}+{3},{2}+{3}), e -> true)")]
     public List<McEntity> GetNearbyEntities(double x, double y, double z, double radius) => null!;
 
+    /// <summary>Get the closest player to a position within maxDist blocks, or null.</summary>
+    [JavaMethod("(ServerPlayerEntity){target}.getClosestPlayer({0}, {1}, {2}, {3}, null)")]
+    public McPlayer? GetClosestPlayer(double x, double y, double z, double maxDist) => null;
+
+    /// <summary>Get total count of loaded entities in this world.</summary>
+    [JavaMethod("(int)java.util.stream.StreamSupport.stream({target}.iterateEntities().spliterator(), false).count()")]
+    public int GetEntityCount() => 0;
+
     /// <summary>Spawn an entity at a position. typeId example: "minecraft:zombie"</summary>
     [JavaMethod("{ var _et = net.minecraft.entity.EntityType.get({0}).orElse(null); if (_et != null) { var _ent = _et.create({target}); if (_ent != null) { _ent.setPosition({1},{2},{3}); {target}.spawnEntity(_ent); } } }")]
     public McEntity SpawnEntity(string typeId, double x, double y, double z) => null!;
+
+    // ── Blocks (extended) ─────────────────────────────────────────────────────
+
+    /// <summary>Set a block and notify neighbors (like a normal block placement).</summary>
+    [JavaMethod("{target}.setBlockState(new BlockPos({0},{1},{2}), Registries.BLOCK.get(Identifier.of({3})).getDefaultState(), 3)")]
+    public void SetBlockWithUpdate(int x, int y, int z, string blockId) { }
+
+    /// <summary>Get the raw NBT of a block entity at a position, or null.</summary>
+    [JavaMethod("({target}.getBlockEntity(new BlockPos({0},{1},{2})) != null ? {target}.getBlockEntity(new BlockPos({0},{1},{2})).createNbt({target}.getRegistryManager()) : null)")]
+    public McNbt? GetBlockEntityNbt(int x, int y, int z) => null;
 
     // ── Explosions ────────────────────────────────────────────────────────────
 
     [JavaMethod("{target}.createExplosion(null, {0}, {1}, {2}, {3}, World.ExplosionSourceType.NONE)")]
     public void CreateExplosion(double x, double y, double z, float power) { }
+
+    /// <summary>Create a destructive explosion (breaks blocks).</summary>
+    [JavaMethod("{target}.createExplosion(null, {0}, {1}, {2}, {3}, World.ExplosionSourceType.TNT)")]
+    public void CreateDestructiveExplosion(double x, double y, double z, float power) { }
 
     // ── Weather ───────────────────────────────────────────────────────────────
 

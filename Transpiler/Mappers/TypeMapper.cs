@@ -154,6 +154,12 @@ public static class TypeMapper
         // Damage
         ["McDamageSource"]      = "DamageSource",
         ["McDamage"]            = "DamageSource",
+
+        // Reflection
+        ["McType"]              = "Class",
+        ["McField"]             = "Field",
+        ["McReflectMethod"]     = "Method",
+        ["McConstructor"]       = "Constructor",
     };
 
     // ── Java standard library extras ─────────────────────────────────────────
@@ -364,6 +370,11 @@ public static class TypeMapper
         // Potions (legacy util still present in 1.21.x)
         ["PotionUtil"]              = "net.minecraft.potion.PotionUtil",
         ["BrewingRecipeRegistry"]   = "net.minecraft.recipe.BrewingRecipeRegistry",
+        // Java reflection (java.lang.* is auto-imported, but reflect.* is not)
+        ["Field"]                   = "java.lang.reflect.Field",
+        ["Method"]                  = "java.lang.reflect.Method",
+        ["Constructor"]             = "java.lang.reflect.Constructor",
+
         // Java stdlib
         ["UUID"]                    = "java.util.UUID",
         ["HashMap"]                 = "java.util.HashMap",

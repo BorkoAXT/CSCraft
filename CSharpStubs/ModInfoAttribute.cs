@@ -51,8 +51,35 @@ public sealed class ModInfoAttribute : Attribute
     /// Target Minecraft version. Default: "1.21.1"
     /// The build system automatically resolves Yarn mappings, Fabric loader,
     /// and Fabric API versions for the chosen Minecraft version.
+    /// Supported: any release from 1.20 onward, and weekly snapshots (e.g. "25w14a").
+    /// For versions not yet in the catalog, set the manual overrides below.
     /// </summary>
     public string MinecraftVersion { get; set; } = "1.21.1";
+
+    /// <summary>
+    /// Override the Yarn mappings version. Leave empty to use the auto-resolved value.
+    /// Example: "1.21.4+build.8"
+    /// Required when targeting a snapshot or pre-release not yet in the catalog.
+    /// </summary>
+    public string YarnMappings { get; set; } = "";
+
+    /// <summary>
+    /// Override the Fabric Loader version. Leave empty to use the auto-resolved value.
+    /// Example: "0.16.10"
+    /// </summary>
+    public string FabricLoaderVersion { get; set; } = "";
+
+    /// <summary>
+    /// Override the Fabric API version. Leave empty to use the auto-resolved value.
+    /// Example: "0.119.5+1.21.4"
+    /// </summary>
+    public string FabricApiVersion { get; set; } = "";
+
+    /// <summary>
+    /// Override the Fabric Loom Gradle plugin version. Leave empty to use the auto-resolved value.
+    /// Example: "1.9.5"
+    /// </summary>
+    public string LoomVersion { get; set; } = "";
 
     /// <summary>
     /// Java package name for the generated Java code.

@@ -103,3 +103,46 @@ public sealed class CustomSoundAttribute : Attribute
     public string SoundId { get; }
     public CustomSoundAttribute(string soundId) => SoundId = soundId;
 }
+
+/// <summary>
+/// Marks a CSCraft API method, property, or class as being available only from
+/// a specific Minecraft version onward. The transpiler emits a build warning if
+/// your [ModInfo(MinecraftVersion = "...")] targets an older version.
+///
+/// Example:
+/// <code>
+/// [SinceVersion("1.21.2")]
+/// public static void RegisterSomething(...) { }
+/// </code>
+/// </summary>
+[AttributeUsage(AttributeTargets.Method | AttributeTargets.Property | AttributeTargets.Class, AllowMultiple = false)]
+public sealed class SinceVersionAttribute : Attribute
+{
+    /// <summary>The minimum Minecraft version this API requires, e.g. "1.21.2" or "25w14a".</summary>
+    public string Version { get; }
+    public SinceVersionAttribute(string version) => Version = version;
+}
+
+/// <summary>
+/// Marks a CSCraft API as having been removed or changed in a specific Minecraft version.
+/// Using this API while targeting that version or newer produces a build warning.
+///
+/// Example:
+/// <code>
+/// [UntilVersion("1.21.2", "Use McRegistry.RegisterItemV2 instead")]
+/// public static void RegisterItem(...) { }
+/// </code>
+/// </summary>
+[AttributeUsage(AttributeTargets.Method | AttributeTargets.Property | AttributeTargets.Class, AllowMultiple = false)]
+public sealed class UntilVersionAttribute : Attribute
+{
+    /// <summary>The Minecraft version in which this API was removed or superseded.</summary>
+    public string Version { get; }
+    /// <summary>Optional migration hint shown in the build warning.</summary>
+    public string? Replacement { get; }
+    public UntilVersionAttribute(string version, string? replacement = null)
+    {
+        Version     = version;
+        Replacement = replacement;
+    }
+}

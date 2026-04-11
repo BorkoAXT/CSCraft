@@ -213,9 +213,24 @@ public static class ImportMapper
         ["ArrowEntity"]             = "net.minecraft.entity.projectile.ArrowEntity",
         ["SmallFireballEntity"]     = "net.minecraft.entity.projectile.SmallFireballEntity",
         ["ThrownPotionEntity"]      = "net.minecraft.entity.projectile.thrown.ThrownPotionEntity",
+        // Ranged / misc weapons
+        ["BowItem"]             = "net.minecraft.item.BowItem",
+        ["CrossbowItem"]        = "net.minecraft.item.CrossbowItem",
+        ["TridentItem"]         = "net.minecraft.item.TridentItem",
+        ["ShieldItem"]          = "net.minecraft.item.ShieldItem",
+        ["FishingRodItem"]      = "net.minecraft.item.FishingRodItem",
+        ["FlintAndSteelItem"]   = "net.minecraft.item.FlintAndSteelItem",
+        ["ShearsItem"]          = "net.minecraft.item.ShearsItem",
+
         // Potions
         ["PotionUtil"]              = "net.minecraft.potion.PotionUtil",
         ["BrewingRecipeRegistry"]   = "net.minecraft.recipe.BrewingRecipeRegistry",
+        // Java reflection
+        ["Field"]               = "java.lang.reflect.Field",
+        ["Method"]              = "java.lang.reflect.Method",
+        ["Constructor"]         = "java.lang.reflect.Constructor",
+        ["Modifier"]            = "java.lang.reflect.Modifier",
+
         // Java stdlib
         ["UUID"]                = "java.util.UUID",
         ["List"]                = "java.util.List",
@@ -227,6 +242,5 @@ public static class ImportMapper
     };
 
     public static string? Get(string javaSimpleName) => WellKnown.TryGetValue(javaSimpleName, out var v) ? v : null;
-    
     
 }

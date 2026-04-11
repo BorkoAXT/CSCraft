@@ -68,4 +68,32 @@ public class McItemStack
 
     [JavaMethod("{ var _nbtI = {target}.contains(net.minecraft.component.DataComponentTypes.CUSTOM_DATA) ? {target}.get(net.minecraft.component.DataComponentTypes.CUSTOM_DATA).getNbt().copy() : new NbtCompound(); _nbtI.putInt({0}, {1}); {target}.set(net.minecraft.component.DataComponentTypes.CUSTOM_DATA, net.minecraft.component.type.NbtComponent.of(_nbtI)); }")]
     public void SetNbtInt(string key, int value) { }
+
+    [JavaMethod("{target}.contains(net.minecraft.component.DataComponentTypes.CUSTOM_DATA) ? {target}.get(net.minecraft.component.DataComponentTypes.CUSTOM_DATA).getNbt().getFloat({0}) : 0.0f")]
+    public float GetNbtFloat(string key) => 0f;
+
+    [JavaMethod("{ var _nbtF = {target}.contains(net.minecraft.component.DataComponentTypes.CUSTOM_DATA) ? {target}.get(net.minecraft.component.DataComponentTypes.CUSTOM_DATA).getNbt().copy() : new NbtCompound(); _nbtF.putFloat({0}, {1}); {target}.set(net.minecraft.component.DataComponentTypes.CUSTOM_DATA, net.minecraft.component.type.NbtComponent.of(_nbtF)); }")]
+    public void SetNbtFloat(string key, float value) { }
+
+    [JavaMethod("{target}.contains(net.minecraft.component.DataComponentTypes.CUSTOM_DATA) ? {target}.get(net.minecraft.component.DataComponentTypes.CUSTOM_DATA).getNbt().getBoolean({0}) : false")]
+    public bool GetNbtBool(string key) => false;
+
+    [JavaMethod("{ var _nbtB = {target}.contains(net.minecraft.component.DataComponentTypes.CUSTOM_DATA) ? {target}.get(net.minecraft.component.DataComponentTypes.CUSTOM_DATA).getNbt().copy() : new NbtCompound(); _nbtB.putBoolean({0}, {1}); {target}.set(net.minecraft.component.DataComponentTypes.CUSTOM_DATA, net.minecraft.component.type.NbtComponent.of(_nbtB)); }")]
+    public void SetNbtBool(string key, bool value) { }
+
+    /// <summary>Get the item ID string (e.g. "minecraft:diamond").</summary>
+    [JavaMethod("Registries.ITEM.getId({target}.getItem()).toString()")]
+    public string Id { get; } = null!;
+
+    /// <summary>Check if this stack has a custom name (set via anvil or SetCustomName).</summary>
+    [JavaMethod("{target}.contains(net.minecraft.component.DataComponentTypes.CUSTOM_NAME)")]
+    public bool HasCustomName { get; }
+
+    /// <summary>Get the maximum stack size for this item.</summary>
+    [JavaMethod("{target}.getMaxCount()")]
+    public int MaxStackSize { get; }
+
+    /// <summary>Shrink the stack by amount (does not remove from world).</summary>
+    [JavaMethod("{target}.decrement({0})")]
+    public void Shrink(int amount) { }
 }

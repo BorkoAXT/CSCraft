@@ -49,6 +49,27 @@ public static class McRegistry
     /// <summary>Register a food item.</summary>
     public static McItem RegisterFood(string id, int hunger, float saturation, bool meat = false) => null!;
 
+    /// <summary>Register a bow item.</summary>
+    public static McItem RegisterBow(string id) => null!;
+
+    /// <summary>Register a crossbow item.</summary>
+    public static McItem RegisterCrossbow(string id) => null!;
+
+    /// <summary>Register a trident item.</summary>
+    public static McItem RegisterTrident(string id) => null!;
+
+    /// <summary>Register a shield item.</summary>
+    public static McItem RegisterShield(string id) => null!;
+
+    /// <summary>Register a fishing rod item.</summary>
+    public static McItem RegisterFishingRod(string id) => null!;
+
+    /// <summary>Register flint and steel.</summary>
+    public static McItem RegisterFlintAndSteel(string id) => null!;
+
+    /// <summary>Register shears.</summary>
+    public static McItem RegisterShears(string id) => null!;
+
     /// <summary>Register a helmet (armor) item.</summary>
     public static McItem RegisterHelmet(string id, McArmorMaterial material) => null!;
 

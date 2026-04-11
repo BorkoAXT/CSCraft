@@ -87,6 +87,20 @@ public class SetupFabricTemplate : Microsoft.Build.Utilities.Task
         Log.LogMessage(MessageImportance.High,
             $"CSCraft: [ModInfo] found — Id=\"{info.Id}\", Name=\"{info.Name}\", MC={info.MinecraftVersion}");
 
+        // Warn if the version isn't in the catalog and no manual overrides were given
+        bool hasOverrides = !string.IsNullOrWhiteSpace(info.YarnMappings)
+                         || !string.IsNullOrWhiteSpace(info.FabricLoaderVersion)
+                         || !string.IsNullOrWhiteSpace(info.FabricApiVersion)
+                         || !string.IsNullOrWhiteSpace(info.LoomVersion);
+        if (!FabricTemplateGenerator.IsKnownVersion(info.MinecraftVersion) && !hasOverrides)
+        {
+            Log.LogWarning(
+                $"CSCraft: Minecraft version '{info.MinecraftVersion}' is not in the built-in catalog. " +
+                "Falling back to nearest known version — Gradle build may fail. " +
+                "Set YarnMappings, FabricLoaderVersion, FabricApiVersion, and LoomVersion in [ModInfo] " +
+                "to target this version precisely (see https://fabricmc.net/develop).");
+        }
+
         string? wrapperDir = !string.IsNullOrWhiteSpace(GradleWrapperSourceDir) && Directory.Exists(GradleWrapperSourceDir)
             ? GradleWrapperSourceDir
             : null;

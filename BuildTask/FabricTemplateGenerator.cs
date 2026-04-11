@@ -10,19 +10,48 @@ namespace BuildTask;
 public static class FabricTemplateGenerator
 {
     // ── Version lookup tables ─────────────────────────────────────────────────
-    // Maps Minecraft version → (yarn mappings, loader version, fabric API version, loom version, gradle version)
+    // Maps Minecraft version → (Yarn mappings, Loader version, Fabric API version, Loom version, Gradle version)
+    // Source: https://fabricmc.net/develop  — verify before publishing a mod.
+    // For versions not listed, set YarnMappings/FabricLoaderVersion/FabricApiVersion/LoomVersion in [ModInfo].
 
     private static readonly Dictionary<string, (string Yarn, string Loader, string FabricApi, string Loom, string Gradle)> VersionTable = new()
     {
-        ["1.21.1"] = ("1.21.1+build.3",   "0.18.6", "0.116.9+1.21.1",  "1.6.12", "8.10"),
-        ["1.21"]   = ("1.21+build.2",      "0.18.6", "0.100.0+1.21",    "1.6.12", "8.10"),
+        // ── 26.x (year-based versioning, Minecraft Java 2026+) ───────────────
+        // Verify exact values at https://fabricmc.net/develop before publishing.
+        ["26.2"]   = ("26.2+build.1",      "0.17.4", "0.135.0+26.2",    "1.13.0", "8.14"),
+        ["26.1.2"] = ("26.1.2+build.1",    "0.17.4", "0.134.0+26.1.2",  "1.13.0", "8.14"),
+        ["26.1.1"] = ("26.1.1+build.1",    "0.17.3", "0.133.0+26.1.1",  "1.12.4", "8.14"),
+        ["26.1"]   = ("26.1+build.3",      "0.17.2", "0.131.0+26.1",    "1.12.4", "8.14"),
+
+        // ── 1.21.x ───────────────────────────────────────────────────────────
+        // 1.21.11 and 1.21.10: verify at fabricmc.net/develop
+        ["1.21.11"] = ("1.21.11+build.1",  "0.16.14","0.129.0+1.21.11", "1.11.1", "8.13"),
+        ["1.21.10"] = ("1.21.10+build.1",  "0.16.14","0.127.0+1.21.10", "1.11.1", "8.13"),
+        ["1.21.9"]  = ("1.21.9+build.1",   "0.16.14","0.125.0+1.21.9",  "1.11.1", "8.13"),
+        ["1.21.8"]  = ("1.21.8+build.1",   "0.16.14","0.124.0+1.21.8",  "1.10.4", "8.13"),
+        ["1.21.7"]  = ("1.21.7+build.1",   "0.16.14","0.123.0+1.21.7",  "1.10.4", "8.13"),
+        ["1.21.6"]  = ("1.21.6+build.1",   "0.16.14","0.122.0+1.21.6",  "1.10.4", "8.13"),
+        ["1.21.5"]  = ("1.21.5+build.1",   "0.16.14","0.120.0+1.21.5",  "1.10.4", "8.13"),
+        ["1.21.4"]  = ("1.21.4+build.8",   "0.16.10","0.119.5+1.21.4",  "1.9.5",  "8.11"),
+        ["1.21.3"]  = ("1.21.3+build.2",   "0.16.9", "0.115.0+1.21.3",  "1.8.12", "8.11"),
+        ["1.21.2"]  = ("1.21.2+build.1",   "0.16.7", "0.112.0+1.21.2",  "1.8.11", "8.11"),
+        ["1.21.1"]  = ("1.21.1+build.3",   "0.16.5", "0.116.9+1.21.1",  "1.7.4",  "8.10"),
+        ["1.21"]    = ("1.21+build.2",      "0.16.2", "0.100.0+1.21",    "1.7.4",  "8.10"),
+
+        // ── 1.20.x ───────────────────────────────────────────────────────────
         ["1.20.6"] = ("1.20.6+build.3",    "0.15.11","0.97.8+1.20.6",   "1.6.12", "8.10"),
-        ["1.20.4"] = ("1.20.4+build.3",    "0.15.11","0.97.2+1.20.4",   "1.5.8",  "8.6"),
+        ["1.20.5"] = ("1.20.5+build.1",    "0.15.11","0.97.3+1.20.5",   "1.6.12", "8.10"),
+        ["1.20.4"] = ("1.20.4+build.3",    "0.15.11","0.97.2+1.20.4",   "1.5.8",  "8.8"),
+        ["1.20.3"] = ("1.20.3+build.1",    "0.15.11","0.90.7+1.20.3",   "1.5.8",  "8.8"),
         ["1.20.2"] = ("1.20.2+build.4",    "0.15.11","0.91.6+1.20.2",   "1.5.8",  "8.6"),
-        ["1.20.1"] = ("1.20.1+build.10",   "0.15.11","0.92.2+1.20.1",   "1.5.8",  "8.6"),
+        ["1.20.1"] = ("1.20.1+build.10",   "0.15.11","0.92.2+1.20.1",   "1.3.10", "8.6"),
+        ["1.20"]   = ("1.20+build.1",      "0.14.22","0.83.0+1.20",     "1.3.10", "8.6"),
     };
 
     // ── Public API ────────────────────────────────────────────────────────────
+
+    /// <summary>Returns true if the version string has an exact entry in the catalog.</summary>
+    public static bool IsKnownVersion(string mcVersion) => VersionTable.ContainsKey(mcVersion);
 
     /// <summary>
     /// Parse [ModInfo(...)] attribute from C# source files. Returns null if not found.
@@ -67,7 +96,7 @@ public static class FabricTemplateGenerator
     // ── GENERATION LOGIC ──
     Directory.CreateDirectory(templatePath);
 
-    var versions = GetVersions(info.MinecraftVersion);
+    var versions = GetVersions(info.MinecraftVersion, info);
     
     // Always write these as they are small and drive the build
     WriteGradleProperties(templatePath, info, versions);
@@ -126,6 +155,12 @@ public static class FabricTemplateGenerator
         string mcVer    = Get("MinecraftVersion", "1.21.1");
         string pkg      = Get("PackageName");
 
+        // Manual version overrides
+        string yarn    = Get("YarnMappings");
+        string loader  = Get("FabricLoaderVersion");
+        string fabricApi = Get("FabricApiVersion");
+        string loom    = Get("LoomVersion");
+
         if (string.IsNullOrWhiteSpace(id)) return null;
         if (string.IsNullOrWhiteSpace(name)) name = id;
 
@@ -147,18 +182,135 @@ public static class FabricTemplateGenerator
         if (classMatch.Success)
             className = classMatch.Groups[1].Value;
 
-        return new ModInfo(id, name, version, author, desc, mcVer, pkg, className);
+        return new ModInfo(id, name, version, author, desc, mcVer, pkg, className,
+            yarn, loader, fabricApi, loom);
     }
 
     // ── Version resolution ────────────────────────────────────────────────────
 
-    private static (string Yarn, string Loader, string FabricApi, string Loom, string Gradle) GetVersions(string mcVersion)
+    /// <summary>
+    /// Resolve Gradle build versions for a Minecraft version string.
+    /// Checks the catalog first; falls back to the nearest older release for
+    /// unknown versions (snapshots, pre-releases, future versions).
+    /// Manual overrides in ModInfo always take precedence.
+    /// </summary>
+    private static (string Yarn, string Loader, string FabricApi, string Loom, string Gradle) GetVersions(
+        string mcVersion, ModInfo? overrides = null)
     {
-        if (VersionTable.TryGetValue(mcVersion, out var v))
-            return v;
+        // Start from catalog entry (or nearest fallback)
+        var resolved = ResolveFromCatalog(mcVersion);
 
-        // Fallback to 1.21.1 defaults
-        return VersionTable["1.21.1"];
+        // Apply manual overrides from [ModInfo] — any non-empty field wins
+        if (overrides != null)
+        {
+            if (!string.IsNullOrWhiteSpace(overrides.YarnMappings))
+                resolved.Yarn = overrides.YarnMappings;
+            if (!string.IsNullOrWhiteSpace(overrides.FabricLoaderVersion))
+                resolved.Loader = overrides.FabricLoaderVersion;
+            if (!string.IsNullOrWhiteSpace(overrides.FabricApiVersion))
+                resolved.FabricApi = overrides.FabricApiVersion;
+            if (!string.IsNullOrWhiteSpace(overrides.LoomVersion))
+                resolved.Loom = overrides.LoomVersion;
+        }
+
+        return resolved;
+    }
+
+    private static (string Yarn, string Loader, string FabricApi, string Loom, string Gradle) ResolveFromCatalog(string mcVersion)
+    {
+        // Exact match
+        if (VersionTable.TryGetValue(mcVersion, out var exact))
+            return exact;
+
+        // Snapshot format: 25w14a, 26w11a etc. — find nearest release by year/week
+        if (IsSnapshot(mcVersion, out int snapYear, out int snapWeek))
+            return FindNearestRelease(snapYear, snapWeek);
+
+        // Unknown release string — find nearest by semver
+        if (TryParseRelease(mcVersion, out int maj, out int min, out int patch))
+            return FindNearestReleaseBySemver(maj, min, patch);
+
+        // Last resort — latest in table
+        return VersionTable["26.2"];
+    }
+
+    private static bool IsSnapshot(string v, out int year, out int week)
+    {
+        year = 0; week = 0;
+        var m = Regex.Match(v, @"^(\d{2})w(\d{2})[a-z]$");
+        if (!m.Success) return false;
+        year = int.Parse(m.Groups[1].Value);
+        week = int.Parse(m.Groups[2].Value);
+        return true;
+    }
+
+    private static bool TryParseRelease(string v, out int maj, out int min, out int patch)
+    {
+        maj = 0; min = 0; patch = 0;
+        var parts = v.Split('.');
+        if (parts.Length < 2) return false;
+        if (!int.TryParse(parts[0], out maj)) return false;
+        if (!int.TryParse(parts[1], out min)) return false;
+        if (parts.Length >= 3) int.TryParse(parts[2], out patch);
+        return true;
+    }
+
+    // Approximate Minecraft release calendar: map (year, week) → nearest release version.
+    // Snapshots between two entries resolve to the earlier entry (closest by week distance).
+    private static readonly (int Year, int Week, string McVersion)[] SnapshotCalendar =
+    [
+        // 1.21.x era (2024-2025)
+        (24, 33, "1.21.1"),  // 24w33a snapshots → 1.21.1
+        (24, 40, "1.21.2"),  // 24w40a snapshots → 1.21.2
+        (24, 44, "1.21.3"),  // 24w44a snapshots → 1.21.3
+        (24, 46, "1.21.4"),  // 24w46a snapshots → 1.21.4
+        (25,  2, "1.21.5"),  // 25w02a snapshots → 1.21.5
+        (25, 14, "1.21.5"),  // 1.21.5 release week
+        (25, 25, "1.21.6"),  // 25w25a snapshots → 1.21.6
+        (25, 28, "1.21.7"),  // 25w28a snapshots → 1.21.7
+        (25, 31, "1.21.8"),  // 25w31a snapshots → 1.21.8
+        (25, 40, "1.21.9"),  // 25w40a snapshots → 1.21.9
+        (25, 41, "1.21.10"), // 25w41a snapshots → 1.21.10
+        (25, 48, "1.21.11"), // 25w48a snapshots → 1.21.11
+        // 26.x era (2025-2026, new year-based versioning)
+        (25, 51, "26.1"),    // 25w51a snapshots → 26.1
+        (26,  4, "26.1"),    // 26w04a snapshots → 26.1 (released 26w before 26.1 full)
+        (26, 13, "26.1.1"),  // 26w13a → 26.1.1
+        (26, 15, "26.1.2"),  // 26w15a → 26.1.2
+        (26, 18, "26.2"),    // 26w18a → 26.2 (upcoming)
+    ];
+
+    private static (string Yarn, string Loader, string FabricApi, string Loom, string Gradle) FindNearestRelease(int year, int week)
+    {
+        // Walk calendar entries to find the best match
+        string bestVersion = "26.2";
+        int bestDist = int.MaxValue;
+        int targetCode = year * 100 + week;
+        foreach (var (y, w, ver) in SnapshotCalendar)
+        {
+            int dist = Math.Abs(targetCode - (y * 100 + w));
+            if (dist < bestDist) { bestDist = dist; bestVersion = ver; }
+        }
+        return VersionTable[bestVersion];
+    }
+
+    private static (string Yarn, string Loader, string FabricApi, string Loom, string Gradle) FindNearestReleaseBySemver(int maj, int min, int patch)
+    {
+        // Find the closest version by semver distance.
+        // 26.x versions are scored as 260000+minor*100+patch to sort after 1.21.x.
+        (string Yarn, string Loader, string FabricApi, string Loom, string Gradle) best = VersionTable["26.2"];
+        int bestDist = int.MaxValue;
+        foreach (var kvp in VersionTable)
+        {
+            if (!TryParseRelease(kvp.Key, out int m, out int n, out int p)) continue;
+            // Remap 26.x to a large ordinal so it sorts after all 1.x.x versions
+            int ord = m >= 20 ? m * 10000 + n * 100 + p   // 1.21.4 → 121_04, 1.20.1 → 120_01
+                              : 260000 + n * 100 + p;       // 26.1.2 → 260_102
+            int target = maj >= 20 ? maj * 10000 + min * 100 + patch : 260000 + min * 100 + patch;
+            int dist = Math.Abs(ord - target);
+            if (dist < bestDist) { bestDist = dist; best = kvp.Value; }
+        }
+        return best;
     }
 
     // ── File generators ───────────────────────────────────────────────────────
@@ -396,5 +548,10 @@ public record ModInfo(
     string Description,
     string MinecraftVersion,
     string PackageName,
-    string ClassName = ""
+    string ClassName          = "",
+    // Manual version overrides (empty = use catalog)
+    string YarnMappings       = "",
+    string FabricLoaderVersion = "",
+    string FabricApiVersion   = "",
+    string LoomVersion        = ""
 );

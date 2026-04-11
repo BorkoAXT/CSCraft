@@ -453,6 +453,7 @@ public class JavaEmitter : CSharpSyntaxWalker
         ElementAccessExpressionSyntax ea            => EmitElementAccess(ea),
         ConditionalAccessExpressionSyntax ca        => EmitConditionalAccess(ca),
         SwitchExpressionSyntax sw                   => EmitSwitchExpression(sw),
+        TypeOfExpressionSyntax typeOf               => EmitTypeOf(typeOf),
         _ => UnknownExpr(expr),
     };
 
@@ -476,7 +477,7 @@ public class JavaEmitter : CSharpSyntaxWalker
     {
         string target = EmitExpression(mae.Expression);
         string member = mae.Name.Identifier.Text;
-        string csType = ResolveType(mae.Expression);
+        string csType = ResolveType(mae.Expression).TrimEnd('?');
 
         string? prop = MethodMapper.GetProperty(csType, member);
         if (prop != null)
@@ -528,9 +529,9 @@ public class JavaEmitter : CSharpSyntaxWalker
         {
             string target = EmitExpression(mae.Expression);
             string method = mae.Name.Identifier.Text;
-            string csType = ResolveType(mae.Expression);
+            string csType = ResolveType(mae.Expression).TrimEnd('?');
 
-            var mapping = MethodMapper.GetMethod(csType, method);
+            var mapping = MethodMapper.GetMethod(csType, method, args.Length);
             if (mapping != null)
             {
                 _imports.AddFromMethod(mapping);
@@ -1179,6 +1180,18 @@ public class JavaEmitter : CSharpSyntaxWalker
         for (int i = 0; i < args.Length; i++)
             result = result.Replace($"{{{i}}}", args[i]);
         return result;
+    }
+
+    /// <summary>
+    /// Translates typeof(T) to T.class in Java.
+    /// E.g. typeof(McPlayer) → ServerPlayerEntity.class
+    /// </summary>
+    private string EmitTypeOf(TypeOfExpressionSyntax typeOf)
+    {
+        string csType = typeOf.Type.ToString().TrimEnd('?');
+        string javaType = TypeMapper.Map(csType);
+        _imports.AddForCsType(csType);
+        return $"{javaType}.class";
     }
 
     private string UnknownExpr(ExpressionSyntax expr)

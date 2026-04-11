@@ -77,6 +77,21 @@ public static class MethodMapper
         // Flight
         ["SetFlying"]       = new("{ {target}.getAbilities().flying = {0}; {target}.getAbilities().allowFlying = {0}; {target}.sendAbilitiesUpdate(); }"),
 
+        // NBT accessors
+        ["GetNbtFloat"]     = new("{target}.getCustomData().getFloat({0})"),
+        ["SetNbtFloat"]     = new("{target}.getCustomData().putFloat({0}, {1})"),
+        ["GetNbtBool"]      = new("{target}.getCustomData().getBoolean({0})"),
+        ["SetNbtBool"]      = new("{target}.getCustomData().putBoolean({0}, {1})"),
+        ["GetNbtString"]    = new("{target}.getCustomData().getString({0})"),
+        ["SetNbtString"]    = new("{target}.getCustomData().putString({0}, {1})"),
+        ["GetNbtInt"]       = new("{target}.getCustomData().getInt({0})"),
+        ["SetNbtInt"]       = new("{target}.getCustomData().putInt({0}, {1})"),
+        ["HasNbt"]          = new("{target}.getCustomData().contains({0})"),
+
+        // Respawn / kill
+        ["Respawn"]         = new("{target}.getServer().getPlayerManager().respawnPlayer({target}, false)"),
+        ["Kill"]            = new("{target}.kill()"),
+
         // Misc
         ["PlaySound"]       = new("{target}.playSoundToPlayer(Registries.SOUND_EVENT.get(Identifier.of({0})), SoundCategory.PLAYERS, 1.0f, 1.0f)",
                                   Imports: ["net.minecraft.sound.SoundCategory"]),
@@ -132,7 +147,21 @@ public static class MethodMapper
         ["GetDifficulty"]   = new("{target}.getDifficulty().getName()"),
 
         // Explosions
-        ["CreateExplosion"] = new("{target}.createExplosion(null, {0}, {1}, {2}, {3}, World.ExplosionSourceType.NONE)"),
+        ["CreateExplosion"]            = new("{target}.createExplosion(null, {0}, {1}, {2}, {3}, World.ExplosionSourceType.NONE)"),
+        ["CreateDestructiveExplosion"] = new("{target}.createExplosion(null, {0}, {1}, {2}, {3}, World.ExplosionSourceType.TNT)"),
+
+        // Extended block ops
+        ["SetBlockWithUpdate"]  = new("{target}.setBlockState(new BlockPos({0},{1},{2}), Registries.BLOCK.get(Identifier.of({3})).getDefaultState(), 3)",
+                                      Imports: ["net.minecraft.util.math.BlockPos", "net.minecraft.registry.Registries", "net.minecraft.util.Identifier"]),
+        ["GetBlockEntityNbt"]   = new("({target}.getBlockEntity(new BlockPos({0},{1},{2})) != null ? {target}.getBlockEntity(new BlockPos({0},{1},{2})).createNbt({target}.getRegistryManager()) : null)",
+                                      Imports: ["net.minecraft.util.math.BlockPos"]),
+
+        // Closest player
+        ["GetClosestPlayer"]    = new("(ServerPlayerEntity){target}.getClosestPlayer({0}, {1}, {2}, {3}, null)",
+                                      Imports: ["net.minecraft.server.network.ServerPlayerEntity"]),
+
+        // Entity count
+        ["GetEntityCount"]      = new("(int)java.util.stream.StreamSupport.stream({target}.iterateEntities().spliterator(), false).count()"),
 
         // Fill & random
         ["FillBlocks"]      = new("BlockPos.stream(new BlockPos({0},{1},{2}), new BlockPos({3},{4},{5})).forEach(_bp -> {target}.setBlockState(_bp, Registries.BLOCK.get(Identifier.of({6})).getDefaultState()))",
@@ -211,6 +240,13 @@ public static class MethodMapper
         ["GetNbtInt"]       = new("{target}.contains(net.minecraft.component.DataComponentTypes.CUSTOM_DATA) ? {target}.get(net.minecraft.component.DataComponentTypes.CUSTOM_DATA).getNbt().getInt({0}) : 0"),
         ["SetNbtInt"]       = new("{ var _nbtI = {target}.contains(net.minecraft.component.DataComponentTypes.CUSTOM_DATA) ? {target}.get(net.minecraft.component.DataComponentTypes.CUSTOM_DATA).getNbt().copy() : new NbtCompound(); _nbtI.putInt({0}, {1}); {target}.set(net.minecraft.component.DataComponentTypes.CUSTOM_DATA, net.minecraft.component.type.NbtComponent.of(_nbtI)); }",
                                    Imports: ["net.minecraft.nbt.NbtCompound"]),
+        ["GetNbtFloat"]     = new("{target}.contains(net.minecraft.component.DataComponentTypes.CUSTOM_DATA) ? {target}.get(net.minecraft.component.DataComponentTypes.CUSTOM_DATA).getNbt().getFloat({0}) : 0.0f"),
+        ["SetNbtFloat"]     = new("{ var _nbtF = {target}.contains(net.minecraft.component.DataComponentTypes.CUSTOM_DATA) ? {target}.get(net.minecraft.component.DataComponentTypes.CUSTOM_DATA).getNbt().copy() : new NbtCompound(); _nbtF.putFloat({0}, {1}); {target}.set(net.minecraft.component.DataComponentTypes.CUSTOM_DATA, net.minecraft.component.type.NbtComponent.of(_nbtF)); }",
+                                   Imports: ["net.minecraft.nbt.NbtCompound"]),
+        ["GetNbtBool"]      = new("{target}.contains(net.minecraft.component.DataComponentTypes.CUSTOM_DATA) ? {target}.get(net.minecraft.component.DataComponentTypes.CUSTOM_DATA).getNbt().getBoolean({0}) : false"),
+        ["SetNbtBool"]      = new("{ var _nbtB = {target}.contains(net.minecraft.component.DataComponentTypes.CUSTOM_DATA) ? {target}.get(net.minecraft.component.DataComponentTypes.CUSTOM_DATA).getNbt().copy() : new NbtCompound(); _nbtB.putBoolean({0}, {1}); {target}.set(net.minecraft.component.DataComponentTypes.CUSTOM_DATA, net.minecraft.component.type.NbtComponent.of(_nbtB)); }",
+                                   Imports: ["net.minecraft.nbt.NbtCompound"]),
+        ["Shrink"]          = new("{target}.decrement({0})"),
     };
 
     // ── McEntity (Entity / LivingEntity) ─────────────────────────────────────
@@ -500,6 +536,15 @@ public static class MethodMapper
         // Food registration
         ["McRegistry.RegisterFood"]     = "Registry.register(Registries.ITEM, Identifier.of({0}), new Item(new Item.Settings().food(new FoodComponent.Builder().nutrition({1}).saturationModifier({2}).build())))",
 
+        // Ranged / misc weapon registration
+        ["McRegistry.RegisterBow"]          = "Registry.register(Registries.ITEM, Identifier.of({0}), new BowItem(new Item.Settings().maxDamage(384)))",
+        ["McRegistry.RegisterCrossbow"]     = "Registry.register(Registries.ITEM, Identifier.of({0}), new CrossbowItem(new Item.Settings().maxDamage(465)))",
+        ["McRegistry.RegisterTrident"]      = "Registry.register(Registries.ITEM, Identifier.of({0}), new TridentItem(new Item.Settings().maxDamage(250)))",
+        ["McRegistry.RegisterShield"]       = "Registry.register(Registries.ITEM, Identifier.of({0}), new ShieldItem(new Item.Settings().maxDamage(336)))",
+        ["McRegistry.RegisterFishingRod"]   = "Registry.register(Registries.ITEM, Identifier.of({0}), new FishingRodItem(new Item.Settings().maxDamage(64)))",
+        ["McRegistry.RegisterFlintAndSteel"]= "Registry.register(Registries.ITEM, Identifier.of({0}), new FlintAndSteelItem(new Item.Settings().maxDamage(64)))",
+        ["McRegistry.RegisterShears"]       = "Registry.register(Registries.ITEM, Identifier.of({0}), new ShearsItem(new Item.Settings().maxDamage(238)))",
+
         // Armor registration
         // MC 1.21.1: ArmorItem(ArmorMaterial, ArmorItem.Type, Settings)
         ["McRegistry.RegisterHelmet"]       = "Registry.register(Registries.ITEM, Identifier.of({0}), new ArmorItem(ArmorMaterials.{1}, ArmorItem.Type.HELMET, new Item.Settings()))",
@@ -757,11 +802,100 @@ public static class MethodMapper
         ["McScheduler.RunAsync"]      = "java.util.concurrent.CompletableFuture.runAsync(() -> {1})",
         ["McScheduler.RunRepeating"]  = "/* McScheduler.RunRepeating({0}, {1}) — use ServerTickEvents for repeating tasks */",
 
+        // ── McType static ────────────────────────────────────────────────────
+        ["McType.ForName"]      = "Class.forName({0})",
+        ["McType.ForName/2"]    = "Class.forName({0}, true, {1}.getClass().getClassLoader())",
+
         // ── McInventory static ────────────────────────────────────────────────
         ["McInventory.FromPlayer"]   = "{0}.getInventory()",
         ["McInventory.EnderChest"]   = "{0}.getEnderChestInventory()",
         ["McInventory.Give"]         = "{0}.getInventory().insertStack({1})",
         ["McInventory.Take"]         = "{ int _rem = {2}; for (int _i = 0; _i < {0}.getInventory().size() && _rem > 0; _i++) { var _s = {0}.getInventory().getStack(_i); if (!_s.isEmpty() && Registries.ITEM.getId(_s.getItem()).toString().equals({1})) { int _take = Math.min(_s.getCount(), _rem); _s.decrement(_take); _rem -= _take; } } }",
+    };
+
+    // ── Reflection — McType (java.lang.Class<?>) ─────────────────────────────
+
+    private static readonly Dictionary<string, MethodMapping> McTypeMethods = new()
+    {
+        ["GetField"]              = new("{target}.getField({0})"),
+        ["GetDeclaredField"]      = new("{target}.getDeclaredField({0})"),
+        ["GetFields"]             = new("new java.util.ArrayList<>(java.util.Arrays.asList({target}.getFields()))"),
+        ["GetDeclaredFields"]     = new("new java.util.ArrayList<>(java.util.Arrays.asList({target}.getDeclaredFields()))"),
+        ["GetMethod"]             = new("{target}.getMethod({0})"),
+        ["GetDeclaredMethod"]     = new("{target}.getDeclaredMethod({0})"),
+        ["GetMethods"]            = new("new java.util.ArrayList<>(java.util.Arrays.asList({target}.getMethods()))"),
+        ["GetDeclaredMethods"]    = new("new java.util.ArrayList<>(java.util.Arrays.asList({target}.getDeclaredMethods()))"),
+        ["GetConstructor"]        = new("{target}.getConstructor()"),
+        ["GetDeclaredConstructor"] = new("{target}.getDeclaredConstructor()"),
+        ["GetConstructors"]       = new("new java.util.ArrayList<>(java.util.Arrays.asList({target}.getConstructors()))"),
+        ["GetDeclaredConstructors"] = new("new java.util.ArrayList<>(java.util.Arrays.asList({target}.getDeclaredConstructors()))"),
+        ["NewInstance"]           = new("{target}.getDeclaredConstructor().newInstance()"),
+        ["IsAssignableFrom"]      = new("{target}.isAssignableFrom({0})"),
+        ["IsInstance"]            = new("{target}.isInstance({0})"),
+        ["Cast"]                  = new("{target}.cast({0})"),
+        ["HasAnnotation"]         = new("{target}.isAnnotationPresent(Class.forName({0}))"),
+    };
+
+    // ── Reflection — McField (java.lang.reflect.Field) ────────────────────────
+
+    private static readonly Dictionary<string, MethodMapping> McFieldMethods = new()
+    {
+        ["SetAccessible"] = new("{target}.setAccessible({0})"),
+        ["Get"]           = new("{target}.get({0})"),
+        ["Set"]           = new("{target}.set({0}, {1})"),
+        ["GetInt"]        = new("{target}.getInt({0})"),
+        ["SetInt"]        = new("{target}.setInt({0}, {1})"),
+        ["GetLong"]       = new("{target}.getLong({0})"),
+        ["SetLong"]       = new("{target}.setLong({0}, {1})"),
+        ["GetFloat"]      = new("{target}.getFloat({0})"),
+        ["SetFloat"]      = new("{target}.setFloat({0}, {1})"),
+        ["GetDouble"]     = new("{target}.getDouble({0})"),
+        ["SetDouble"]     = new("{target}.setDouble({0}, {1})"),
+        ["GetBool"]       = new("{target}.getBoolean({0})"),
+        ["SetBool"]       = new("{target}.setBoolean({0}, {1})"),
+        ["GetByte"]       = new("{target}.getByte({0})"),
+        ["SetByte"]       = new("{target}.setByte({0}, {1})"),
+        ["GetShort"]      = new("{target}.getShort({0})"),
+        ["SetShort"]      = new("{target}.setShort({0}, {1})"),
+        ["GetChar"]       = new("{target}.getChar({0})"),
+        ["SetChar"]       = new("{target}.setChar({0}, {1})"),
+        ["HasAnnotation"] = new("{target}.isAnnotationPresent(Class.forName({0}))"),
+    };
+
+    // ── Reflection — McReflectMethod (java.lang.reflect.Method) ──────────────
+
+    private static readonly Dictionary<string, MethodMapping> McReflectMethodMethods = new()
+    {
+        ["SetAccessible"] = new("{target}.setAccessible({0})"),
+        ["Invoke/1"]      = new("{target}.invoke({0})"),
+        ["Invoke/2"]      = new("{target}.invoke({0}, {1})"),
+        ["Invoke/3"]      = new("{target}.invoke({0}, {1}, {2})"),
+        ["Invoke/4"]      = new("{target}.invoke({0}, {1}, {2}, {3})"),
+        ["Invoke/5"]      = new("{target}.invoke({0}, {1}, {2}, {3}, {4})"),
+        ["HasAnnotation"] = new("{target}.isAnnotationPresent(Class.forName({0}))"),
+    };
+
+    // ── Reflection — McConstructor (java.lang.reflect.Constructor<?>) ─────────
+
+    private static readonly Dictionary<string, MethodMapping> McConstructorMethods = new()
+    {
+        ["SetAccessible"]  = new("{target}.setAccessible({0})"),
+        ["NewInstance/0"]  = new("{target}.newInstance()"),
+        ["NewInstance/1"]  = new("{target}.newInstance({0})"),
+        ["NewInstance/2"]  = new("{target}.newInstance({0}, {1})"),
+        ["NewInstance/3"]  = new("{target}.newInstance({0}, {1}, {2})"),
+        ["NewInstance/4"]  = new("{target}.newInstance({0}, {1}, {2}, {3})"),
+        ["HasAnnotation"]  = new("{target}.isAnnotationPresent(Class.forName({0}))"),
+    };
+
+    // ── Universal object methods (fallback for any type) ──────────────────────
+
+    private static readonly Dictionary<string, MethodMapping> ObjectMethods = new()
+    {
+        ["GetType"]     = new("{target}.getClass()"),
+        ["ToString"]    = new("{target}.toString()"),
+        ["GetHashCode"] = new("{target}.hashCode()"),
+        ["Equals"]      = new("{target}.equals({0})"),
     };
 
     // ── Property mappings (C# properties → Java getter calls) ────────────────
@@ -802,6 +936,7 @@ public static class MethodMapper
         ["McPlayer.IsUsingItem"]    = "{target}.isUsingItem()",
         ["McPlayer.IsSleeping"]     = "{target}.isSleeping()",
         ["McPlayer.IsSpectator"]    = "{target}.isSpectator()",
+        ["McPlayer.DisplayName"]    = "{target}.getDisplayName().getString()",
 
         // McCommandSource properties
         ["McCommandSource.Player"]  = "{target}.getPlayer()",
@@ -857,7 +992,7 @@ public static class MethodMapper
         ["McEntity.VelocityZ"]      = "{target}.getVelocity().getZ()",
         ["McEntity.Yaw"]            = "{target}.getYaw()",
         ["McEntity.Pitch"]          = "{target}.getPitch()",
-        ["McEntity.CustomName"]     = "{target}.hasCustomName() ? {target}.getCustomName().getString() : null",
+        ["McEntity.CustomName"]     = "{target}.contains(net.minecraft.component.DataComponentTypes.CUSTOM_NAME) ? {target}.getCustomName().getString() : null",
 
         // BlockPos properties
         ["BlockPos.X"]              = "{target}.getX()",
@@ -868,15 +1003,73 @@ public static class MethodMapper
         ["McBlockPos.Z"]            = "{target}.getZ()",
 
         // McItemStack properties
-        ["McItemStack.Count"]       = "{target}.getCount()",
-        ["McItemStack.Id"]          = "Registries.ITEM.getId({target}.getItem()).toString()",
-        ["McItemStack.IsEmpty"]     = "{target}.isEmpty()",
-        ["McItemStack.HasNbt"]      = "{target}.hasNbt()",
+        ["McItemStack.Count"]           = "{target}.getCount()",
+        ["McItemStack.Id"]              = "Registries.ITEM.getId({target}.getItem()).toString()",
+        ["McItemStack.IsEmpty"]         = "{target}.isEmpty()",
+        ["McItemStack.HasNbt"]          = "{target}.hasNbt()",
+        ["McItemStack.HasCustomName"]   = "{target}.contains(net.minecraft.component.DataComponentTypes.CUSTOM_NAME)",
+        ["McItemStack.MaxStackSize"]    = "{target}.getMaxCount()",
         // ItemStack properties (alias)
         ["ItemStack.Count"]         = "{target}.getCount()",
         ["ItemStack.Id"]            = "Registries.ITEM.getId({target}.getItem()).toString()",
         ["ItemStack.IsEmpty"]       = "{target}.isEmpty()",
         ["ItemStack.HasNbt"]        = "{target}.hasNbt()",
+
+        // McType (java.lang.Class<?>) properties
+        ["McType.Name"]             = "{target}.getName()",
+        ["McType.SimpleName"]       = "{target}.getSimpleName()",
+        ["McType.CanonicalName"]    = "{target}.getCanonicalName()",
+        ["McType.Superclass"]       = "{target}.getSuperclass()",
+        ["McType.Interfaces"]       = "new java.util.ArrayList<>(java.util.Arrays.asList({target}.getInterfaces()))",
+        ["McType.IsInterface"]      = "{target}.isInterface()",
+        ["McType.IsArray"]          = "{target}.isArray()",
+        ["McType.IsPrimitive"]      = "{target}.isPrimitive()",
+        ["McType.IsEnum"]           = "{target}.isEnum()",
+        ["McType.IsAnnotation"]     = "{target}.isAnnotation()",
+        ["McType.IsAnonymous"]      = "{target}.isAnonymousClass()",
+        ["McType.IsSynthetic"]      = "{target}.isSynthetic()",
+
+        // McField (java.lang.reflect.Field) properties
+        ["McField.Name"]            = "{target}.getName()",
+        ["McField.FieldType"]       = "{target}.getType()",
+        ["McField.DeclaringClass"]  = "{target}.getDeclaringClass()",
+        ["McField.IsPublic"]        = "java.lang.reflect.Modifier.isPublic({target}.getModifiers())",
+        ["McField.IsPrivate"]       = "java.lang.reflect.Modifier.isPrivate({target}.getModifiers())",
+        ["McField.IsProtected"]     = "java.lang.reflect.Modifier.isProtected({target}.getModifiers())",
+        ["McField.IsStatic"]        = "java.lang.reflect.Modifier.isStatic({target}.getModifiers())",
+        ["McField.IsFinal"]         = "java.lang.reflect.Modifier.isFinal({target}.getModifiers())",
+        ["McField.IsTransient"]     = "java.lang.reflect.Modifier.isTransient({target}.getModifiers())",
+        ["McField.IsVolatile"]      = "java.lang.reflect.Modifier.isVolatile({target}.getModifiers())",
+        ["McField.IsAccessible"]    = "{target}.isAccessible()",
+
+        // McReflectMethod (java.lang.reflect.Method) properties
+        ["McReflectMethod.Name"]           = "{target}.getName()",
+        ["McReflectMethod.ReturnType"]     = "{target}.getReturnType()",
+        ["McReflectMethod.DeclaringClass"] = "{target}.getDeclaringClass()",
+        ["McReflectMethod.ParameterCount"] = "{target}.getParameterCount()",
+        ["McReflectMethod.ParameterTypes"] = "new java.util.ArrayList<>(java.util.Arrays.asList({target}.getParameterTypes()))",
+        ["McReflectMethod.IsPublic"]       = "java.lang.reflect.Modifier.isPublic({target}.getModifiers())",
+        ["McReflectMethod.IsPrivate"]      = "java.lang.reflect.Modifier.isPrivate({target}.getModifiers())",
+        ["McReflectMethod.IsProtected"]    = "java.lang.reflect.Modifier.isProtected({target}.getModifiers())",
+        ["McReflectMethod.IsStatic"]       = "java.lang.reflect.Modifier.isStatic({target}.getModifiers())",
+        ["McReflectMethod.IsFinal"]        = "java.lang.reflect.Modifier.isFinal({target}.getModifiers())",
+        ["McReflectMethod.IsAbstract"]     = "java.lang.reflect.Modifier.isAbstract({target}.getModifiers())",
+        ["McReflectMethod.IsSynchronized"] = "java.lang.reflect.Modifier.isSynchronized({target}.getModifiers())",
+        ["McReflectMethod.IsVarArgs"]      = "{target}.isVarArgs()",
+        ["McReflectMethod.IsBridge"]       = "{target}.isBridge()",
+        ["McReflectMethod.IsSynthetic"]    = "{target}.isSynthetic()",
+        ["McReflectMethod.IsDefault"]      = "{target}.isDefault()",
+        ["McReflectMethod.IsAccessible"]   = "{target}.isAccessible()",
+
+        // McConstructor (java.lang.reflect.Constructor<?>) properties
+        ["McConstructor.Name"]           = "{target}.getName()",
+        ["McConstructor.DeclaringClass"] = "{target}.getDeclaringClass()",
+        ["McConstructor.ParameterCount"] = "{target}.getParameterCount()",
+        ["McConstructor.ParameterTypes"] = "new java.util.ArrayList<>(java.util.Arrays.asList({target}.getParameterTypes()))",
+        ["McConstructor.IsPublic"]       = "java.lang.reflect.Modifier.isPublic({target}.getModifiers())",
+        ["McConstructor.IsPrivate"]      = "java.lang.reflect.Modifier.isPrivate({target}.getModifiers())",
+        ["McConstructor.IsProtected"]    = "java.lang.reflect.Modifier.isProtected({target}.getModifiers())",
+        ["McConstructor.IsAccessible"]   = "{target}.isAccessible()",
 
         // McBlockState properties
         ["McBlockState.IsAir"]      = "{target}.isAir()",
@@ -949,13 +1142,25 @@ public static class MethodMapper
     // ── Public lookup API ─────────────────────────────────────────────────────
 
     /// <summary>
-    /// Looks up a method mapping given the C# type and method name.
-    /// Returns null if no mapping exists (will be passed through as-is).
+    /// Looks up a method mapping given the C# type, method name, and optional arg count.
+    /// For reflection types, tries arg-count-specific key (e.g. "Invoke/2") before the bare name.
+    /// Falls back to ObjectMethods (GetType, ToString, Equals, GetHashCode) for any type.
     /// </summary>
-    public static MethodMapping? GetMethod(string csTypeName, string methodName)
+    public static MethodMapping? GetMethod(string csTypeName, string methodName, int argCount = -1)
     {
         var table = GetTableForType(csTypeName);
-        return table?.TryGetValue(methodName, out var m) == true ? m : null;
+        if (table != null)
+        {
+            // Try arg-count-specific overload first (used by reflection Invoke/NewInstance)
+            if (argCount >= 0 && table.TryGetValue($"{methodName}/{argCount}", out var specific))
+                return specific;
+            if (table.TryGetValue(methodName, out var m))
+                return m;
+        }
+        // Universal object method fallback
+        if (ObjectMethods.TryGetValue(methodName, out var om))
+            return om;
+        return null;
     }
 
     /// <summary>
@@ -1014,6 +1219,10 @@ public static class MethodMapper
         "McBossBar" or "ServerBossBar"                     => BossBarMethods,
         "McInventory" or "Inventory"                       => InventoryMethods,
         "McBlockEntity" or "BlockEntity"                   => BlockEntityMethods,
+        "McType" or "Class"                                => McTypeMethods,
+        "McField" or "Field"                               => McFieldMethods,
+        "McReflectMethod" or "Method"                      => McReflectMethodMethods,
+        "McConstructor" or "Constructor"                   => McConstructorMethods,
         _ when csType.StartsWith("McGameRule")             => GameRuleMethods,
         _ => null
     };
