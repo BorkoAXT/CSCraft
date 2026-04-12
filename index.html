@@ -83,6 +83,14 @@
 .btn-gh { display: inline-block; padding: 0.65rem 1.6rem; background: rgba(255,255,255,0.15); color: white; font-weight: 600; border-radius: 6px; text-decoration: none; font-size: 0.95rem; border: 1px solid rgba(255,255,255,0.3); transition: 0.2s; }
 .btn-gh:hover { background: rgba(255,255,255,0.25); }
 
+    
+/* Playground CTA button (injected by CI) */
+.header-actions { margin-top: 1.2rem; display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
+.btn-playground { display: inline-block; padding: 0.65rem 1.6rem; background: white; color: var(--primary); font-weight: 700; border-radius: 6px; text-decoration: none; font-size: 0.95rem; transition: 0.2s; }
+.btn-playground:hover { background: rgba(255,255,255,0.88); transform: translateY(-1px); }
+.btn-gh { display: inline-block; padding: 0.65rem 1.6rem; background: rgba(255,255,255,0.15); color: white; font-weight: 600; border-radius: 6px; text-decoration: none; font-size: 0.95rem; border: 1px solid rgba(255,255,255,0.3); transition: 0.2s; }
+.btn-gh:hover { background: rgba(255,255,255,0.25); }
+
     </style>
 </head>
 <body>
@@ -90,6 +98,7 @@
 <header>
     <h1>CSCraft SDK</h1>
     <p>C# Minecraft Modding — Zero Java. Zero Gradle. Just <code>dotnet build</code>.</p>
+    <div class="header-actions"><a href="playground/" class="btn-playground">&#9889; Try Playground</a><a href="https://github.com/BorkoAXT/CSCraft" target="_blank" rel="noopener" class="btn-gh">GitHub</a></div>
     <div class="header-actions"><a href="playground/" class="btn-playground">&#9889; Try Playground</a><a href="https://github.com/BorkoAXT/CSCraft" target="_blank" rel="noopener" class="btn-gh">GitHub</a></div>
     <div class="header-actions"><a href="playground/" class="btn-playground">&#9889; Try Playground</a><a href="https://github.com/BorkoAXT/CSCraft" target="_blank" rel="noopener" class="btn-gh">GitHub</a></div>
 </header>
