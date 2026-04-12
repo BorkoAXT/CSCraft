@@ -397,4 +397,4 @@ public record ModInfo(
     string MinecraftVersion,
     string PackageName,
     string ClassName = ""
-);
+    );
