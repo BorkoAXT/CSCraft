@@ -89,6 +89,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git fetch origin gh-pages
           git checkout gh-pages
+          git pull origin gh-pages
 
           if [ ! -f .nojekyll ]; then
             touch .nojekyll
