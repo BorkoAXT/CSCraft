@@ -1,4 +1,4 @@
-name: Deploy Playground
+name: Deploy Playground + Docs
 
 on:
   push:
@@ -19,11 +19,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # ── Checkout ────────────────────────────────────────────────────────────
-      - name: Checkout
+      # ── 1. Checkout source branch ────────────────────────────────────────────
+      - name: Checkout source (origin-interpreter)
         uses: actions/checkout@v4
 
-      # ── Node (manifest generator) ────────────────────────────────────────────
+      # ── 2. Checkout gh-pages to grab the existing docs page ──────────────────
+      - name: Checkout gh-pages (for existing docs)
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: gh-pages-content
+
+      # ── 3. Node — generate API manifest ──────────────────────────────────────
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -32,7 +39,7 @@ jobs:
       - name: Generate API manifest
         run: node scripts/generate-manifest.js
 
-      # ── .NET 8 (Blazor WASM) ─────────────────────────────────────────────────
+      # ── 4. .NET 9 — publish Blazor WASM ──────────────────────────────────────
       - name: Setup .NET 9
         uses: actions/setup-dotnet@v4
         with:
@@ -46,21 +53,76 @@ jobs:
           dotnet publish Playground/Playground.csproj \
             -c Release \
             --no-restore \
-            --property:StaticWebAssetBasePath=playground \
-            -o out/playground-publish
+            -o out/publish
 
-      # The published static files are at out/playground-publish/wwwroot
-      # We deploy that directory into /playground/ on the gh-pages branch.
-      - name: Prepare deploy directory
+      # ── 5. Assemble the full deploy directory ─────────────────────────────────
+      #
+      #   out/deploy/
+      #     .nojekyll          ← prevents Jekyll processing _framework/ files
+      #     index.html         ← existing docs page + "Try Playground" button
+      #     playground/
+      #       index.html       ← Blazor app with correct <base href>
+      #       _framework/
+      #       css/ js/ ...
+      #
+      - name: Assemble deploy directory
         run: |
-          # Blazor publish puts the site under wwwroot
-          mv out/playground-publish/wwwroot out/site
+          mkdir -p out/deploy/playground
 
-      # ── Deploy to gh-pages ────────────────────────────────────────────────────
+          # .nojekyll at root so GitHub Pages serves _framework/ correctly
+          touch out/deploy/.nojekyll
+
+          # ── Docs: inject "Try Playground" button into existing header ──
+          python3 - <<'PYEOF'
+          import re
+
+          with open('gh-pages-content/index.html', 'r') as f:
+              html = f.read()
+
+          # Add CSS for the playground button (injected before closing </style>)
+          btn_css = """
+          /* Playground CTA button (injected by CI) */
+          .header-actions { margin-top: 1.2rem; display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
+          .btn-playground { display: inline-block; padding: 0.65rem 1.6rem; background: white; color: var(--primary); font-weight: 700; border-radius: 6px; text-decoration: none; font-size: 0.95rem; transition: 0.2s; }
+          .btn-playground:hover { background: rgba(255,255,255,0.88); transform: translateY(-1px); }
+          .btn-gh { display: inline-block; padding: 0.65rem 1.6rem; background: rgba(255,255,255,0.15); color: white; font-weight: 600; border-radius: 6px; text-decoration: none; font-size: 0.95rem; border: 1px solid rgba(255,255,255,0.3); transition: 0.2s; }
+          .btn-gh:hover { background: rgba(255,255,255,0.25); }
+          """
+          html = html.replace('</style>', btn_css + '\n    </style>', 1)
+
+          # Inject button row after the <p> inside <header>
+          html = re.sub(
+              r'(</header>)',
+              r'    <div class="header-actions">'
+              r'<a href="playground/" class="btn-playground">&#9889; Try Playground</a>'
+              r'<a href="https://github.com/BorkoAXT/CSCraft" target="_blank" rel="noopener" class="btn-gh">GitHub</a>'
+              r'</div>\n\1',
+              html,
+              count=1
+          )
+
+          with open('out/deploy/index.html', 'w') as f:
+              f.write(html)
+
+          print('Docs patched OK')
+          PYEOF
+
+          # ── Playground: copy Blazor publish output ──
+          cp -r out/publish/wwwroot/. out/deploy/playground/
+
+          # Fix <base href> for GitHub Pages path /CSCraft/playground/
+          sed -i 's|<base href="/" />|<base href="/CSCraft/playground/" />|g' \
+            out/deploy/playground/index.html
+
+          echo "Deploy tree:"
+          find out/deploy -maxdepth 3 -type f | sort | head -40
+
+      # ── 6. Deploy everything to gh-pages ──────────────────────────────────────
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           branch: gh-pages
-          folder: out/site
-          target-folder: playground
-          clean: false   # don't wipe other directories on gh-pages (e.g. /docs)
+          folder: out/deploy
+          clean: true       # wipe old content (removes the broken playground/playground/)
+          clean-exclude: |  # safety: never delete these even if somehow missing
+            .nojekyll

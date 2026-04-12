@@ -6,8 +6,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>Playground</RootNamespace>
     <AssemblyName>Playground</AssemblyName>
-    <!-- Set by CI via /p:StaticWebAssetBasePath=playground -->
-    <StaticWebAssetBasePath Condition="'$(StaticWebAssetBasePath)' == ''">/</StaticWebAssetBasePath>
   </PropertyGroup>
 
   <ItemGroup>
