@@ -7,6 +7,7 @@ on:
       - 'Playground/**'
       - 'Transpiler/**'
       - 'CSharpStubs/**'
+      - 'site/**'
       - 'scripts/generate-manifest.js'
       - '.github/workflows/playground.yml'
   workflow_dispatch:
@@ -19,18 +20,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # ── 1. Checkout source branch ────────────────────────────────────────────
-      - name: Checkout source (origin-interpreter)
+      # ── Checkout ─────────────────────────────────────────────────────────────
+      - name: Checkout
         uses: actions/checkout@v4
 
-      # ── 2. Checkout gh-pages to grab the existing docs page ──────────────────
-      - name: Checkout gh-pages (for existing docs)
-        uses: actions/checkout@v4
-        with:
-          ref: gh-pages
-          path: gh-pages-content
-
-      # ── 3. Node — generate API manifest ──────────────────────────────────────
+      # ── Node — API manifest ───────────────────────────────────────────────────
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -39,90 +33,71 @@ jobs:
       - name: Generate API manifest
         run: node scripts/generate-manifest.js
 
-      # ── 4. .NET 9 — publish Blazor WASM ──────────────────────────────────────
+      # ── .NET 9 — Blazor WASM ─────────────────────────────────────────────────
       - name: Setup .NET 9
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'
 
-      - name: Restore
-        run: dotnet restore Playground/Playground.csproj
-
-      - name: Publish Blazor WASM
+      - name: Restore & Publish
         run: |
+          dotnet restore Playground/Playground.csproj
           dotnet publish Playground/Playground.csproj \
             -c Release \
             --no-restore \
             -o out/publish
 
-      # ── 5. Assemble the full deploy directory ─────────────────────────────────
+      # ── Assemble deploy directory ─────────────────────────────────────────────
       #
       #   out/deploy/
-      #     .nojekyll          ← prevents Jekyll processing _framework/ files
-      #     index.html         ← existing docs page + "Try Playground" button
+      #     index.html         ← docs page (from site/index.html in source branch)
       #     playground/
       #       index.html       ← Blazor app with correct <base href>
       #       _framework/
-      #       css/ js/ ...
+      #       css/ js/ api-manifest.json
       #
       - name: Assemble deploy directory
         run: |
           mkdir -p out/deploy/playground
 
-          # .nojekyll at root so GitHub Pages serves _framework/ correctly
-          touch out/deploy/.nojekyll
+          # Docs: use the clean source file — never read from gh-pages
+          cp site/index.html out/deploy/index.html
 
-          # ── Docs: inject "Try Playground" button into existing header ──
-          python3 - <<'PYEOF'
-          import re
-
-          with open('gh-pages-content/index.html', 'r') as f:
-              html = f.read()
-
-          # Add CSS for the playground button (injected before closing </style>)
-          btn_css = """
-          /* Playground CTA button (injected by CI) */
-          .header-actions { margin-top: 1.2rem; display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
-          .btn-playground { display: inline-block; padding: 0.65rem 1.6rem; background: white; color: var(--primary); font-weight: 700; border-radius: 6px; text-decoration: none; font-size: 0.95rem; transition: 0.2s; }
-          .btn-playground:hover { background: rgba(255,255,255,0.88); transform: translateY(-1px); }
-          .btn-gh { display: inline-block; padding: 0.65rem 1.6rem; background: rgba(255,255,255,0.15); color: white; font-weight: 600; border-radius: 6px; text-decoration: none; font-size: 0.95rem; border: 1px solid rgba(255,255,255,0.3); transition: 0.2s; }
-          .btn-gh:hover { background: rgba(255,255,255,0.25); }
-          """
-          html = html.replace('</style>', btn_css + '\n    </style>', 1)
-
-          # Inject button row after the <p> inside <header>
-          html = re.sub(
-              r'(</header>)',
-              r'    <div class="header-actions">'
-              r'<a href="playground/" class="btn-playground">&#9889; Try Playground</a>'
-              r'<a href="https://github.com/BorkoAXT/CSCraft" target="_blank" rel="noopener" class="btn-gh">GitHub</a>'
-              r'</div>\n\1',
-              html,
-              count=1
-          )
-
-          with open('out/deploy/index.html', 'w') as f:
-              f.write(html)
-
-          print('Docs patched OK')
-          PYEOF
-
-          # ── Playground: copy Blazor publish output ──
+          # Playground: Blazor publish output
           cp -r out/publish/wwwroot/. out/deploy/playground/
 
-          # Fix <base href> for GitHub Pages path /CSCraft/playground/
+          # Fix <base href> for GitHub Pages: /CSCraft/playground/
           sed -i 's|<base href="/" />|<base href="/CSCraft/playground/" />|g' \
             out/deploy/playground/index.html
 
-          echo "Deploy tree:"
-          find out/deploy -maxdepth 3 -type f | sort | head -40
+          echo "=== Deploy tree ==="
+          find out/deploy -not -path '*/\.*' -type f | sort | grep -v _framework | head -30
 
-      # ── 6. Deploy everything to gh-pages ──────────────────────────────────────
-      - name: Deploy to GitHub Pages
+      # ── Deploy to gh-pages via JamesIves ──────────────────────────────────────
+      - name: Deploy
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           branch: gh-pages
           folder: out/deploy
-          clean: true       # wipe old content (removes the broken playground/playground/)
-          clean-exclude: |  # safety: never delete these even if somehow missing
-            .nojekyll
+          clean: true
+
+      # ── Add .nojekyll directly so Jekyll doesn't block _framework/ ────────────
+      # JamesIves doesn't reliably deploy dotfiles, so we commit it ourselves.
+      - name: Add .nojekyll to gh-pages
+        run: |
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git fetch origin gh-pages
+          git checkout gh-pages
+
+          if [ ! -f .nojekyll ]; then
+            touch .nojekyll
+            git add .nojekyll
+            git commit -m "Add .nojekyll to disable Jekyll processing"
+            git push origin gh-pages
+            echo ".nojekyll added"
+          else
+            echo ".nojekyll already present"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

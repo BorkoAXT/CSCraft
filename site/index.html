@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSCraft Documentation | C# to Minecraft</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #512bd4; /* .NET Purple */
+            --primary-light: #673ab7;
+            --secondary: #24292e;
+            --bg: #ffffff;
+            --sidebar-bg: #f8f9fa;
+            --text: #1a1a1a;
+            --text-muted: #57606a;
+            --border: #d0d7de;
+            --code-bg: #1e1e1e;
+            --accent: #0078d4;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body { font-family: 'Inter', -apple-system, sans-serif; line-height: 1.6; color: var(--text); background: var(--bg); display: flex; flex-direction: column; min-height: 100vh; }
+
+        /* Header */
+        header { background: var(--primary); color: white; padding: 2rem; text-align: center; border-bottom: 4px solid rgba(0,0,0,0.1); }
+        header h1 { font-size: 2.5rem; margin-bottom: 0.5rem; }
+        header p { font-size: 1.1rem; opacity: 0.9; }
+
+        /* Layout */
+        .wrapper { display: flex; max-width: 1400px; margin: 0 auto; width: 100%; flex: 1; }
+
+        /* Sidebar */
+        aside { width: 300px; background: var(--sidebar-bg); border-right: 1px solid var(--border); padding: 2rem 1rem; height: calc(100vh - 160px); position: sticky; top: 0; overflow-y: auto; }
+        .search-box { width: 100%; padding: 0.6rem; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 1.5rem; font-family: inherit; }
+        aside h4 { font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); margin: 1.5rem 0 0.5rem 0; letter-spacing: 1px; }
+        aside ul { list-style: none; }
+        aside a { text-decoration: none; color: var(--text); font-size: 0.9rem; display: block; padding: 0.4rem 0.8rem; border-radius: 4px; transition: 0.2s; }
+        aside a:hover { background: #e2e8f0; color: var(--primary); }
+        aside a.active { background: var(--primary); color: white; font-weight: 600; }
+
+        /* Main Content */
+        main { flex: 1; padding: 2rem 3rem; max-width: 900px; }
+        section { margin-bottom: 4rem; scroll-margin-top: 2rem; }
+        h1, h2, h3 { margin-top: 2rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.3rem; }
+        p { margin-bottom: 1rem; }
+
+        /* Code Blocks */
+        pre { background: var(--code-bg); color: #dcdcdc; padding: 1.2rem; border-radius: 8px; overflow-x: auto; font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; margin: 1rem 0; position: relative; }
+        .copy-btn { position: absolute; top: 8px; right: 8px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.7rem; }
+        .copy-btn:hover { background: rgba(255,255,255,0.2); }
+        code { font-family: 'JetBrains Mono', monospace; background: #f1f5f9; padding: 0.2rem 0.4rem; border-radius: 4px; font-size: 0.9em; color: #d4373d; }
+        pre code { background: none; padding: 0; color: inherit; }
+
+        /* Tables */
+        table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; font-size: 0.9rem; }
+        table th, table td { text-align: left; padding: 0.75rem; border: 1px solid var(--border); }
+        table th { background: #f6f8fa; font-weight: 600; }
+        table tr:nth-child(even) { background: #fafbfc; }
+
+        /* Footer */
+        footer { background: var(--secondary); color: white; text-align: center; padding: 2rem; margin-top: auto; }
+
+        @media (max-width: 900px) {
+            .wrapper { flex-direction: column; }
+            aside { width: 100%; height: auto; position: relative; top: 0; border-right: none; border-bottom: 1px solid var(--border); }
+            main { padding: 2rem 1.5rem; }
+        }
+
+        /* Playground CTA */
+        .header-actions { margin-top: 1.2rem; display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
+        .btn-playground { display: inline-block; padding: 0.65rem 1.6rem; background: white; color: var(--primary); font-weight: 700; border-radius: 6px; text-decoration: none; font-size: 0.95rem; transition: 0.2s; }
+        .btn-playground:hover { background: rgba(255,255,255,0.88); transform: translateY(-1px); }
+        .btn-gh { display: inline-block; padding: 0.65rem 1.6rem; background: rgba(255,255,255,0.15); color: white; font-weight: 600; border-radius: 6px; text-decoration: none; font-size: 0.95rem; border: 1px solid rgba(255,255,255,0.3); transition: 0.2s; }
+        .btn-gh:hover { background: rgba(255,255,255,0.25); }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>CSCraft SDK</h1>
+    <p>C# Minecraft Modding — Zero Java. Zero Gradle. Just <code>dotnet build</code>.</p>
+
+    <div class="header-actions"><a href="playground/" class="btn-playground">&#9889; Try Playground</a><a href="https://github.com/BorkoAXT/CSCraft" target="_blank" rel="noopener" class="btn-gh">GitHub</a></div>
+</header>
+
+<div class="wrapper">
+    <aside>
+        <input type="text" class="search-box" id="search" placeholder="Search API...">
+        <nav id="nav-list">
+            <h4>Getting Started</h4>
+            <ul>
+                <li><a href="#intro">Introduction</a></li>
+                <li><a href="#quickstart">Quick Start</a></li>
+                <li><a href="#prereq">Prerequisites</a></li>
+                <li><a href="#discovery">Automatic Java Discovery</a></li>
+                <li><a href="#modinfo">ModInfo Attribute</a></li>
+                <li><a href="#build-pipeline">Build Pipeline</a></li>
+                <li><a href="#manual-setup">Manual Setup</a></li>
+            </ul>
+            <h4>Events & Commands</h4>
+            <ul>
+                <li><a href="#events">Events API</a></li>
+                <li><a href="#commands">Commands</a></li>
+            </ul>
+            <h4>API Reference</h4>
+            <ul>
+                <li><a href="#discovery">Java Discovery</a></li>
+            </ul>
+            <h4>The Basics</h4>
+            <ul>
+                <li><a href="#modinfo">ModInfo Attribute</a></li>
+                <li><a href="#events">Events API</a></li>
+                <li><a href="#commands">Commands</a></li>
+                <li><a href="#player-api">Player API</a></li>
+                <li><a href="#entity-api">Entity API</a></li>
+                <li><a href="#world-api">World API</a></li>
+                <li><a href="#server-api">Server API</a></li>
+                <li><a href="#boss-bars">Boss Bars</a></li>
+                <li><a href="#scoreboard">Scoreboard</a></li>
+                <li><a href="#scheduler">Scheduler</a></li>
+                <li><a href="#inventory">Inventory API</a></li>
+                <li><a href="#nbt">NBT / Data</a></li>
+                <li><a href="#damage-types">Damage Types</a></li>
+            </ul>
+            <h4>Advanced</h4>
+            <ul>
+                <li><a href="#registration">Block/Item Registry</a></li>
+                <li><a href="#recipes">Recipes</a></li>
+                <li><a href="#resources">Auto-Resources</a></li>
+                <li><a href="#tags-fluids-structures-advancements">Tags, Fluids, Structures, Advancements</a></li>
+                <li><a href="#game-rules">Game Rules</a></li>
+                <li><a href="#sounds-particles">Sounds & Particles</a></li>
+                <li><a href="#attributes">Attributes</a></li>
+                <li><a href="#scheduling">Scheduler</a></li>
+                <li><a href="#trouble">Troubleshooting</a></li>
+            </ul>
+        </nav>
+    </aside>
+
+    <main>
+        <section id="intro">
+            <h2>Introduction</h2>
+            <p>CSCraft lets you write Minecraft Fabric mods in C# instead of Java. You write mod logic in C#, and CSCraft transpiles it into a working Fabric mod <code>.jar</code> — no Gradle, no Java knowledge, no manual setup required.</p>
+            <pre>dotnet build <span style="color: #6a9955;">// That's all you need.</span></pre>
+        </section>
+
+        <section id="quickstart">
+            <h2>Quick Start</h2>
+            <h3>1. Create a new project</h3>
+            <pre><button class="copy-btn">Copy</button>dotnet new classlib -n MyMod
+cd MyMod
+dotnet add package CSCraft.Sdk</pre>
+            <h3>2. Write your mod</h3>
+            <p>Replace <code>Class1.cs</code> with:</p>
+            <pre><button class="copy-btn">Copy</button>using CSCraft;
+
+<span style="color: #0078d4;">[ModInfo(</span>
+    <span style="color: #d4373d;">Id</span>          = <span style="color: #6a9955;">"mymod"</span>,
+    <span style="color: #d4373d;">Name</span>        = <span style="color: #6a9955;">"My Mod"</span>,
+    <span style="color: #d4373d;">Version</span>     = <span style="color: #6a9955;">"1.0.0"</span>,
+    <span style="color: #d4373d;">Author</span>      = <span style="color: #6a9955;">"borko"</span>,
+    <span style="color: #d4373d;">Description</span> = <span style="color: #6a9955;">"My first C# Minecraft mod"</span>
+    <span style="color: #d4373d;">MinecraftVersion</span> = <span style="color: #6a9955;">"1.21.1"</span>
+<span style="color: #0078d4;">)]</span>
+public class MyMod : IMod
+{
+    public void OnInitialize()
+    {
+        Events.PlayerJoin += (player) =>
+        {
+            player.SendMessage(<span style="color: #6a9955;">$"Welcome, {player.Name}!"</span>);
+            player.GiveItem(<span style="color: #6a9955;">"minecraft:diamond"</span>, 3);
+        };
+    }
+}</pre>
+            <h3>3. Build</h3>
+            <pre><button class="copy-btn">Copy</button>dotnet build</pre>
+            <p>That's it. A single <code>dotnet build</code> does everything in one pass:</p>
+            <ol style="margin-left: 1.5rem;">
+                <li>Reads <code>[ModInfo]</code> and generates the Fabric template</li>
+                <li>Auto-discovers your JDK (no <code>JAVA_HOME</code> setup needed)</li>
+                <li>Transpiles your C# to Java</li>
+                <li>Generates recipe JSONs, model JSONs, blockstate JSONs, and lang files</li>
+                <li>Runs Gradle to produce the mod <code>.jar</code></li>
+            </ol>
+            <p>The output is in <code>FabricTemplate/build/libs/</code>. Copy it to your Minecraft <code>mods/</code> folder and launch with Fabric Loader.</p>
+        </section>
+
+        <section id="prereq">
+            <h2>Prerequisites</h2>
+            <ul>
+                <li><a href="https://dotnet.microsoft.com/download">.NET 9 SDK</a></li>
+                <li><a href="https://adoptium.net/">Java 21</a> (auto-discovered — see below)</li>
+                <li><a href="https://fabricmc.net/use/installer/">Fabric Loader</a> installed in your Minecraft instance</li>
+            </ul>
+        </section>
+
+        <section id="discovery">
+            <h2>Automatic Java Discovery</h2>
+            <p>CSCraft scans your system in this order to find JDK 21 or 17:</p>
+            <ol style="margin-left: 1.5rem;">
+                <li><code>&lt;CSCraftJavaHome&gt;</code> in <code>.csproj</code></li>
+                <li><code>JAVA_HOME</code> / <code>JDK_HOME</code> environment variables</li>
+                <li>Windows Registry</li>
+                <li>Common install folders (Program Files, /usr/lib/jvm, etc)</li>
+            </ol>
+            <p>Prefers JDK 21, then JDK 17. If none is found, the build will tell you exactly what to do.</p>
+        </section>
+
+        <section id="modinfo">
+            <h2>The <code>[ModInfo]</code> Attribute</h2>
+            <p>Place this on your mod class to configure everything automatically:</p>
+            <pre><button class="copy-btn">Copy</button>[ModInfo(
+    Id               = "mymod",           // Required: lowercase mod ID
+    Name             = "My Mod",          // Required: display name
+    Version          = "1.0.0",           // Mod version (default: "1.0.0")
+    Author           = "YourName",        // Shown in Fabric mod menu
+    Description      = "A cool mod",      // Short description
+    MinecraftVersion = "1.21.1",          // Target MC version (default: "1.21.1")
+    PackageName      = "com.you.mymod"    // Java package (default: derived from Author + Id)
+)]
+public class MyMod : IMod { ... }</pre>
+            <p><strong>Supported Minecraft versions:</strong> 1.20.1, 1.20.2, 1.20.4, 1.20.6, 1.21, 1.21.1</p>
+            <p>CSCraft automatically resolves the correct Yarn mappings, Fabric Loader, Fabric API, and Loom versions.</p>
+        </section>
+
+        <section id="build-pipeline">
+            <h2>How the Build Pipeline Works</h2>
+            <p>When you run <code>dotnet build</code>, CSCraft executes a single unified build target:</p>
+            <pre><button class="copy-btn">Copy</button>dotnet build
+  |
+  |-- 1. Setup:     Reads [ModInfo], generates FabricTemplate/, copies Gradle wrapper
+  |-- 2. Transpile: Converts all .cs files to .java, generates recipe/model/lang JSONs
+  |-- 3. Gradle:    Runs gradlew build to compile Java and produce the mod .jar
+  |
+  v
+FabricTemplate/build/libs/mymod-1.0.0.jar   &lt;-- ready to install</pre>
+            <p>Everything happens in one pass — no need to build twice or run Gradle manually.</p>
+        </section>
+
+        <section id="manual-setup">
+            <h2>Manual Setup (Advanced)</h2>
+            <p>If you prefer to manage the Fabric template yourself instead of using <code>[ModInfo]</code>, set these in your <code>.csproj</code>:</p>
+            <pre><button class="copy-btn">Copy</button>&lt;PropertyGroup&gt;
+  &lt;CSCraftPackageName&gt;com.yourname.mymod&lt;/CSCraftPackageName&gt;
+  &lt;CSCraftFabricPath&gt;$(MSBuildProjectDirectory)\FabricTemplate&lt;/CSCraftFabricPath&gt;
+  &lt;CSCraftResourcesPath&gt;$(MSBuildProjectDirectory)\FabricTemplate\src\main\resources&lt;/CSCraftResourcesPath&gt;
+  &lt;CSCraftJavaHome&gt;C:\Program Files\Eclipse Adoptium\jdk-21&lt;/CSCraftJavaHome&gt;
+  &lt;CSCraftRunGradle&gt;true&lt;/CSCraftRunGradle&gt;
+&lt;/PropertyGroup&gt;</pre>
+            <p>All properties are optional — sensible defaults are applied automatically.</p>
+        </section>
+
+        <section id="events">
+            <h2>Events API</h2>
+            <p>Subscribe to these in <code>OnInitialize()</code>:</p>
+            <pre><button class="copy-btn">Copy</button>Events.PlayerJoin += (p) => { ... };
+Events.PlayerLeave += (player) => { ... };
+Events.PlayerDeath += (player) => { ... };
+Events.PlayerRespawn += (player) => { ... };
+Events.PlayerConnect += (player) => { ... };
+Events.PlayerSleep += (player, pos) => { ... };
+Events.PlayerWakeUp += (player) => { ... };
+
+// Chat
+Events.BlockBreak += (p, pos) => { ... };
+Events.ChatMessage += (p, msg) => { ... };
+Events.ServerTick += (s) => { ... };
+Events.EntityHurt += (e, amt) => { ... };</pre>
+            <p>Subscribe to server-side events in <code>OnInitialize()</code>:</p>
+            <pre><button class="copy-btn">Copy</button>// Player lifecycle
+Events.PlayerJoin    += (player) => { ... };
+Events.PlayerLeave   += (player) => { ... };
+Events.PlayerDeath   += (player) => { ... };
+Events.PlayerRespawn += (player) => { ... };
+Events.PlayerConnect += (player) => { ... };
+Events.PlayerSleep   += (player, pos) => { ... };
+Events.PlayerWakeUp  += (player) => { ... };
+
+// Chat
+Events.ChatMessage += (player, message) => { ... };
+
+// Block interaction
+Events.BlockBreak   += (player, pos) => { ... };
+Events.BlockInteract += (player, pos) => { ... };
+Events.BlockAttack   += (player, pos) => { ... };
+
+// Combat
+Events.PlayerHurt   += (player, amount) => { ... };
+Events.PlayerAttack += (player, entity) => { ... };
+Events.EntityHurt   += (entity, amount) => { ... };
+Events.EntityDeath  += (entity) => { ... };
+
+// Items
+Events.ItemUse    += (player, stack) => { ... };
+Events.ItemPickup += (player, stack) => { ... };
+
+// Server lifecycle
+Events.ServerStart += (server) => { ... };
+Events.ServerStop  += (server) => { ... };
+Events.ServerTick  += (server) => { ... };
+
+// World
+Events.WorldLoad += (world) => { ... };
+Events.WorldTick += (world) => { ... };
+Events.ChunkLoad += (world) => { ... };</pre>
+        </section>
+
+        <section id="player-api">
+            <h2>Player API</h2>
+            <table>
+                <thead><tr><th>Feature</th><th>Code</th></tr></thead>
+                <tbody>
+                    <tr><td><strong>Chat</strong></td><td><code>player.SendMessage("Hi");</code></td></tr>
+                    <tr><td><strong>Health</strong></td><td><code>player.Heal(10); player.Damage(5);</code></td></tr>
+                    <tr><td><strong>Position</strong></td><td><code>player.Teleport(x, y, z);</code></td></tr>
+                    <tr><td><strong>Inventory</strong></td><td><code>player.GiveItem("diamond", 3);</code></td></tr>
+                    <tr><td><strong>Effects</strong></td><td><code>player.GiveEffect("speed", 200, 1);</code></td></tr>
+                </tbody>
+            </table>
+            <pre><button class="copy-btn">Copy</button>// Identity
+string name = player.Name;
+string uuid = player.Uuid;
+int ping    = player.GetPing();
+string locale = player.GetLocale();
+
+// Chat
+player.SendMessage("Hello!");
+player.SendActionBar("Action bar text");
+player.SendTitle("Title", "Subtitle");
+
+// Health & food
+player.Heal(10);
+player.Damage(5);
+float hp   = player.Health;
+int food   = player.FoodLevel;
+
+// Movement
+player.Teleport(x, y, z);
+player.LookAt(x, y, z);
+double px = player.X;
+
+// State
+bool sneaking  = player.IsSneaking;
+bool flying    = player.IsFlying;
+bool swimming  = player.IsSwimming;
+bool sleeping  = player.IsSleeping;
+bool spectator = player.IsSpectator;
+bool blocking  = player.IsBlocking;
+
+// Items & inventory
+player.GiveItem("minecraft:diamond", 10);
+player.ClearInventory();
+McItemStack main = player.MainHandItem;
+McItemStack helm = player.Helmet;
+
+// Item cooldowns
+player.SetCooldown("minecraft:ender_pearl", 60);
+bool onCd = player.IsOnCooldown("minecraft:ender_pearl");
+
+// Active item use
+bool usingItem = player.IsUsingItem;
+McItemStack active = player.GetActiveItem();
+
+// Ender chest
+McInventory enderChest = player.GetEnderChest();
+
+// Effects
+player.GiveEffect("minecraft:speed", 200, 1);
+player.RemoveEffect("minecraft:speed");
+bool hasSpeed = player.HasEffect("minecraft:speed");
+player.ClearEffects();
+
+// XP & game mode
+player.GiveXp(100);
+player.SetXpLevel(5);
+player.SetGameMode("creative");
+
+// Permissions
+bool op = player.IsOp();
+player.Kick("Banned.");
+
+// Sleep
+player.WakeUp();
+
+// UI
+player.CloseInventory();
+
+// Location
+string biome = player.GetBiome();
+string dim   = player.GetDimension();
+
+// NBT (persistent per-player data)
+player.SetNbtString("key", "value");
+player.SetNbtInt("score", 42);
+int score = player.GetNbtInt("score");
+bool has  = player.HasNbt("key");</pre>
+        </section>
+
+        <section id="entity-api">
+            <h2>Entity API</h2>
+            <pre><button class="copy-btn">Copy</button>// Identity
+string type = entity.TypeId;    // e.g. "minecraft:zombie"
+string uuid = entity.Uuid;
+bool isMob  = entity.IsMob;
+bool isPlayer = entity.IsPlayer;
+
+// Position & velocity
+double x = entity.X;
+entity.Teleport(x, y, z);
+entity.SetVelocity(0, 1, 0);   // launch upward
+double vx = entity.VelocityX;
+
+// Health
+float hp = entity.Health;
+entity.Kill();
+entity.Remove();
+
+// State
+entity.SetOnFire(5);
+entity.SetInvisible(true);
+entity.SetNoGravity(true);
+entity.SetCustomName("Boss");
+entity.SetCustomNameVisible(true);
+
+// Age (passive mobs)
+entity.SetBaby(true);
+int age = entity.GetAge();
+
+// Tags
+entity.AddTag("marked");
+bool has = entity.HasTag("marked");
+
+// Riding
+entity.StartRiding(otherEntity);
+entity.StopRiding();
+
+// NBT
+entity.SetNbtString("owner", "Steve");</pre>
+        </section>
+
+        <section id="world-api">
+            <h2>World API</h2>
+            <pre><button class="copy-btn">Copy</button>// Blocks
+world.SetBlock(x, y, z, "minecraft:stone");
+string id = world.GetBlock(x, y, z);
+world.BreakBlock(x, y, z);
+world.FillBlocks(x1, y1, z1, x2, y2, z2, "minecraft:air");
+bool air = world.IsAir(x, y, z);
+
+// Entities
+McEntity mob = world.SpawnEntity("minecraft:creeper", x, y, z);
+List&lt;McEntity&gt; nearby = world.GetNearbyEntities(x, y, z, 10.0);
+
+// Item drops
+world.DropItem("minecraft:diamond", x, y, z, 3);
+
+// Weather & time
+world.SetTime(6000);
+world.SetWeather(0, 6000, true, false);
+bool day = world.IsDay;
+
+// Lightning
+world.SpawnLightning(x, y, z);
+
+// Effects
+world.CreateExplosion(x, y, z, 4.0f);
+world.SpawnParticle(McParticles.Flame, x, y, z, 30);
+world.PlaySound("minecraft:entity.lightning_bolt.thunder", x, y, z);
+
+// Info
+int light = world.GetLightLevel(x, y, z);
+string biome = world.GetBiome(x, y, z);
+int topY = world.GetTopY(x, z);
+bool loaded = world.IsChunkLoaded(x, z);
+
+// Block entities (chests, furnaces, etc.)
+McBlockEntity? be = world.GetBlockEntity(x, y, z);
+if (be != null && be.IsChest)
+{
+    McInventory? inv = be.GetInventory();
+}
+
+// World border
+double size = world.GetBorderSize();
+world.SetBorderSize(1000);
+world.AnimateBorderSize(500, 60.0);   // shrink to 500 over 60 seconds
+world.SetBorderCenter(0, 0);</pre>
+        </section>
+
+        <section id="server-api">
+            <h2>Server API</h2>
+            <pre><button class="copy-btn">Copy</button>server.Broadcast("Hello everyone!");
+McPlayer? p = server.GetPlayer("Steve");
+List&lt;McWorld&gt; worlds = server.GetAllWorlds();
+server.RunCommand("say Hello from console");
+
+// Properties
+int count  = server.PlayerCount;
+int max    = server.MaxPlayers;
+string ver = server.Version;
+bool hc    = server.IsHardcore;
+long seed  = server.GetSeed();
+
+// Game mode
+string mode = server.GetDefaultGameMode();
+server.SetDefaultGameMode("survival");
+
+// Ban list
+server.BanPlayer("Griefer", "Griefing");
+server.PardonPlayer("Griefer");
+bool banned = server.IsPlayerBanned("Griefer");
+
+// Whitelist
+server.SetWhitelistEnabled(true);
+server.AddToWhitelist("Friend");
+bool wl = server.IsWhitelisted("Friend");
+
+// Worlds
+McWorld overworld = server.Overworld;
+McWorld nether    = server.Nether;
+McWorld end       = server.End;</pre>
+        </section>
+
+        <section id="boss-bars">
+            <h2>Boss Bars</h2>
+            <pre><button class="copy-btn">Copy</button>// Create a boss bar
+McBossBar bar = new McBossBar("Raid Progress", McBossBar.BarColor.Red);
+bar.SetProgress(0.75f);           // 0.0 to 1.0
+bar.SetVisible(true);
+
+// Show to players
+bar.AddPlayer(player);
+bar.AddAllPlayers(server);
+bar.RemovePlayer(player);
+bar.RemoveAllPlayers();
+
+// Customize
+bar.SetTitle("New Title");
+bar.SetColor("blue");
+bar.SetDarkenSky(true);
+bar.SetThickenFog(true);</pre>
+        </section>
+
+        <section id="scoreboard">
+            <h2>Scoreboard</h2>
+            <pre><button class="copy-btn">Copy</button>// Create objectives
+McScoreboard.CreateObjective(server, "kills", "Player Kills");
+McScoreboard.ShowSidebar(server, "kills");
+McScoreboard.ShowBelowName(server, "kills");
+
+// Scores
+McScoreboard.SetScore(server, player, "kills", 10);
+int kills = McScoreboard.GetScore(server, player, "kills");
+McScoreboard.AddScore(server, player, "kills", 1);
+McScoreboard.ResetScore(server, player, "kills");
+
+// Teams
+McScoreboard.CreateTeam(server, "red");
+McScoreboard.SetTeamColor(server, "red", "red");
+McScoreboard.SetTeamPrefix(server, "red", "[RED] ");
+McScoreboard.AddPlayerToTeam(server, player, "red");
+McScoreboard.SetFriendlyFire(server, "red", false);</pre>
+        </section>
+
+        <section id="scheduler">
+            <h2>Scheduler (Delayed & Repeating Tasks)</h2>
+            <pre><button class="copy-btn">Copy</button>// Run after 5 seconds (100 ticks)
+McScheduler.RunLater(server, 100, (s) =>
+{
+    s.Broadcast("5 seconds have passed!");
+});
+
+// Run every second (20 ticks)
+McScheduler.RunRepeating(server, 20, (s, cancel) =>
+{
+    s.Broadcast("Tick!");
+    // Call cancel() to stop the repeating task
+});
+
+// Run off the main thread (don't call MC API from here)
+McScheduler.RunAsync(server, () =>
+{
+    // Heavy computation, file I/O, HTTP requests, etc.
+});</pre>
+        </section>
+
+        <section id="inventory">
+            <h2>Inventory</h2>
+            <pre><button class="copy-btn">Copy</button>// Player inventory
+McInventory inv = McInventory.FromPlayer(player);
+McItemStack slot0 = inv.GetSlot(0);       // hotbar slot 1
+inv.SetSlot(0, new McItemStack("minecraft:diamond", 64));
+inv.Clear();
+
+// Search
+int count = inv.Count("minecraft:diamond");
+bool has  = inv.Contains("minecraft:diamond");
+int slot  = inv.FindSlot("minecraft:diamond");
+
+// Give/take items
+McInventory.Give(player, new McItemStack("minecraft:diamond", 10));
+McInventory.Take(player, "minecraft:dirt", 64);
+
+// Ender chest
+McInventory ender = McInventory.EnderChest(player);</pre>
+        </section>
+
+        <section id="nbt">
+            <h2>NBT (Persistent Data)</h2>
+            <pre><button class="copy-btn">Copy</button>// Create a compound
+McNbt nbt = new McNbt();
+nbt.SetString("name", "Steve");
+nbt.SetInt("level", 5);
+nbt.SetBool("vip", true);
+nbt.SetDouble("balance", 1000.50);
+
+// Read
+string name = nbt.GetString("name");
+bool has    = nbt.Has("name");
+List&lt;string&gt; keys = nbt.GetKeys();
+
+// Nested compounds
+McNbt inner = new McNbt();
+inner.SetString("type", "quest");
+nbt.SetCompound("data", inner);
+
+// Entity NBT
+McNbt entityData = McNbt.FromEntity(entity);
+McNbt.ToEntity(entity, nbt);
+
+// Item NBT
+McNbt itemData = McNbt.FromItem(stack);
+McNbt.ToItem(stack, nbt);</pre>
+        </section>
+
+        <section id="damage-types">
+            <h2>Damage Types</h2>
+            <pre><button class="copy-btn">Copy</button>// Deal typed damage
+McDamage.DealDamage(entity, McDamage.Fire, 5.0f);
+McDamage.DealDamage(entity, McDamage.Magic, 10.0f);
+McDamage.DealFallDamage(entity, 20.0f);
+McDamage.DealFireDamage(entity, 3.0f);
+McDamage.DealMagicDamage(entity, 8.0f);
+
+// Built-in damage type IDs
+// McDamage.Generic, McDamage.Fire, McDamage.Lava, McDamage.Drown,
+// McDamage.Starve, McDamage.Fall, McDamage.Magic, McDamage.Wither,
+// McDamage.Lightning, McDamage.Explosion, McDamage.Arrow,
+// McDamage.Freeze, McDamage.SonicBoom, and more</pre>
+        </section>
+
+        <section id="registration">
+            <h2>Block & Item Registration</h2>
+            <pre><button class="copy-btn">Copy</button>// Register a block
+McBlock rubyBlock = McRegistry.RegisterBlock("mymod:ruby_block", 3.0f);
+McRegistry.RegisterBlockItem("mymod:ruby_block", rubyBlock);
+
+// Register tools
+McRegistry.RegisterPickaxe("mymod:ruby_pick", McToolMaterial.Diamond);</pre>
+            <pre><button class="copy-btn">Copy</button>// Blocks
+McBlock myBlock = McRegistry.RegisterBlock("mymod:my_block", hardness: 3.0f);
+McItem blockItem = McRegistry.RegisterBlockItem("mymod:my_block", myBlock);
+
+// Items
+McItem myItem = McRegistry.RegisterItem("mymod:my_item");
+McItem food = McRegistry.RegisterFood("mymod:my_food", 6, 0.8f, meat: true);
+
+// Tools
+McItem sword   = McRegistry.RegisterSword("mymod:my_sword", McToolMaterial.Diamond);
+McItem pickaxe = McRegistry.RegisterPickaxe("mymod:my_pick", McToolMaterial.Iron);
+McItem axe     = McRegistry.RegisterAxe("mymod:my_axe", McToolMaterial.Diamond);
+McItem shovel  = McRegistry.RegisterShovel("mymod:my_shovel", McToolMaterial.Iron);
+McItem hoe     = McRegistry.RegisterHoe("mymod:my_hoe", McToolMaterial.Stone);
+
+// Armor
+McItem helmet = McRegistry.RegisterHelmet("mymod:my_helmet", McArmorMaterial.Diamond);
+McItem chest  = McRegistry.RegisterChestplate("mymod:my_chest", McArmorMaterial.Diamond);
+McItem legs   = McRegistry.RegisterLeggings("mymod:my_legs", McArmorMaterial.Diamond);
+McItem boots  = McRegistry.RegisterBoots("mymod:my_boots", McArmorMaterial.Diamond);
+
+// Creative tabs
+McCreativeTab.AddToCombat(sword, helmet);
+McCreativeTab.AddToTools(pickaxe);
+McCreativeTab.AddToFood(food);</pre>
+        </section>
+
+        <section id="recipes">
+            <h2>Recipes</h2>
+            <p>Recipe JSON files are generated automatically at build time from <code>McRecipe.Register*()</code> calls. All arguments must be compile-time literals.</p>
+            <pre><button class="copy-btn">Copy</button>// Shaped crafting
+McRecipe.RegisterShaped("mymod:my_sword",
+    new[] { " R ", " R ", " S " },
+    new object[] { 'R', "mymod:ruby", 'S', "minecraft:stick" },
+    "mymod:my_sword");
+
+// Shapeless
+McRecipe.RegisterShapeless("mymod:ruby_x9",
+    new[] { "mymod:ruby_block" }, "mymod:ruby", count: 9);
+
+// Smelting / blasting / smoking / campfire
+McRecipe.RegisterSmelting("mymod:smelt", "mymod:ore", "mymod:ingot", 0.7f, 10);
+McRecipe.RegisterBlasting("mymod:blast", "mymod:ore", "mymod:ingot", 0.7f, 5);
+
+// Stonecutting
+McRecipe.RegisterStonecutting("mymod:slab", "mymod:block", "mymod:slab", count: 2);</pre>
+        </section>
+
+        <section id="resources">
+            <h2>Auto-Generated Resources</h2>
+            <p>CSCraft generates JSON files automatically based on your registration calls:</p>
+            <table>
+                <thead><tr><th>Registration Call</th><th>Generated Files</th></tr></thead>
+                <tbody>
+                    <tr><td><code>RegisterBlock</code></td><td>blockstates, block models, lang entry</td></tr>
+                    <tr><td><code>RegisterItem</code></td><td>item models, lang entry</td></tr>
+                    <tr><td><code>RegisterSword/Tool</code></td><td>item models (handheld), lang entry</td></tr>
+                </tbody>
+            </table>
+            <p><strong>Language entries</strong> are merged into a single <code>assets/{modId}/lang/en_us.json</code>. Names are derived automatically: <code>ruby_ore</code> becomes <code>"Ruby Ore"</code>.</p>
+            <p><strong>Textures</strong> must still be provided manually. Place them in:</p>
+            <ul>
+                <li><code>FabricTemplate/src/main/resources/assets/{modId}/textures/item/{name}.png</code> for items</li>
+                <li><code>FabricTemplate/src/main/resources/assets/{modId}/textures/block/{name}.png</code> for blocks</li>
+            </ul>
+            <p>All arguments to registration calls must be compile-time string literals (same as recipes). Variable references emit a CSCRAFT004 warning.</p>
+        </section>
+
+        <section id="tags-fluids-structures-advancements">
+            <h2>Tags, Fluids, Structures, Advancements</h2>
+            <pre><button class="copy-btn">Copy</button>// Block tags
+bool isLog = McTag.IsLog(world, x, y, z);
+bool custom = McTag.BlockIsIn(world, x, y, z, "mymod:my_tag");
+
+// Item tags
+bool isSword = McTag.IsSword(stack);
+
+// Entity tags
+bool isUndead = McTag.IsUndead(entity);
+
+// Fluids
+bool water = McFluid.IsWater(world, x, y, z);
+bool submerged = McFluid.IsPlayerSubmerged(player);
+
+// Structures
+bool inVillage = McStructure.IsInsideStructure(world, x, y, z, "minecraft:village");
+McBlockPos? pos = McStructure.FindNearest(world, "minecraft:stronghold");
+
+// Advancements
+McAdvancement.Grant(player, "mymod:first_ruby");
+bool done = McAdvancement.HasCompleted(player, "mymod:first_ruby");
+
+// Loot tables
+McLootTable.GiveLootToPlayer(player, "mymod:reward_chest");
+
+// Villager trades
+McVillager.AddSellTrade("minecraft:toolsmith", 2, myItem, 1, 5);
+
+// Potions
+McPotion.RegisterBrewingRecipe("minecraft:awkward", ingredient, "minecraft:strength");
+
+// Projectiles
+McProjectile.ShootArrow(player);
+McProjectile.ThrowSnowball(player);</pre>
+        </section>
+
+        <section id="game-rules">
+            <h2>Game Rules</h2>
+            <pre><button class="copy-btn">Copy</button>// Custom rules
+McGameRule&lt;bool&gt; myRule = McRegistry.RegisterBoolRule("mymod:pvp_drops", true);
+McGameRule&lt;int&gt; myInt = McRegistry.RegisterIntRule("mymod:max_homes", 3);
+
+bool val = myRule.GetValue(server);
+myRule.SetValue(server, false);
+
+// Built-in rules
+bool keepInv = McGameRules.KeepInventory(server);
+bool pvp = McGameRules.Pvp(server);
+int tickSpeed = McGameRules.RandomTickSpeed(server);</pre>
+        </section>
+
+        <section id="sounds-particles">
+            <h2>Sounds & Particles</h2>
+            <pre><button class="copy-btn">Copy</button>// Sounds
+world.PlaySound("minecraft:entity.lightning_bolt.thunder", x, y, z);
+player.PlaySound("minecraft:entity.experience_orb.pickup");
+
+// Particles (use McParticles constants)
+world.SpawnParticle(McParticles.Flame, x, y, z, 30);
+world.SpawnParticle(McParticles.Heart, x, y, z, 5);
+player.SpawnParticle(McParticles.End, x, y, z, 10);
+
+// Available: Flame, Smoke, Heart, Explosion, Crit, MagicCrit, Splash,
+// Portal, EnchantTable, Witch, Snow, Lava, End, Dragon, Bubble, Note,
+// XP, Campfire, Dust, Totem, Warped, and more</pre>
+        </section>
+
+        <section id="attributes">
+            <h2>Attributes</h2>
+            <pre><button class="copy-btn">Copy</button>// Read/modify entity attributes
+double speed = McAttribute.GetValue(entity, McAttributes.MovementSpeed);
+McAttribute.AddModifier(entity, McAttributes.MaxHealth, 10.0, 0); // +10 max HP
+
+// Available: MaxHealth, AttackDamage, AttackSpeed, MovementSpeed,
+// FlyingSpeed, Armor, ArmorToughness, Knockback, KnockbackResist,
+// FollowRange, ReachDistance, BlockInteractRange, Luck</pre>
+        </section>
+
+        <section id="commands">
+            <h2>Commands</h2>
+            <pre><button class="copy-btn">Copy</button>// No arguments
+McCommand.Register("heal", (src) => src.Player?.Heal(20));
+
+// String argument
+McCommand.Register("say", "message", (src, msg) => src.Server.Broadcast(msg));
+
+// Integer argument
+McCommand.Register("setlevel", "level", (src, lvl) => src.Player?.SetXpLevel(lvl));
+
+// Float argument
+McCommand.Register("sethp", "amount", (src, hp) => src.Player?.Heal(hp));
+
+// Boolean argument
+McCommand.Register("fly", "enabled", (src, on) => { ... });
+
+// Player selector -- resolves to an online player
+McCommand.RegisterWithPlayer("heal", "target", (src, target) =>
+{
+    target.Heal(target.MaxHealth);
+    src.SendMessage($"Healed {target.Name}");
+});
+
+// Player selector + int argument
+McCommand.RegisterWithPlayer("give", "target", "count", (src, target, count) =>
+{
+    target.GiveItem("minecraft:diamond", count);
+});
+
+// BlockPos argument
+McCommand.RegisterWithPos("setblock", "pos", (src, pos) =>
+{
+    src.Player?.World.SetBlock(pos.X, pos.Y, pos.Z, "minecraft:stone");
+});
+
+// Subcommands:  /myplugin reload
+McCommand.RegisterSub("myplugin", "reload", (src) => { ... });
+
+// Operator-only
+McCommand.RegisterOp("ban", (src) => { ... });
+McCommand.RegisterOpWithPlayer("kick", "target", (src, target) => target.Kick("Kicked"));</pre>
+        </section>
+
+        <section id="trouble">
+            <h2>Troubleshooting</h2>
+            <p><strong><code>Could not find a suitable JDK</code></strong> — Install <a href="https://adoptium.net/">JDK 21</a>. CSCraft auto-discovers it. If it still fails, set <code>&lt;CSCraftJavaHome&gt;C:\path\to\jdk-21&lt;/CSCraftJavaHome&gt;</code> in your <code>.csproj</code>.</p>
+            <p><strong><code>release version X not supported</code></strong> — Wrong Java version. You need JDK 21 (not JRE, not JDK 8).</p>
+            <p><strong><code>mappings not found</code></strong> — Update <code>MinecraftVersion</code> in your <code>[ModInfo]</code> attribute to a supported version (1.20.1 through 1.21.1).</p>
+            <p><strong><code>No package name found</code></strong> — Add <code>[ModInfo(Id = "mymod", Name = "My Mod")]</code> to your mod class, or set <code>&lt;CSCraftPackageName&gt;</code> in your <code>.csproj</code>.</p>
+            <p><strong>Recipe/model JSON not generated</strong> — All <code>McRecipe.Register*()</code> and <code>McRegistry.Register*()</code> arguments must be compile-time literals (strings, chars, numbers). Variables are not supported and emit CSCRAFT003/CSCRAFT004 warnings.</p>
+            <p><strong>Build succeeds but no <code>.jar</code></strong> — Make sure <code>&lt;CSCraftRunGradle&gt;</code> is <code>true</code> (the default) and a JDK is available.</p>
+            <p><strong>Gradle shows <code>NO-SOURCE</code></strong> — Run <code>dotnet build --no-incremental</code> to force a full retranspile. If you just created the project, make sure your <code>.cs</code> file is in the project directory (not a subfolder).</p>
+        </section>
+    </main>
+</div>
+
+<footer>
+    <p>&copy; 2026 CSCraft SDK — Built for the Minecraft .NET Community</p>
+</footer>
+
+<script>
+    // 1. Copy Button Logic
+    document.querySelectorAll('.copy-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const code = btn.parentElement.innerText.replace('Copy', '').trim();
+            navigator.clipboard.writeText(code);
+            btn.innerText = 'Copied!';
+            setTimeout(() => btn.innerText = 'Copy', 2000);
+        });
+    });
+
+    // 2. Search Logic
+    const searchInput = document.getElementById('search');
+    const navLinks = document.querySelectorAll('#nav-list li');
+
+    searchInput.addEventListener('input', (e) => {
+        const term = e.target.value.toLowerCase();
+        navLinks.forEach(li => {
+            const text = li.innerText.toLowerCase();
+            li.style.display = text.includes(term) ? 'block' : 'none';
+        });
+    });
+
+    // 3. Scroll Spy (Highlighting current section)
+    const sidebarLinks = document.querySelectorAll('aside a');
+    const sections = document.querySelectorAll('main section');
+
+    window.addEventListener('scroll', () => {
+        let current = "";
+        sections.forEach(section => {
+            const sectionTop = section.offsetTop;
+            if (pageYOffset >= sectionTop - 100) {
+                current = section.getAttribute('id');
+            }
+        });
+
+        sidebarLinks.forEach(link => {
+            link.classList.remove('active');
+            if (link.getAttribute('href').substring(1) === current) {
+                link.classList.add('active');
+            }
+        });
+    });
+</script>
+
+</body>
+</html>
