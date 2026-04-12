@@ -5,25 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CSCraft Playground</title>
     <link rel="stylesheet" href="css/app.css" />
-    <!-- Monaco editor loader -->
     <script>var require = { paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' } };</script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
-    <!-- LZString for shareable URLs -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
 
-<!-- ── Navigation bar ──────────────────────────────────────────────────────── -->
+<!-- ── Navigation ─────────────────────────────────────────────────────────── -->
 <nav id="nav">
     <div class="nav-left">
         <span class="brand"><span>CS</span>Craft</span>
-        <span class="nav-divider">|</span>
-        <span class="nav-label">Playground</span>
+        <span class="nav-sep">|</span>
+        <span class="nav-sub">Playground</span>
     </div>
+
     <div class="nav-center">
-        <label for="examples-select" class="nav-label">Examples</label>
+        <label class="nav-label">Examples</label>
         <select id="examples-select" title="Load an example">
-            <option value="">— pick an example —</option>
+            <option value="">— pick —</option>
             <option value="hello">Hello World</option>
             <option value="item">Custom Item</option>
             <option value="block">Custom Block</option>
@@ -31,74 +31,113 @@
             <option value="commands">Commands</option>
             <option value="config">Config File</option>
             <option value="nbt">Player NBT (1.21.2+)</option>
+            <option value="multifile">Multi-file project</option>
         </select>
-        <label for="package-input" class="nav-label" style="margin-left:12px">Package</label>
-        <input id="package-input" type="text" value="com.example.mymod" spellcheck="false" title="Java package name" />
+
+        <label class="nav-label" style="margin-left:10px">MC</label>
+        <select id="version-select" title="Target Minecraft version">
+            <option value="1.21.4">1.21.4</option>
+            <option value="1.21.1" selected>1.21.1</option>
+            <option value="1.21.3">1.21.3</option>
+            <option value="1.20.4">1.20.4</option>
+        </select>
+
+        <label class="nav-label" style="margin-left:10px">Package</label>
+        <input id="package-input" type="text" value="com.example.mymod" spellcheck="false" />
     </div>
+
     <div class="nav-right">
-        <button id="btn-run"    class="btn-primary" title="Transpile (Ctrl+Enter)">&#9654; Run</button>
-        <button id="btn-share"  class="btn-secondary" title="Copy shareable URL">&#128279; Share</button>
-        <button id="btn-copy"   class="btn-secondary" title="Copy Java output">&#128203; Copy Java</button>
-        <a id="btn-docs" class="btn-link" href="https://github.com/BorkoAXT/CSCraft#readme" target="_blank" rel="noopener">Docs</a>
+        <button id="btn-run"      class="btn primary"   title="Run (Ctrl+Enter)">&#9654; Run</button>
+        <button id="btn-download" class="btn secondary" title="Download Fabric project ZIP">&#128229; Download</button>
+        <button id="btn-share"    class="btn secondary" title="Copy shareable URL">&#128279; Share</button>
+        <a      id="btn-docs"     class="btn ghost"     href="https://github.com/BorkoAXT/CSCraft#readme" target="_blank" rel="noopener">Docs</a>
     </div>
 </nav>
 
-<!-- ── Editor panes ────────────────────────────────────────────────────────── -->
-<div id="editors-container">
+<!-- ── Main layout ────────────────────────────────────────────────────────── -->
+<div id="main-layout">
 
-    <div class="pane" id="pane-cs">
-        <div class="pane-header">
-            <span class="pane-lang">C#</span>
-            <span class="pane-hint">Write your mod code here</span>
+    <!-- File tree sidebar -->
+    <div id="sidebar">
+        <div id="sidebar-header">
+            <span class="sidebar-title">FILES</span>
+            <div class="sidebar-actions">
+                <button id="btn-new-file"    class="icon-btn" title="New file">&#43;</button>
+                <button id="btn-upload-file" class="icon-btn" title="Upload .cs file">&#8593;</button>
+            </div>
         </div>
-        <div id="editor-cs" class="editor-mount"></div>
+        <div id="file-tree"></div>
     </div>
 
-    <div class="pane-divider" id="divider" title="Drag to resize"></div>
+    <div id="sidebar-resize" title="Drag to resize"></div>
 
-    <div class="pane" id="pane-java">
-        <div class="pane-header">
-            <span class="pane-lang">Java</span>
-            <span id="transpile-status" class="pane-hint">Press Run to transpile</span>
+    <!-- Editor panes -->
+    <div id="editors-wrap">
+        <div class="pane" id="pane-cs">
+            <div class="pane-header">
+                <span class="pane-lang">C#</span>
+                <span id="active-filename" class="pane-filename"></span>
+            </div>
+            <div id="editor-cs" class="editor-mount"></div>
         </div>
-        <div id="editor-java" class="editor-mount"></div>
-    </div>
 
+        <div id="divider" title="Drag to resize"></div>
+
+        <div class="pane" id="pane-java">
+            <div class="pane-header" id="java-header">
+                <span class="pane-lang">Java</span>
+                <div id="java-tabs" class="java-tabs"></div>
+                <div class="pane-spacer"></div>
+                <span id="transpile-status" class="status-tag"></span>
+                <button id="btn-copy-java" class="icon-btn" title="Copy Java">&#128203;</button>
+            </div>
+            <div id="editor-java" class="editor-mount"></div>
+        </div>
+    </div>
 </div>
 
-<!-- ── Diagnostics panel ───────────────────────────────────────────────────── -->
+<!-- ── Diagnostics panel ──────────────────────────────────────────────────── -->
 <div id="panel-bottom">
     <div class="panel-header">
-        <span id="panel-tab-diag"  class="panel-tab active" data-tab="diag">Output</span>
-        <span id="panel-tab-about" class="panel-tab"        data-tab="about">About</span>
-        <button id="panel-clear" class="panel-btn" title="Clear output">&#10005;</button>
+        <span class="panel-tab active" data-tab="diag">Output</span>
+        <span class="panel-tab"        data-tab="about">About</span>
+        <button id="panel-clear" class="panel-btn" title="Clear">&#10005;</button>
     </div>
-    <div id="panel-diag" class="panel-body">
-        <div id="console-output" class="console-output">
+    <div id="panel-diag"  class="panel-body">
+        <div id="console-output">
             <span class="msg-info">CSCraft Playground ready. Press <kbd>Ctrl+Enter</kbd> to run.</span>
         </div>
     </div>
     <div id="panel-about" class="panel-body" style="display:none">
-        <p>
-            <strong>CSCraft</strong> transpiles C# mod code to Java (Fabric API) so you can write
-            Minecraft mods without learning Java.<br />
-            This playground runs entirely in your browser using WebAssembly — no server involved.
-        </p>
-        <p>
-            Source on <a href="https://github.com/BorkoAXT/CSCraft" target="_blank" rel="noopener">GitHub</a>.
-        </p>
+        <p><strong>CSCraft</strong> transpiles C# → Java (Fabric API) so you can write Minecraft mods in C#.<br>
+           Runs entirely in your browser via WebAssembly. No data is sent to any server.</p>
+        <p>The <strong>Download</strong> button gives you a ready-to-build Gradle project.<br>
+           Run <code>./gradlew build</code> inside it to get the <code>.jar</code>.</p>
+        <p><a href="https://github.com/BorkoAXT/CSCraft" target="_blank" rel="noopener">GitHub</a></p>
     </div>
 </div>
 
-<!-- ── Toast notification ─────────────────────────────────────────────────── -->
+<!-- Hidden file upload input -->
+<input type="file" id="file-upload-input" accept=".cs" multiple style="display:none" />
+
+<!-- Rename dialog -->
+<div id="rename-dialog" class="dialog-backdrop" style="display:none">
+    <div class="dialog">
+        <div class="dialog-title">Rename file</div>
+        <input id="rename-input" type="text" spellcheck="false" />
+        <div class="dialog-actions">
+            <button id="rename-ok"     class="btn primary small">OK</button>
+            <button id="rename-cancel" class="btn secondary small">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
 <div id="toast"></div>
 
-<!-- ── Blazor WASM runtime ────────────────────────────────────────────────── -->
+<!-- Blazor -->
 <script src="_framework/blazor.webassembly.js" autostart="false"></script>
-
-<!-- ── App scripts ────────────────────────────────────────────────────────── -->
 <script src="js/intellisense.js"></script>
 <script src="js/playground.js"></script>
-
 </body>
 </html>

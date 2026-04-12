@@ -1,7 +1,7 @@
 {
   "mainAssemblyName": "Playground",
   "resources": {
-    "hash": "sha256-9opEgbEgoziIuPJKcMXGaqEfF3FYRGGwq+9oVuiwhoc=",
+    "hash": "sha256-NfS9e3k1hXYXr6D8s9Yx/x6aBS0qPhO3JubbbaDgeQw=",
     "fingerprinting": {
       "Microsoft.AspNetCore.Components.Web.ys27yqkevq.wasm": "Microsoft.AspNetCore.Components.Web.wasm",
       "Microsoft.AspNetCore.Components.WebAssembly.cgx8n5evik.wasm": "Microsoft.AspNetCore.Components.WebAssembly.wasm",
@@ -19,7 +19,7 @@
       "Microsoft.Extensions.Primitives.8gcpmtr73m.wasm": "Microsoft.Extensions.Primitives.wasm",
       "Microsoft.JSInterop.WebAssembly.heoad7mujs.wasm": "Microsoft.JSInterop.WebAssembly.wasm",
       "Microsoft.JSInterop.426305nhc4.wasm": "Microsoft.JSInterop.wasm",
-      "Playground.xol5t9bkyw.wasm": "Playground.wasm",
+      "Playground.zgzuuo8zit.wasm": "Playground.wasm",
       "System.dqfxtvioy0.wasm": "System.wasm",
       "System.Collections.Concurrent.7uvqno56m2.wasm": "System.Collections.Concurrent.wasm",
       "System.Collections.Immutable.atriwvc3u0.wasm": "System.Collections.Immutable.wasm",
@@ -78,7 +78,7 @@
       "System.Xml.ReaderWriter.6orm1v3mk1.wasm": "System.Xml.ReaderWriter.wasm",
       "System.Xml.XDocument.tn05z2t0hb.wasm": "System.Xml.XDocument.wasm",
       "System.Xml.XPath.XDocument.64jrznjw5f.wasm": "System.Xml.XPath.XDocument.wasm",
-      "Transpiler.o4404f0gth.wasm": "Transpiler.wasm",
+      "Transpiler.fka2pxozn9.wasm": "Transpiler.wasm",
       "netstandard.3sdazi2i4r.wasm": "netstandard.wasm",
       "Microsoft.CodeAnalysis.CSharp.resources.n0kuaydmc6.wasm": "Microsoft.CodeAnalysis.CSharp.resources.wasm",
       "Microsoft.CodeAnalysis.resources.7ali38w8bc.wasm": "Microsoft.CodeAnalysis.resources.wasm",
@@ -149,7 +149,7 @@
       "Microsoft.Extensions.Primitives.8gcpmtr73m.wasm": "sha256-SOV/buK8+b547bCGV72fveEpbdwQKkvc60CYQA4qIt4=",
       "Microsoft.JSInterop.WebAssembly.heoad7mujs.wasm": "sha256-99wG3VH14sWkwPaF5rX6YAcJvtAhDuqonwihvj2m5HA=",
       "Microsoft.JSInterop.426305nhc4.wasm": "sha256-lNqP2ot1f2PhPr/5ZgFueuYFhUgz/pVAaqmi0u4H8Lo=",
-      "Playground.xol5t9bkyw.wasm": "sha256-Ea6/99pw3jFa43i4PxYoLMYfVeCDhgKR9Zm3GwuEGKI=",
+      "Playground.zgzuuo8zit.wasm": "sha256-E423BJs57PMOJwQF3zcn+dUHwU+LLKSq79qacVUI+uw=",
       "System.dqfxtvioy0.wasm": "sha256-5QZAjy4n7513fYxCXSXTsAkUmRsLiZ8m621Ot4k7FB0=",
       "System.Collections.Concurrent.7uvqno56m2.wasm": "sha256-UTWxUVxF1kHvvZZWRGdjPPsr/O/GcFQMKA9cGlPol6Y=",
       "System.Collections.Immutable.atriwvc3u0.wasm": "sha256-sibXlO5mBxzJpyo2rtgeWBaTzZ/4nBMFxzZRTV2ptcs=",
@@ -206,7 +206,7 @@
       "System.Xml.ReaderWriter.6orm1v3mk1.wasm": "sha256-ap0dX/vVMxzNMzKxc4ECW4YHoTsvW5/g0Zg6cPeeXnI=",
       "System.Xml.XDocument.tn05z2t0hb.wasm": "sha256-Z1LEBm6yG+bbLbBPg/gNWTSxXQB5/4q9dCGnF0Ora9s=",
       "System.Xml.XPath.XDocument.64jrznjw5f.wasm": "sha256-hoiwA31tlxMdVE7Z+I/nxy0RrXP/n0n8VXV0AlxgXNI=",
-      "Transpiler.o4404f0gth.wasm": "sha256-6DQrNVyd6IEVtkzpWkroUPZEEfvhnfmqldY1SFw6CQE=",
+      "Transpiler.fka2pxozn9.wasm": "sha256-AUH3ZgMaUp/eTpCUYkJ8AGnOGh7Bh+rKRjEN4TCguck=",
       "netstandard.3sdazi2i4r.wasm": "sha256-vXDpoTsHiAuhjuz4270Oogy0oTn8ab/eDQBHkw031eU="
     },
     "satelliteResources": {
